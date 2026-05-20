@@ -11,6 +11,7 @@ public:
 	ExeDumperWidget(QWidget *parent = nullptr);
 	~ExeDumperWidget();
 
+	void LoadFile(const QString& path);
 private:
 	Ui::ExeDumperWidgetClass ui;
 };

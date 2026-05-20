@@ -9,12 +9,28 @@
 #include <QLabel>
 #include <QTimer>
 #include <QDesktopServices>
+#include <QMessageBox>
+#include <QFileDialog>
 #include "MainWindow.h"
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     ui.setupUi(this);
+	mdiArea = new UI3MdiArea(this);
+
     setWindowIcon(QIcon(":/images/icon.ico"));
     // File
+    connect(ui.actionOpen, &QAction::triggered, this, [this]() {
+        QString path = QFileDialog::getOpenFileName(
+            this,
+            tr("File"),
+            QString(),
+            tr("File (*.*)")
+        );
+
+        if (!path.isEmpty()) {
+            OpenFile(path);
+        }
+    });
     connect(ui.actionExit, &QAction::triggered, this, &MainWindow::close);
 
     // Dev
@@ -27,15 +43,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(ui.actionWiki, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://github.com/ate47/atian-cod-tools/wiki")); });
     connect(ui.actionDonate, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://ko-fi.com/ate47")); });
     connect(ui.actionAbout, &QAction::triggered, this, [this]() { LoadToolUi<InfoWidget>(); });
-    setCentralWidget(ui.mdiArea);
+    setCentralWidget(mdiArea);
 
     ui.menubar->addSeparator();
 
+    mdiArea->setAcceptDrops(true);
+    mdiArea->connect(mdiArea, &UI3MdiArea::fileDropped, this, [this](const QString& path) { OpenFile(path); });
 }
 MainWindow::~MainWindow() = default;
 
 void MainWindow::AddSubWindow(QWidget* widget) {
-    QMdiSubWindow* sub{ ui.mdiArea->addSubWindow(widget) };
+    QMdiSubWindow* sub{ mdiArea->addSubWindow(widget) };
     sub->setContentsMargins(0, 0, 0, 0);
 
     if (widget->minimumSize() == widget->maximumSize()) {
@@ -50,4 +68,20 @@ void MainWindow::AddSubWindow(QWidget* widget) {
             sub->update();
     }
     sub->show();
+}
+void MainWindow::OpenFile(const QString& path) {
+    QByteArray dd{ path.toUtf8() };
+    std::filesystem::path p{ dd.data() };
+
+    if (path.endsWith(".exe", Qt::CaseInsensitive)) {
+        LoadToolUi<ExeDumperWidget>()->LoadFile(path);
+    }
+    else if (path.endsWith(".dll", Qt::CaseInsensitive)) {
+        LoadToolUi<ExeDllInjectorWidget>()->LoadFile(path);
+    }
+    else {
+        QTimer::singleShot(0, this, [this, path]() {
+            QMessageBox::warning(this, "Unsupported File", QString("The file '%1' is not supported.").arg(path));
+        });
+    }
 }

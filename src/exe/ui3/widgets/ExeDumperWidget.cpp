@@ -60,6 +60,10 @@ ExeDumperWidget::ExeDumperWidget(QWidget *parent)
     });
 }
 
-ExeDumperWidget::~ExeDumperWidget()
-{}
+ExeDumperWidget::~ExeDumperWidget() {}
+
+
+void ExeDumperWidget::LoadFile(const QString& path) {
+    ui.execPathEdit->setText(path);
+}
 

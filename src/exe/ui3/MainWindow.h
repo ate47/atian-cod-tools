@@ -2,6 +2,7 @@
 #include <QMainWindow>
 #include <QMdiSubWindow>
 #include <QProgressBar>
+#include <widgets/UI3MdiArea.h>
 #include "ui_MainWindow.h"
 
 class MainWindow : public QMainWindow {
@@ -15,7 +16,7 @@ public:
 
     template<typename T>
     QMdiSubWindow* findMdiInstance() {
-        for (QMdiSubWindow* sub : ui.mdiArea->subWindowList()) {
+        for (QMdiSubWindow* sub : mdiArea->subWindowList()) {
             if (qobject_cast<T*>(sub->widget())) {
                 return sub;
             }
@@ -24,18 +25,23 @@ public:
     }
 
     template<typename T>
-    void LoadToolUi() {
+    T* LoadToolUi() {
         QMdiSubWindow* instance{ findMdiInstance<T>() };
         if (instance) {
             // already added, we raise it
             instance->raise();
-            return;
+            return qobject_cast<T*>(instance->widget());
         }
 
-        AddSubWindow(new T(ui.mdiArea));
+        T* t{ new T(mdiArea) };
+        AddSubWindow(t);
+        return t;
     }
+
+    void OpenFile(const QString& path);
 private:
     Ui::MainWindow ui;
+	UI3MdiArea* mdiArea;
 };
 
 MainWindow* GetMainWindow();

@@ -138,3 +138,7 @@ ExeDllInjectorWidget::~ExeDllInjectorWidget() {
 	injectorTimer->stop();
 }
 
+void ExeDllInjectorWidget::LoadFile(const QString& path) {
+	ui.exeEdit->setText("");
+	ui.dllEdit->setText(path);
+}
