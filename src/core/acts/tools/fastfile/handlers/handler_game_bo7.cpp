@@ -233,6 +233,7 @@ namespace fastfile::handlers::bo7 {
 			games::cod::asset_names::AssetNames<HandlerHashedAssetType, HandlerAssetType> assetNames{ bo7::PoolId };
 			core::hashes::names::NamesStore namesStore{ [](const char* name) -> uint64_t { return hash::HashIWAsset(name); } };
 			utils::OutFileCE* outAsset{};
+			utils::OutFileCE* outLoadedStrings{};
 		} gcx{};
 
 		void AddBootsLimitAssetNames() {
@@ -298,6 +299,9 @@ namespace fastfile::handlers::bo7 {
 				gcx.reader->Read(str, 1);
 			} while (*str++);
 			char* decr{ acts::decryptutils::DecryptString(*pstr) };
+			if (gcx.outLoadedStrings) {
+				*gcx.outLoadedStrings << *pstr << "\n";
+			}
 			std::memcpy(*pstr, decr, std::strlen(decr) + 1);
 			if (gcx.xstringLocs) gcx.xstringLocs->push_back(*pstr);
 			if (**pstr == '#') {
@@ -680,10 +684,14 @@ namespace fastfile::handlers::bo7 {
 				}
 
 				std::filesystem::path outAssets{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "assets" / fftype / std::format("{}.csv", ctx.ffname) };
+				std::filesystem::path outLoadedStrings{ gcx.opt->m_output / gamePath / "source" / "tables" / "data" / "loaded_strings" / fftype / std::format("{}.csv", ctx.ffname) };
 				{
 					std::filesystem::create_directories(outAssets.parent_path());
+					std::filesystem::create_directories(outLoadedStrings.parent_path());
 					utils::OutFileCE assetsOs{ outAssets };
+					utils::OutFileCE loadedStringsOs{ outLoadedStrings };
 					gcx.outAsset = &assetsOs;
+					gcx.outLoadedStrings = &loadedStringsOs;
 					assetsOs << "type,name";
 					gcx.assets.assets = reader.ReadPtr<Asset>(gcx.assets.assetsCount);
 
