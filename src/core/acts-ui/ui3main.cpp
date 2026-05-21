@@ -49,6 +49,10 @@ MainWindow* GetMainWindow() {
     return mainWindow;
 }
 
+UI3MdiArea* GetMainArea() {
+	return mainWindow->GetMdiArea();
+}
+
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
     return TRUE; // ignore

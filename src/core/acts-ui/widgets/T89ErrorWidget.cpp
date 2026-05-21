@@ -133,3 +133,5 @@ void T89ErrorWidget::ComputeDecode() {
 		errorMessageOut->setText(e.what());
 	}
 }
+
+ADD_UI_TOOL(T89ErrorWidget, "T89 Errors", "Utilities/Developper");

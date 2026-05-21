@@ -142,3 +142,5 @@ void ExeDllInjectorWidget::LoadFile(const QString& path) {
 	ui.exeEdit->setText("");
 	ui.dllEdit->setText(path);
 }
+
+ADD_UI_TOOL(ExeDllInjectorWidget, "DLL Injector", "Utilities", ".dll");

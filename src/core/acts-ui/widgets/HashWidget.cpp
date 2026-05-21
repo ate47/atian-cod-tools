@@ -209,3 +209,5 @@ void HashWidget::ComputeLookup() {
 		hashLookupOut->setText(extracted ? extracted : "no found");
 	}
 }
+
+ADD_UI_TOOL(HashWidget, "Hash", "Utilities", nullptr, false, true);

@@ -6,7 +6,7 @@
 
 #include <includes_shared.hpp>
 #include <utils/utils.hpp>
-
+#include <tools_ui.hpp>
 
 #include <QDebug>
 #include <QLoggingCategory>

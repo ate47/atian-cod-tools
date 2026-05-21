@@ -12,6 +12,8 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/UI3MdiArea.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/HashTableModel.cpp"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/HashTableModel.h"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/ToolsListWidget.cpp"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/ToolsListWidget.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/MainWindow.ui"
     )
 

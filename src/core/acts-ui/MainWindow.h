@@ -14,35 +14,10 @@ public:
     ~MainWindow();
 
     void AddSubWindow(QWidget* widget);
-
-    template<typename T>
-    QMdiSubWindow* findMdiInstance() {
-        for (QMdiSubWindow* sub : mdiArea->subWindowList()) {
-            if (qobject_cast<T*>(sub->widget())) {
-                return sub;
-            }
-        }
-        return nullptr;
-    }
-
-    template<typename T>
-    T* LoadToolUi(bool allowDupe = false) {
-        if (!allowDupe) {
-            QMdiSubWindow* instance{ findMdiInstance<T>() };
-            if (instance) {
-                // already added, we raise it
-                instance->raise();
-                return qobject_cast<T*>(instance->widget());
-            }
-
-        }
-
-        T* t{ new T(mdiArea) };
-        AddSubWindow(t);
-        return t;
-    }
-
+    QMenu* CreateMenu(const char* path);
     void OpenFile(const QString& path);
+
+	UI3MdiArea* GetMdiArea() const { return mdiArea; }
 private:
     Ui::MainWindow ui;
 	UI3MdiArea* mdiArea;

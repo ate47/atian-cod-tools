@@ -1,10 +1,6 @@
 #include <ui_includes.hpp>
 #include <widgets/InfoWidget.h>
-#include <widgets/HashWidget.h>
-#include <widgets/T89ErrorWidget.h>
-#include <widgets/ExeDumperWidget.h>
-#include <widgets/ExeDllInjectorWidget.h>
-#include <widgets/HashTableWidget.h>
+#include <tools_ui.hpp>
 #include <QLayout>
 #include <QProgressBar>
 #include <QLabel>
@@ -57,67 +53,116 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     });
     connect(ui.actionExit, &QAction::triggered, this, &MainWindow::close);
 
-    // Dev
-    connect(ui.actionHash, &QAction::triggered, this, [this]() { LoadToolUi<HashWidget>(); });
-    connect(ui.actionT89Error, &QAction::triggered, this, [this]() { LoadToolUi<T89ErrorWidget>(); });
-    connect(ui.actionExecutable_Dumper, &QAction::triggered, this, [this]() { LoadToolUi<ExeDumperWidget>(); });
-    connect(ui.actionDllInjector, &QAction::triggered, this, [this]() { LoadToolUi<ExeDllInjectorWidget>(); });
+    QMenu* menu{};
+
+    std::vector<tools::ui::AbstractUITool*>& tools{ tools::ui::GetTools() };
+
+	std::sort(tools.begin(), tools.end(), [](tools::ui::AbstractUITool* a, tools::ui::AbstractUITool* b) {
+		return _strcmpi(a->path ? a->path : "", b->path ? b->path : "") < 0;
+	});
+
+	for (tools::ui::AbstractUITool* tool : tools) {
+        if (!tool->path) {
+            continue;
+        }
+
+		tool->action = new QAction(tool->name, this);
+		tool->action->setObjectName(QString::asprintf("%s/%s", tool->path, tool->name));
+		if (tool->needsInitialization) {
+			tool->action->setEnabled(false);
+		}
+		CreateMenu(tool->path)->addAction(tool->action);
+        connect(tool->action, &QAction::triggered, this, [this, tool]() {
+            tool->Activate();
+        });
+	}
 
     // Help
     connect(ui.actionWiki, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://github.com/ate47/atian-cod-tools/wiki")); });
     connect(ui.actionDonate, &QAction::triggered, this, [this]() { QDesktopServices::openUrl(QUrl::fromLocalFile("https://ko-fi.com/ate47")); });
-    connect(ui.actionAbout, &QAction::triggered, this, [this]() { LoadToolUi<InfoWidget>(); });
+    connect(ui.actionAbout, &QAction::triggered, this, [this]() { mdiArea->LoadToolUi<InfoWidget>(); });
     setCentralWidget(mdiArea);
-
-    ui.menubar->addSeparator();
 
     mdiArea->setAcceptDrops(true);
     mdiArea->connect(mdiArea, &UI3MdiArea::fileDropped, this, [this](const QString& path) { OpenFile(path); });
-
-    menuBar()->setEnabled(false);
 
     QFuture<void> future = QtConcurrent::run([this] {
         ActsAPIHash_ReadDefaultHashFilesP(&this->progressHandler);
         QMetaObject::invokeMethod(this, [this]() {
 			menuBar()->setEnabled(true);
+
+			for (tools::ui::AbstractUITool* tool : tools::ui::GetTools()) {
+				if (tool->needsInitialization) {
+					tool->action->setEnabled(true);
+				}
+			}
         });
     });
 }
 MainWindow::~MainWindow() = default;
 
-void MainWindow::AddSubWindow(QWidget* widget) {
-    QMdiSubWindow* sub{ mdiArea->addSubWindow(widget) };
-    sub->setContentsMargins(0, 0, 0, 0);
+QMenu* MainWindow::CreateMenu(const char* path) {
+	QMenuBar* bar{ menuBar() };
+	// create or load a menu based on the path, we split by '/' and create submenus as needed
+	QStringList parts{ QString(path).split('/') };
+	QMenu* menu{ nullptr };
+	for (const QString& part : parts) {
+		QMenu* sub{ nullptr };
+		if (menu) {
+			// find submenu with this name
+			for (QAction* action : menu->actions()) {
+				if (action->menu() && action->text() == part) {
+					sub = action->menu();
+					break;
+				}
+			}
+			if (!sub) {
+				sub = menu->addMenu(part);
+			}
+		}
+		else {
+			QAction* action{ nullptr };
+			QList<QAction*> actions{ bar->actions() };
 
-    if (widget->minimumSize() == widget->maximumSize()) {
-        QSize s{ widget->size() };
-            sub->setMinimumSize(s);
-            sub->setMaximumSize(s);
-            sub->setWindowFlags(
-                (sub->windowFlags() | Qt::MSWindowsFixedSizeDialogHint)
-                & ~Qt::WindowMaximizeButtonHint
-            );
-            sub->updateGeometry();
-            sub->update();
-    }
-    sub->show();
+			for (QAction* a : actions) {
+				if (a->menu() && a->text() == part) {
+					action = a;
+					break;
+				}
+			}
+			if (action) {
+				sub = action->menu();
+			}
+			else {
+				sub = new QMenu(part, bar);
+				bar->insertMenu(actions[actions.size() - 1], sub);
+			}
+		}
+		menu = sub;
+	}
+	return menu;
 }
+
 void MainWindow::OpenFile(const QString& path) {
     QByteArray dd{ path.toUtf8() };
     std::filesystem::path p{ dd.data() };
 
-    if (path.endsWith(".exe", Qt::CaseInsensitive)) {
-        LoadToolUi<ExeDumperWidget>()->LoadFile(path);
+    for (tools::ui::AbstractUITool* tool : tools::ui::GetTools()) {
+        if (!tool->extensions) {
+            continue;
+        }
+
+        QStringList extensions{ QString(tool->extensions).split(',') };
+
+		for (const QString& ext : extensions) {
+			if (!ext.isEmpty() && path.endsWith(ext, Qt::CaseInsensitive)) {
+				tool->OpenFile(path);
+				return;
+			}
+		}
     }
-    else if (path.endsWith(".dll", Qt::CaseInsensitive)) {
-        LoadToolUi<ExeDllInjectorWidget>()->LoadFile(path);
-    }
-    else if (path.endsWith(".wni", Qt::CaseInsensitive) || path.endsWith(".cdb", Qt::CaseInsensitive)) {
-        LoadToolUi<HashTableWidget>(true)->LoadFile(path);
-    }
-    else {
-        QTimer::singleShot(0, this, [this, path]() {
-            QMessageBox::warning(this, "Unsupported File", QString("The file '%1' is not supported.").arg(path));
-        });
-    }
+
+    QTimer::singleShot(0, this, [this, path]() {
+        QMessageBox::warning(this, "Unsupported File", QString("The file '%1' is not supported.").arg(path));
+    });
 }

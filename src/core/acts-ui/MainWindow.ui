@@ -40,17 +40,7 @@
     <addaction name="actionDonate"/>
     <addaction name="actionAbout"/>
    </widget>
-   <widget class="QMenu" name="menuHashes">
-    <property name="title">
-     <string>Developer</string>
-    </property>
-    <addaction name="actionT89Error"/>
-    <addaction name="actionDllInjector"/>
-    <addaction name="actionExecutable_Dumper"/>
-    <addaction name="actionHash"/>
-   </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuHashes"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
@@ -66,9 +56,6 @@
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionExit">
-   <property name="icon">
-    <iconset theme="QIcon::ThemeIcon::ApplicationExit"/>
-   </property>
    <property name="text">
     <string>Exit</string>
    </property>

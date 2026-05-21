@@ -62,3 +62,5 @@ void HashTableWidget::LoadFile(const QString& path) {
 	proxy->setSourceModel(model);
 	ui.tableView->resizeColumnsToContents();
 }
+
+ADD_UI_TOOL(HashTableWidget, "Hash Table", nullptr, ".wni,.cdb", true);

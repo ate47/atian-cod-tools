@@ -67,3 +67,4 @@ void ExeDumperWidget::LoadFile(const QString& path) {
     ui.execPathEdit->setText(path);
 }
 
+ADD_UI_TOOL(ExeDumperWidget, "Executable Dumper", "Utilities", ".exe");

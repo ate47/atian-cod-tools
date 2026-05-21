@@ -47,6 +47,7 @@ InfoWidget::InfoWidget(QWidget *parent) : QWidget(parent) {
 
 	templateData["version"] = core::actsinfo::VERSION;
 	templateData["build"] = std::format("0x{:x}", core::actsinfo::BUILD_VERSION_ID);
+	templateData["ui_tools_count"] = std::format("{}", tools::ui::GetTools().size());
 
 	templateData["api_version"] = ActsAPIVersion_GetVersion();
 	templateData["api_build"] = std::format("0x{:x}", ActsAPIVersion_GetBuildVersion());
