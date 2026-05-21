@@ -4,6 +4,7 @@
 #include <widgets/T89ErrorWidget.h>
 #include <widgets/ExeDumperWidget.h>
 #include <widgets/ExeDllInjectorWidget.h>
+#include <widgets/HashTableWidget.h>
 #include <QLayout>
 #include <QProgressBar>
 #include <QLabel>
@@ -78,6 +79,9 @@ void MainWindow::OpenFile(const QString& path) {
     }
     else if (path.endsWith(".dll", Qt::CaseInsensitive)) {
         LoadToolUi<ExeDllInjectorWidget>()->LoadFile(path);
+    }
+    else if (path.endsWith(".wni", Qt::CaseInsensitive) || path.endsWith(".cdb", Qt::CaseInsensitive)) {
+        LoadToolUi<HashTableWidget>(true)->LoadFile(path);
     }
     else {
         QTimer::singleShot(0, this, [this, path]() {

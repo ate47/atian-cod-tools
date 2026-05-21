@@ -81,5 +81,12 @@ int main(int argc, char* argv[]) {
     mainWindow = &window;
     window.show();
     window.setWindowTitle(QString::asprintf("Atian Tools (%s)", core::actsinfo::VERSION));
+
+    if (argc) {
+        for (size_t i = 1; i < argc; i++) {
+			window.OpenFile(argv[i]);
+        }
+    }
+
     return app.exec();
 }

@@ -25,12 +25,15 @@ public:
     }
 
     template<typename T>
-    T* LoadToolUi() {
-        QMdiSubWindow* instance{ findMdiInstance<T>() };
-        if (instance) {
-            // already added, we raise it
-            instance->raise();
-            return qobject_cast<T*>(instance->widget());
+    T* LoadToolUi(bool allowDupe = false) {
+        if (!allowDupe) {
+            QMdiSubWindow* instance{ findMdiInstance<T>() };
+            if (instance) {
+                // already added, we raise it
+                instance->raise();
+                return qobject_cast<T*>(instance->widget());
+            }
+
         }
 
         T* t{ new T(mdiArea) };
