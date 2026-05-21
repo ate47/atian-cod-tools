@@ -564,7 +564,9 @@ namespace utils {
             if (s[i] == '\n') line++;
         }
 
-        in.write(s.data(), s.length());
+        if (callback) {
+            callback(s.data(), s.length(), callbackUd);
+        }
 
         str({});
 

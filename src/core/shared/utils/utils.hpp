@@ -746,12 +746,9 @@ namespace utils {
 
 	class LineStreamBuf : public std::stringbuf {
 	public:
-		std::ofstream in{};
+		void (*callback)(const char* str, size_t len, void* ud) {};
+		void* callbackUd{};
 		size_t line{ 1 };
-
-		inline void close() {
-			in.close();
-		}
 
 		virtual int sync();
 	};

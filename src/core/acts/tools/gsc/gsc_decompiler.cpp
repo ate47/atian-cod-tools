@@ -19,6 +19,8 @@
 #include <gsc/gsc_acts_debug.hpp>
 #include <tools/gsc/gsc_gdb.hpp>
 #include <actscli.hpp>
+#include <acts_api/gsc_decompiler.h>
+#include <acts_api_impl/api_impl.hpp>
 
 
 namespace tool::gsc {
@@ -158,9 +160,24 @@ namespace tool::gsc {
         scriptfile->originalFile = &fsPath;
 
         utils::LineStreamBuf asmoutFile{};
+        bool needOpenFile{ !gdctx.noDump };
+
+        std::ofstream asmoutFileOut{};
+        if (opt.WriteAsmFunction) {
+			asmoutFile.callback = opt.WriteAsmFunction;
+			asmoutFile.callbackUd = opt.udWriteAsmFunction;
+        }
+        else {
+            // use the output file as default callback
+            asmoutFile.callback = [](const char* str, size_t len, void* ud) {
+                std::ofstream* file{ (std::ofstream*)ud };
+                file->write(str, len);
+            };
+			asmoutFile.callbackUd = &asmoutFileOut;
+        }
         std::ostream asmout{ &asmoutFile };
         std::ostream& nullstream{ utils::NullStream() };
-        utils::CloseEnd asmoutclose{ asmoutFile };
+        utils::CloseEnd asmoutclose{ asmoutFileOut };
         ctx.lineBuf = &asmoutFile;
 
         if (ctx.opt.m_usePathOutput) {
@@ -193,10 +210,10 @@ namespace tool::gsc {
                 core::async::opt_lock_guard lg{ gdctx.asyncMtx };
                 std::filesystem::create_directories(file.parent_path());
             }
-            if (!gdctx.noDump) {
-                asmoutFile.in.open(file);
+            if (needOpenFile) {
+                asmoutFileOut.open(file);
 
-                if (!asmoutFile.in) {
+                if (!asmoutFileOut) {
                     LOG_ERROR("Can't open path output file {}", file.string());
                     return tool::BASIC_ERROR;
                 }
@@ -403,16 +420,16 @@ namespace tool::gsc {
         profiler.GetCurrent().name = asmfnamebuff;
 
         if (!ctx.opt.m_usePathOutput) {
-            std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
+            if (needOpenFile) {
+                std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
 
-            {
-                core::async::opt_lock_guard lg{ gdctx.asyncMtx };
-                std::filesystem::create_directories(file.parent_path());
-            }
-            if (!gdctx.noDump) {
-                asmoutFile.in.open(file);
+                {
+                    core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+                    std::filesystem::create_directories(file.parent_path());
+                }
+                asmoutFileOut.open(file);
 
-                if (!asmoutFile.in) {
+                if (!asmoutFileOut) {
                     LOG_ERROR("Can't open output file {} ({})", asmfnamebuff, hashutils::ExtractTmpScript(scriptfile->GetName()));
                     return tool::BASIC_ERROR;
                 }
@@ -2360,4 +2377,60 @@ namespace tool::gsc {
 
     ADD_TOOL(gscinfo, "gsc", "", "GSC decompiler/disassembler", gscinfo);
     ADD_TOOL(gscd, "gsc", "", "GSC decompiler/disassembler", gscinfo);
+}
+
+namespace {
+	struct ActsAPIGscDecompiler_Context {
+		tool::gsc::GscDecompilerGlobalContext globalContext;
+	};
+}
+
+ActsHandle ActsAPIGscDecompiler_CreateDecompilerContext(
+    ActsAPIGsc_Platform platform, ActsAPIGscDecompiler_OptionalConfig* optCfg
+) {
+	ActsAPIGscDecompiler_Context* ctx{ ActsAPIImpl_New<ActsAPIGscDecompiler_Context>() };
+
+	ctx->globalContext.opt.m_platform = (tool::gsc::opcode::Platform)platform;
+
+    ctx->globalContext.noDump = optCfg && optCfg->outputDir;
+    if (optCfg) {
+        ctx->globalContext.opt.m_outputDir = optCfg->outputDir;
+        ctx->globalContext.opt.WriteAsmFunction = optCfg->WriteAsmFunction;
+        ctx->globalContext.opt.udWriteAsmFunction = optCfg->WriteAsmFunctionUserData;
+        ctx->globalContext.opt.m_dasm = optCfg->writeAsm;
+        ctx->globalContext.opt.m_dcomp = optCfg->writeDecompilation;
+        ctx->globalContext.opt.m_header = optCfg->writeHeader;
+		ctx->globalContext.opt.m_vm = (tool::gsc::opcode::VMId)optCfg->vm;
+    }
+
+    if (!(ctx->globalContext.opt.m_dcomp || ctx->globalContext.opt.m_dasm)) {
+        ctx->globalContext.opt.m_dcomp = true;
+    }
+
+    return ctx;
+}
+
+ActsStatus ActsAPIGscDecompiler_DecompileObject(ActsHandle context, byte* data, size_t size) {
+    ActsAPIGscDecompiler_Context* ctx{ (ActsAPIGscDecompiler_Context*)context };
+    try {
+        if (tool::gsc::DecompileGsc(data, size, {}, ctx->globalContext)) {
+            return ACTS_STATUS_ERROR;
+        }
+        return ACTS_STATUS_OK;
+    }
+    catch (std::runtime_error& e) {
+		ActsAPISetLastMessage("%s", e.what());
+        return ACTS_STATUS_ERROR;
+    }
+}
+
+ActsStatus ActsAPIGscDecompiler_DecompileFile(ActsHandle context, const char* file) {
+    try {
+        std::vector<byte> data{ utils::ReadFile<std::vector<byte>>(file) };
+		return ActsAPIGscDecompiler_DecompileObject(context, data.data(), data.size());
+    }
+    catch (std::runtime_error& e) {
+        ActsAPISetLastMessage("%s", e.what());
+        return ACTS_STATUS_ERROR;
+    }
 }

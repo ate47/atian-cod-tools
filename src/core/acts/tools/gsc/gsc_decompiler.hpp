@@ -92,6 +92,8 @@ namespace tool::gsc {
         opcode::VMId m_vm{ opcode::VMId::VMI_UNKNOWN };
         const formatter::FormatterInfo* m_formatter{};
         const char* (*LookupLocalizedFunc)(uint64_t hash) {};
+        void (*WriteAsmFunction)(const char* str, size_t len, void* ud) {};
+        void* udWriteAsmFunction{};
 
 
         std::vector<const char*> m_inputFiles{};
