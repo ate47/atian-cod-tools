@@ -1,10 +1,12 @@
 #include <ui_includes.hpp>
 #include <acts_api/internal.h>
+#include <acts_api/internal_ui.h>
 #include <core/actsinfo.hpp>
 #include <core/shared_cfg_data.hpp>
 #include <QApplication>
 #include <QWidget>
 #include <MainWindow.h>
+#include <platform/platform_windows.hpp>
 
 namespace {
     static MainWindow* mainWindow{};
@@ -47,7 +49,12 @@ MainWindow* GetMainWindow() {
     return mainWindow;
 }
 
-int main(int argc, char* argv[]) {
+
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
+    return TRUE; // ignore
+}
+
+int MainActsUI(int argc, const char** argv) {
     core::shared_cfg::SetSharedConfigPtr(GetActsSharedConfig());
     // load acts api data
     int r{ InitActsAPI(false, &argc, (const char***)&argv, core::actsinfo::BUILD_VERSION_ID) };

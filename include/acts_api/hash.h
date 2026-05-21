@@ -123,5 +123,10 @@ ACTS_COMMON_API char* ActsAPIHash_ExtractTmp(const char* type, uint64_t hash);
  * Read the default hash files
  */
 ACTS_COMMON_API void ActsAPIHash_ReadDefaultHashFiles();
+/*
+ * Read the default hash files
+ * @param progress progress handler
+ */
+ACTS_COMMON_API void ActsAPIHash_ReadDefaultHashFilesP(ActsProgressHandler* progress);
 
 #endif // __ACTS_API_HASH_H__

@@ -49,6 +49,12 @@ typedef enum {
 	ACTS_STATUS_ASSERTION_ERROR = -2,
 } ActsStatus;
 
+// progress handler, used for long operations to report progress and messages
+typedef struct {
+	void (*handler)(float progress, const char* message, void* ud);
+	void* ud;
+} ActsProgressHandler;
+
 // acts handle, should be closed with ActsAPICloseHandle
 typedef void* ActsHandle;
 

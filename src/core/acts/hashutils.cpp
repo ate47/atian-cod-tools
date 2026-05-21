@@ -9,6 +9,8 @@
 #include <core/bytebuffer.hpp>
 #include <BS_thread_pool.hpp>
 #include <extension/acts_extension.hpp>
+#include <acts_api/hash.h>
+#include <acts_api_impl/progress_impl.hpp>
 
 namespace {
 	std::set<uint64_t> g_extracted{};
@@ -38,7 +40,7 @@ namespace hashutils {
 		return core::hashes::AllocHashMemory(len);
 	}
 
-	static void ReadDefaultFile0() {
+	static void ReadDefaultFile0(ActsProgressHandler* progress) {
 		auto& opt = actscli::options();
 		std::filesystem::path wniPackageIndex;
 		if (opt.wniFiles) {
@@ -48,14 +50,34 @@ namespace hashutils {
 			wniPackageIndex = utils::GetProgDir() / deps::scobalula::wni::packageIndexDir;
 		}
 
+		ActsProgressHandlerImpl pi{ progress };
+
+		size_t numFiles{};
+		size_t loaded{};
+		pi.Report(0, "Loading hash files...");
 		actslib::profiler::Profiler prof{ "hash" };
+
+		if (!opt.noDefaultHash) {
+			numFiles++;
+		}
 		if (opt.installDirHashes) {
 
 			std::vector<std::filesystem::path> wnipaths{};
+			std::vector<std::filesystem::path> cdbpaths{};
+			std::vector<std::filesystem::path> csvs{};
+			acts::extension::AcefArray* hashStorages;
+			size_t hashStoragesCount;
 
+			acts::extension::GetExtensionData("acts.hash", &hashStorages, &hashStoragesCount);
 			utils::GetFileRecurseExt(wniPackageIndex, wnipaths, ".wni\0");
+			utils::GetFileRecurseExt(wniPackageIndex, cdbpaths, ".cdb\0");
+			utils::GetFileRecurseExt(wniPackageIndex, csvs, ".hash.csv\0");
+
+			numFiles += wnipaths.size() + cdbpaths.size() + csvs.size() + hashStoragesCount;
+
 
 			for (std::filesystem::path& p : wnipaths) {
+				pi.Report(loaded++, numFiles, std::format("Loading WNI {}...", p.string()));
 				if (!deps::scobalula::wni::ReadWNIFile(p, [](uint64_t hash, const char* str) {
 					AddPrecomputed(hash, str, true, false);
 					}, [](size_t len) -> void* {
@@ -66,11 +88,9 @@ namespace hashutils {
 			}
 
 
-			std::vector<std::filesystem::path> cdbpaths{};
-
-			utils::GetFileRecurseExt(wniPackageIndex, cdbpaths, ".cdb\0");
 
 			for (std::filesystem::path& p : cdbpaths) {
+				pi.Report(loaded++, numFiles, std::format("Loading CDB {}...", p.string()));
 				if (!deps::dzporter::cdb::ReadCDBFile(p, [](uint64_t hash, const char* str) {
 					AddPrecomputed(hash, str, true, false);
 					}, [](size_t len) -> void* {
@@ -80,13 +100,11 @@ namespace hashutils {
 				};
 			}
 
-			acts::extension::AcefArray* hashStorages;
-			size_t hashStoragesCount;
-
-			acts::extension::GetExtensionData("acts.hash", &hashStorages, &hashStoragesCount);
-
-			if (hashStoragesCount) LOG_DEBUG("Loading {} hash extension(s)", hashStoragesCount);
+			if (hashStoragesCount) {
+				LOG_DEBUG("Loading {} hash extension(s)", hashStoragesCount);
+			}
 			for (size_t i = 0; i < hashStoragesCount; i++) {
+				pi.Report(loaded++, numFiles, "Loading ACEF...");
 				acts::extension::AcefArray* arr{ hashStorages + i };
 				core::bytebuffer::ByteBuffer storage{ (byte*)arr->data, arr->len };
 
@@ -101,14 +119,8 @@ namespace hashutils {
 				}
 			}
 
-			std::vector<std::filesystem::path> csvs{};
-
-			utils::GetFileRecurse(wniPackageIndex, csvs, [](const std::filesystem::path& p) {
-				auto s = p.string();
-				return s.ends_with(".hash.csv");
-				});
-
 			for (const std::filesystem::path& csv : csvs) {
+				pi.Report(loaded++, numFiles, std::format("Loading HASH CSV {}...", csv.string()));
 				LOG_DEBUG("Reading HASH CSV {}", csv.string());
 				std::string buffer{};
 
@@ -149,35 +161,47 @@ namespace hashutils {
 		::hashPrefix = opt.hashPrefixByPass;
 		::heavyHashes = opt.heavyHashes;
 
-		if (opt.noDefaultHash) {
-			return;
-		}
-		const char* file = opt.defaultHashFile;
+		if (!opt.noDefaultHash) {
+			const char* file = opt.defaultHashFile;
 
-		if (!file) {
-			file = DEFAULT_HASH_FILE;
-		}
-		std::filesystem::path filePath{ file };
-		LOG_DEBUG("Load default hash file {}", filePath.string());
-		LoadMap(file, true, !opt.noIWHash, true);
+			if (!file) {
+				file = DEFAULT_HASH_FILE;
+			}
+			std::filesystem::path filePath{ std::filesystem::absolute(file) };
+			pi.Report(loaded++, numFiles, std::format("Loading hash file {}...", filePath.string()));
+			LOG_DEBUG("Load default hash file {}", filePath.string());
+			LoadMap(file, true, !opt.noIWHash, true);
 
-		prof.Stop();
-		LOG_TRACE("Loaded wni in {}ms", prof.GetMainSection().GetMillis());
-		LOG_DEBUG("End load default hash file");
+			prof.Stop();
+			LOG_TRACE("Loaded wni in {}ms", prof.GetMainSection().GetMillis());
+			LOG_DEBUG("End load default hash file");
+		}
+
+
+		pi.Report(100, "Hash files loaded.");
 	}
 
-	void ReadDefaultFile(bool cleanup) {
+	static void ReadDefaultFileP(bool cleanup, ActsProgressHandler* progress) {
 		static bool loaded{};
 		std::lock_guard lg{ asyncMutex };
+
+		uint64_t old{ core::async::GetAsyncTypes() };
+		core::async::SetAsync(old | core::async::AT_HASHES);
 
 		if (cleanup) {
 			core::hashes::Clean();
 			loaded = false;
 		}
 		if (!loaded) {
-			ReadDefaultFile0();
+			ReadDefaultFile0(progress);
 			loaded = true;
 		}
+
+		core::async::SetAsync(old);
+	}
+
+	void ReadDefaultFile(bool cleanup) {
+		ReadDefaultFileP(cleanup, nullptr);
 	}
 
 	void SaveExtracted(bool value, bool unk) {
@@ -450,4 +474,40 @@ namespace hashutils {
 		return core::hashes::GetMap().size() >> 1; // 2 hashes/string
 	}
 
+}
+
+void* ActsAPIHash_AllocHashMemory(size_t len) {
+	return core::hashes::AllocHashMemory(len);
+}
+
+const char* ActsAPIHash_CloneHashStr(const char* str) {
+	return core::hashes::CloneHashStr(str);
+}
+
+void ActsAPIHash_Clean() {
+	core::hashes::Clean();
+}
+
+const char* ActsAPIHash_AddPrecomputed(uint64_t value, const char* str, bool clone) {
+	return core::hashes::AddPrecomputed(value, str, clone);
+}
+
+const char* ActsAPIHash_ExtractPtr(uint64_t hash) {
+	return core::hashes::ExtractPtr(hash);
+}
+
+bool ActsAPIHash_Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
+	return core::hashes::Extract(type, hash, out, outSize);
+}
+
+char* ActsAPIHash_ExtractTmp(const char* type, uint64_t hash) {
+	return core::hashes::ExtractTmp(type, hash);
+}
+
+void ActsAPIHash_ReadDefaultHashFiles() {
+	ActsAPIHash_ReadDefaultHashFilesP(nullptr);
+}
+
+void ActsAPIHash_ReadDefaultHashFilesP(ActsProgressHandler* progress) {
+	hashutils::ReadDefaultFileP(false, progress);
 }

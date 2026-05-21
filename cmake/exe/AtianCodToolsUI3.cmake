@@ -1,27 +1,12 @@
 # AtianCodToolsUI3
 if (NOT NO_QT_BUILD)
     file(GLOB_RECURSE ACTS_UI3_SOURCES
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/resources/*"
+        "${CMAKE_SOURCE_DIR}/resources/ui/*"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.hpp"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.h"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3/*.cpp"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/ExeDumperWidget.ui"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/ExeDllInjectorWidget.ui"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/HashTableWidget.ui"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/UI3MdiArea.cpp"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/UI3MdiArea.h"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/HashTableModel.cpp"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/widgets/HashTableModel.h"
-        "${CMAKE_SOURCE_DIR}/resources/ui/*"
-        "${CMAKE_SOURCE_DIR}/src/exe/ui3/MainWindow.ui"
     )
-
-    set(CMAKE_AUTOUIC ON)
-    set(CMAKE_AUTOGEN_VERBOSE ON)
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-
-    qt_add_executable(AtianCodToolsUI3 ${ACTS_UI3_SOURCES})
+    add_executable(AtianCodToolsUI3 WIN32 ${ACTS_UI3_SOURCES})
     source_group(
         TREE "${CMAKE_SOURCE_DIR}"
         FILES ${ACTS_UI3_SOURCES}
@@ -29,32 +14,19 @@ if (NOT NO_QT_BUILD)
     set_target_properties(AtianCodToolsUI3 PROPERTIES
         OUTPUT_NAME "acts-ui3"
         FOLDER "Executables"
-        WIN32_EXECUTABLE ON
     )
 
     target_include_directories(AtianCodToolsUI3 PRIVATE
-        "${CMAKE_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/src/exe/ui3"
         "${CMAKE_SOURCE_DIR}/src/core/shared"
-        "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
-        "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
+        "${CMAKE_SOURCE_DIR}/include"
     )
 
-    append_common_defs(AtianCodToolsUI3 QT)
-
-    target_link_libraries(AtianCodToolsUI3 PRIVATE
-        AtianCodTools
-        ACTSSharedLibrary
-        Qt6::Core
-        Qt6::Widgets
-        mstch
-    )
-
-    add_dependencies(AtianCodToolsUI3 
-        AtianCodTools 
-        ACTSSharedLibrary
-        mstch
-    )
+    # link to library target names assumed to exist elsewhere
+    target_link_libraries(AtianCodToolsUI3 PRIVATE AtianCodToolsUI ACTSSharedLibrary)
+    add_dependencies(AtianCodToolsUI3 AtianCodToolsUI ACTSSharedLibrary)
+    append_common_defs(AtianCodToolsUI3)
+    
 
     get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
     get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)

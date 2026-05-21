@@ -13,12 +13,35 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include "MainWindow.h"
+#include <QtConcurrent>
+#include <acts_api/hash.h>
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     ui.setupUi(this);
 	mdiArea = new UI3MdiArea(this);
 
+    progressBar = new QProgressBar(this);
+    progressBar->setRange(0, 100);
+    progressBar->setValue(0);
+    progressBar->setTextVisible(false);
+    progressBar->setFixedWidth(150);
+
     setWindowIcon(QIcon(":/images/icon.ico"));
+    statusBar()->addPermanentWidget(progressBar);
+
+    progressHandler.ud = this;
+	progressHandler.handler = [](float progress, const char* message, void* ud) {
+		MainWindow* w{ (MainWindow*)ud };
+		QMetaObject::invokeMethod(w, [w, progress, message]() {
+            int percent{ (int)(progress) };
+			w->statusBar()->showMessage(QString("%1 (%2%)").arg(message).arg(percent), 5000);
+			if (percent >= 0 && percent <= 100) {
+                w->progressBar->setValue(percent);
+			}
+		});
+	};
+
+
     // File
     connect(ui.actionOpen, &QAction::triggered, this, [this]() {
         QString path = QFileDialog::getOpenFileName(
@@ -50,6 +73,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     mdiArea->setAcceptDrops(true);
     mdiArea->connect(mdiArea, &UI3MdiArea::fileDropped, this, [this](const QString& path) { OpenFile(path); });
+
+    menuBar()->setEnabled(false);
+
+    QFuture<void> future = QtConcurrent::run([this] {
+        ActsAPIHash_ReadDefaultHashFilesP(&this->progressHandler);
+        QMetaObject::invokeMethod(this, [this]() {
+			menuBar()->setEnabled(true);
+        });
+    });
 }
 MainWindow::~MainWindow() = default;
 

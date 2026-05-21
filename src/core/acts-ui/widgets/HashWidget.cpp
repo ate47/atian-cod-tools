@@ -88,22 +88,13 @@ HashWidget::HashWidget(QWidget* parent) : QWidget(parent) {
 	customDJB2Hash = CreateQLineEditRow("DJB2 Custom Hash", false, customLayout);
 
 	customLayout->addWidget(new QLabel("Hash lookup"));
-	hashLookupLoad = CreateQPushButtonRow("Load hashes", customLayout);
 	hashLookupIn = CreateQLineEditRow("Hashed value", true, customLayout);
 	hashLookupOut = CreateQLineEditRow("Lookup", false, customLayout);
-	hashLookupIn->setDisabled(true);
-	hashLookupOut->setDisabled(true);
 
 	stringValue->connect(stringValue, &QLineEdit::textChanged, [this]() { ComputeCustom(); });
 	customOffset->connect(customOffset, &QLineEdit::textChanged, [this]() { ComputeCustom(); });
 	customPrime->connect(customPrime, &QLineEdit::textChanged, [this]() { ComputeCustom(); });
 	hashLookupIn->connect(hashLookupIn, &QLineEdit::textChanged, [this]() { ComputeLookup(); });
-	hashLookupLoad->connect(hashLookupLoad, &QPushButton::clicked, [this]() {
-		hashLookupLoad->setDisabled(true);
-		ActsAPIHash_ReadDefaultHashFiles();
-		hashLookupIn->setDisabled(false);
-		hashLookupOut->setDisabled(false);
-	});
 
 	funcLayout->addStretch();
 	layout->addLayout(funcLayout, 1);

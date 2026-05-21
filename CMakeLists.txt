@@ -27,6 +27,7 @@ set(ALL_PLATFORM_SAFE_SCRIPTS
 if (NOT NO_QT_BUILD)
     find_package(Qt6 REQUIRED COMPONENTS Core)
     find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    find_package(Qt6 REQUIRED COMPONENTS Concurrent)
 endif()
 
 if (NOT NO_OPEN_CL_BUILD)

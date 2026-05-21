@@ -3,6 +3,7 @@
 #include <QMdiSubWindow>
 #include <QProgressBar>
 #include <widgets/UI3MdiArea.h>
+#include <acts_api/api.h>
 #include "ui_MainWindow.h"
 
 class MainWindow : public QMainWindow {
@@ -45,6 +46,8 @@ public:
 private:
     Ui::MainWindow ui;
 	UI3MdiArea* mdiArea;
+    QProgressBar* progressBar;
+	ActsProgressHandler progressHandler;
 };
 
 MainWindow* GetMainWindow();

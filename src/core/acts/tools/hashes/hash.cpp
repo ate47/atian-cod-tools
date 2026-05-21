@@ -1551,35 +1551,3 @@ uint32_t ActsAPIHash_DecodeErrorCode(const ActsAPIHash_ErrorCode* code) {
 const char* ActsAPIHash_ErrorCodeToStr(const ActsAPIHash_ErrorCode* code) {
 	return error_coder::ToStr(*code);
 }
-
-void* ActsAPIHash_AllocHashMemory(size_t len) {
-	return core::hashes::AllocHashMemory(len);
-}
-
-const char* ActsAPIHash_CloneHashStr(const char* str) {
-	return core::hashes::CloneHashStr(str);
-}
-
-void ActsAPIHash_Clean() {
-	core::hashes::Clean();
-}
-
-const char* ActsAPIHash_AddPrecomputed(uint64_t value, const char* str, bool clone) {
-	return core::hashes::AddPrecomputed(value, str, clone);
-}
-
-const char* ActsAPIHash_ExtractPtr(uint64_t hash) {
-	return core::hashes::ExtractPtr(hash);
-}
-
-bool ActsAPIHash_Extract(const char* type, uint64_t hash, char* out, size_t outSize) {
-	return core::hashes::Extract(type, hash, out, outSize);
-}
-
-char* ActsAPIHash_ExtractTmp(const char* type, uint64_t hash) {
-	return core::hashes::ExtractTmp(type, hash);
-}
-
-void ActsAPIHash_ReadDefaultHashFiles() {
-	hashutils::ReadDefaultFile();
-}

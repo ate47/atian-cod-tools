@@ -7,6 +7,7 @@ namespace actscli {
 		ACTS_NUI,
 		ACTS_CLI,
 		ACTS_REPL,
+		ACTS_UI3,
 	};
 	struct ActsOptions {
 		bool showTitle{ true };

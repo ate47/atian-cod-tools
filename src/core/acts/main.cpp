@@ -211,6 +211,9 @@ namespace {
 				else if (!_strcmpi("nui", val)) {
 					opt.type = actscli::ACTS_NUI;
 				}
+				else if (!_strcmpi("ui3", val)) {
+					opt.type = actscli::ACTS_UI3;
+				}
 				else {
 					LOG_ERROR("Invalid param value for param: {}!", arg);
 					return false;
@@ -329,6 +332,12 @@ void SetActsSharedConfig(void* cfg) {
 }
 
 int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
+	static bool initialized{};
+	if (initialized) {
+		LOG_DEBUG("ACTS API already initialized, skipping...");
+		return 0;
+	}
+	initialized = true;
 	core::config::SyncConfig(true);
 	srand((unsigned int)time(nullptr));
 
@@ -394,6 +403,23 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
 	return 0;
 }
 
+static int RunUI3(int argc, const char* argv[]) {
+	hook::library::Library ui3Lib{ "acts-common-ui.dll" };
+
+	if (!ui3Lib) {
+		LOG_ERROR("Failed to load acts-common-ui.dll for UI3 mode!");
+		return -1;
+	}
+	
+	int (*MainActsUI)(int argc, const char** argv) = ui3Lib.GetProc<decltype(MainActsUI)>("MainActsUI");
+	if (!MainActsUI) {
+		LOG_ERROR("Failed to get MainActsUI function from acts-common-ui.dll!");
+		return -1;
+	}
+
+	return MainActsUI(argc, argv);
+}
+
 int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 	bool cli{ hInstance == nullptr };
 	int r{ InitActsAPI(cli, &argc, &argv, core::actsinfo::BUILD_VERSION_ID) };
@@ -413,6 +439,7 @@ int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 					case actscli::ACTS_UI: return "UI";
 					case actscli::ACTS_NUI: return "NUI";
 					case actscli::ACTS_REPL: return "REPL";
+					case actscli::ACTS_UI3: return "UI3";
 					default: return "";
 				}
 			})());
@@ -477,6 +504,10 @@ int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 		) {
 		tool::nui::OpenNuiWindow();
 		return tool::OK;
+	}
+
+	if (opt.type == actscli::ACTS_UI3) {
+		return RunUI3(argc, argv);
 	}
 
 	if (hInstance || opt.type == actscli::ACTS_NUI) {
