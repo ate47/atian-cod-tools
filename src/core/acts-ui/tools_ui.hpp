@@ -1,6 +1,6 @@
 #pragma once
 #include <QAction>
-#include <widgets/UI3MdiArea.h>
+#include <widgets/common/UI3MdiArea.h>
 
 namespace tools::ui {
 	class AbstractUITool {

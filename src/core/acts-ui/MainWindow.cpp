@@ -1,5 +1,5 @@
 #include <ui_includes.hpp>
-#include <widgets/InfoWidget.h>
+#include <widgets/common/InfoWidget.h>
 #include <tools_ui.hpp>
 #include <QLayout>
 #include <QProgressBar>
@@ -86,9 +86,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     mdiArea->setAcceptDrops(true);
     mdiArea->connect(mdiArea, &UI3MdiArea::fileDropped, this, [this](const QString& path) { OpenFile(path); });
 
+
     QFuture<void> future = QtConcurrent::run([this] {
         ActsAPIHash_ReadDefaultHashFilesP(&this->progressHandler);
-        QMetaObject::invokeMethod(this, [this]() {
+    });
+	hashWatcher = new QFutureWatcher<void>(this);
+	hashWatcher->setFuture(future);
+
+	RequiresInitialization([this]() {
+		QMetaObject::invokeMethod(this, [this]() {
 			menuBar()->setEnabled(true);
 
 			for (tools::ui::AbstractUITool* tool : tools::ui::GetTools()) {
@@ -96,10 +102,19 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 					tool->action->setEnabled(true);
 				}
 			}
-        });
-    });
+		});
+	});
 }
 MainWindow::~MainWindow() = default;
+
+void MainWindow::RequiresInitialization(std::function<void()> func) {
+	if (hashWatcher->isRunning()) {
+		connect(hashWatcher, &QFutureWatcher<void>::finished, this, [this, func]() { func(); }, Qt::SingleShotConnection);
+	}
+	else {
+		func();
+	}
+}
 
 QMenu* MainWindow::CreateMenu(const char* path) {
 	QMenuBar* bar{ menuBar() };
@@ -156,7 +171,15 @@ void MainWindow::OpenFile(const QString& path) {
 
 		for (const QString& ext : extensions) {
 			if (!ext.isEmpty() && path.endsWith(ext, Qt::CaseInsensitive)) {
-				tool->OpenFile(path);
+				if (tool->needsInitialization) {
+					RequiresInitialization([tool, path, this]() {
+						tool->OpenFile(path);
+					});
+				}
+				else {
+					tool->OpenFile(path);
+				}
+
 				return;
 			}
 		}
