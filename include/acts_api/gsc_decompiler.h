@@ -19,8 +19,17 @@ typedef struct {
     bool writeDecompilation;
     // write header
     bool writeHeader;
+    // vm magic (if required)
     ActsAPIGsc_VmMagic vm;
+    // code formatter
+    const char* formatter;
 } ActsAPIGscDecompiler_OptionalConfig;
+
+// code formatters
+typedef struct {
+    const char** formatters;
+    size_t count;
+} ActsAPIGscDecompiler_Formatters;
 
 /*
  * Creates a new GSC decompiler context
@@ -39,6 +48,7 @@ ACTS_COMMON_API ActsHandle ActsAPIGscDecompiler_CreateDecompilerContext(
  * @return status
  */
 ACTS_COMMON_API ActsStatus ActsAPIGscDecompiler_DecompileFile(ActsHandle context, const char* file);
+
 /*
  * Decompile a GSC object
  * @param context decompiler context
@@ -47,6 +57,12 @@ ACTS_COMMON_API ActsStatus ActsAPIGscDecompiler_DecompileFile(ActsHandle context
  * @return status
  */
 ACTS_COMMON_API ActsStatus ActsAPIGscDecompiler_DecompileObject(ActsHandle context, byte* data, size_t size);
+
+/*
+ * Get the formatter names
+ * @return formatters
+ */
+ACTS_COMMON_API ActsAPIGscDecompiler_Formatters* ActsAPIGscDecompiler_GetFormatters();
 
 
 #endif // __ACTS_API_GSC_DECOMPILER_H__

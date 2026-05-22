@@ -420,7 +420,7 @@ namespace tool::gsc {
         profiler.GetCurrent().name = asmfnamebuff;
 
         if (!ctx.opt.m_usePathOutput) {
-            if (needOpenFile) {
+            if (needOpenFile && path && *path) {
                 std::filesystem::path file{ std::filesystem::absolute(asmfnamebuff) };
 
                 {
@@ -2401,6 +2401,20 @@ ActsHandle ActsAPIGscDecompiler_CreateDecompilerContext(
         ctx->globalContext.opt.m_dcomp = optCfg->writeDecompilation;
         ctx->globalContext.opt.m_header = optCfg->writeHeader;
 		ctx->globalContext.opt.m_vm = (tool::gsc::opcode::VMId)optCfg->vm;
+
+        if (optCfg->formatter) {
+            try {
+                ctx->globalContext.opt.m_formatter = tool::gsc::formatter::GetFromName(optCfg->formatter);
+                if (!ctx->globalContext.opt.m_formatter) {
+                    ActsAPISetLastMessage("Unknown formatter: %s!", optCfg->formatter);
+                    return INVALID_ACTS_HANDLE_VALUE;
+                }
+            }
+            catch (std::runtime_error& e) {
+                ActsAPISetLastMessage("%s", e.what());
+                return INVALID_ACTS_HANDLE_VALUE;
+            }
+        }
     }
 
     if (!(ctx->globalContext.opt.m_dcomp || ctx->globalContext.opt.m_dasm)) {
@@ -2433,4 +2447,23 @@ ActsStatus ActsAPIGscDecompiler_DecompileFile(ActsHandle context, const char* fi
         ActsAPISetLastMessage("%s", e.what());
         return ACTS_STATUS_ERROR;
     }
+}
+
+ActsAPIGscDecompiler_Formatters* ActsAPIGscDecompiler_GetFormatters() {
+    static std::vector<const char*> formattersNames{};
+	static ActsAPIGscDecompiler_Formatters formatters{};
+
+    if (formatters.count == 0) {
+        const std::vector<tool::gsc::formatter::FormatterInfo*>& fmts{ tool::gsc::formatter::GetFormatters() };
+        formattersNames.resize(fmts.size());
+        
+        for (tool::gsc::formatter::FormatterInfo* fmt : fmts) {
+            formattersNames[formatters.count++] = fmt->name;
+        }
+
+        formatters.formatters = formattersNames.data();
+    }
+
+    return &formatters;
+
 }
