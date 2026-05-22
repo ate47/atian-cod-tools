@@ -47,12 +47,6 @@ Acts.@Log( "Hello from map  " .. Engine.@GetCurrentMap() .. " inject? " .. tostr
 LUI.createMenu[ "T7Hud_" .. Engine.@GetCurrentMap() ] = function ( controller ) 
     local self = LUI.createMenu.T7Hud_zm_factory( controller )
     self.luatest = {}
-    
-#ifdef LUA_DEV
---#warning test preprocessor
-      --Acts.@Log( "test fail " .. nil )
-#endif
-
     Acts.@Log( "Injecting custom menu" )
 
     local text = LUI.UIText.new( 0.5, 1, 0, -6, 0, 0, 6, 46 )
@@ -62,6 +56,14 @@ LUI.createMenu[ "T7Hud_" .. Engine.@GetCurrentMap() ] = function ( controller )
     text:setTTF( "cascadiacode_bold" )
     text:setAlignment( Enum.@LuiAlignment.@LUI_ALIGNMENT_RIGHT )
     text:setAlignment( Enum.@LuiAlignment.@LUI_ALIGNMENT_TOP )
+      
+    text:subscribeToGlobalModel(controller, "PerController", "scriptNotify", function ( model )
+        if CoD.ModelUtility.IsParamModelEqualToHashString( model, @"acts_core_info_data" ) then
+            local scriptData = CoD.GetScriptNotifyData(model)
+            
+            text:setText(Engine.@getDVarString("ac_plr_nfo"))
+        end
+    end)
     self:addElement(text)
       
     return self

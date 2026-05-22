@@ -18,16 +18,15 @@
 //asdzqzqd,missing_asset_test
 
 
-#ifdef TEST_RANKS
+#ifdef TEST_ASSETS
 
 ranktable,acts/ranktable.csv
 prestigetable,acts/prestigetable.csv
 
-#endif
-
-#ifdef TEST_AITYPE
-
 scriptbundle,acts/custom_aitype_testbundle
 aitype,acts/aitype/custom_aitype.json
 
+// it is possible to link an asset from another fastfile using a ',' before the asset name
+// an empty asset will be used if the asset isn't loaded elsewhere
+customizationtable,,wz_character_customization
 #endif
