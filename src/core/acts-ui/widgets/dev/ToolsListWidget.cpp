@@ -17,30 +17,32 @@ ToolsListWidget::ToolsListWidget(QWidget* parent) : QWidget(parent) {
 	layout->addWidget(table);
 	layout->setContentsMargins(0, 0, 0, 0);
 	setLayout(layout);
-	setMinimumWidth(600);
+	setMinimumWidth(700);
 	setMinimumHeight(400);
 	
 	std::vector<tools::ui::AbstractUITool*>& tools{ tools::ui::GetTools() };
 
 	table->setRowCount((int)tools.size());
-	table->setColumnCount(5);
+	table->setColumnCount(6);
 	table->setSortingEnabled(true);
-	QStringList headers{ "Name", "Path", "Extensions", "Allow Duplicates", "Needs Initialization" };
+	QStringList headers{ "ID", "Name", "Path", "Extensions", "Allow Duplicates", "Needs Initialization" };
 	table->setHorizontalHeaderLabels(headers);
 	for (size_t i = 0; i < tools.size(); i++) {
 		tools::ui::AbstractUITool* tool{ tools[i] };
 
+		QTableWidgetItem* idItem{ new QTableWidgetItem(tool->id) };
 		QTableWidgetItem* nameItem{ new QTableWidgetItem(tool->name ? tool->name : "") };
 		QTableWidgetItem* pathItem{ new QTableWidgetItem(tool->path ? tool->path : "") };
 		QTableWidgetItem* extItem{ new QTableWidgetItem(tool->extensions ? tool->extensions : "") };
 		QTableWidgetItem* allowDupeItem{ new QTableWidgetItem(tool->allowDupe ? "true" : "false") };
 		QTableWidgetItem* initItem{ new QTableWidgetItem(tool->needsInitialization ? "true" : "false") };
 
-		table->setItem((int)i, 0, nameItem);
-		table->setItem((int)i, 1, pathItem);
-		table->setItem((int)i, 2, extItem);
-		table->setItem((int)i, 3, allowDupeItem);
-		table->setItem((int)i, 4, initItem);
+		table->setItem((int)i, 0, idItem);
+		table->setItem((int)i, 1, nameItem);
+		table->setItem((int)i, 2, pathItem);
+		table->setItem((int)i, 3, extItem);
+		table->setItem((int)i, 4, allowDupeItem);
+		table->setItem((int)i, 5, initItem);
 	}
 
 	table->resizeColumnsToContents();

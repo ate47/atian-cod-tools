@@ -164,7 +164,7 @@ void MainWindow::OpenFile(const QString& path) {
 
     for (tools::ui::AbstractUITool* tool : tools::ui::GetTools()) {
 
-		if (tool->path && tool->name && path.compare(tool->name, Qt::CaseInsensitive) == 0) {
+		if (tool->path && tool->name && (path.compare(tool->name, Qt::CaseInsensitive) == 0 || path.compare(tool->id, Qt::CaseInsensitive) == 0)) {
 			if (tool->needsInitialization) {
 				RequiresInitialization([tool, path, this]() {
 					tool->Activate();
