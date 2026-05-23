@@ -17,11 +17,14 @@ ToolsListWidget::ToolsListWidget(QWidget* parent) : QWidget(parent) {
 	layout->addWidget(table);
 	layout->setContentsMargins(0, 0, 0, 0);
 	setLayout(layout);
+	setMinimumWidth(600);
+	setMinimumHeight(400);
 	
 	std::vector<tools::ui::AbstractUITool*>& tools{ tools::ui::GetTools() };
 
 	table->setRowCount((int)tools.size());
 	table->setColumnCount(5);
+	table->setSortingEnabled(true);
 	QStringList headers{ "Name", "Path", "Extensions", "Allow Duplicates", "Needs Initialization" };
 	table->setHorizontalHeaderLabels(headers);
 	for (size_t i = 0; i < tools.size(); i++) {
