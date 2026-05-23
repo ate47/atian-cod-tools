@@ -46,6 +46,9 @@ GscDecompilerWidget::GscDecompilerWidget(QWidget *parent)
 	setLayout(ui.mainLayout);
     highlighter = new GscHighlighter(ui.textEdit->document());
 	ui.textEdit->setReadOnly(true);
+	QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+	ui.textEdit->setFont(font);
+
 
 
 	connect(openAction, &QAction::triggered, this, [this]() {
@@ -152,4 +155,4 @@ void GscDecompilerWidget::ReloadFile() {
 }
 
 
-ADD_UI_TOOL(GscDecompilerWidget, "GSC Decompiler", "GSC", ".gscc,.cscc,.gscbin", true, true);
+ADD_UI_TOOL(GscDecompilerWidget, "GSC Decompiler", "GSC", ".gscc,.cscc,.gscbin,.csic,.gsic", true, true);
