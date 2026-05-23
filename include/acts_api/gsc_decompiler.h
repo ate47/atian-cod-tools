@@ -54,9 +54,13 @@ ACTS_COMMON_API ActsStatus ActsAPIGscDecompiler_DecompileFile(ActsHandle context
  * @param context decompiler context
  * @param data data to decompile
  * @param size size of data
+ * @param dbgData optional debug data, used to get function names and other debug info, can be nullptr
+ * @param dbgSize size of debug data
  * @return status
  */
-ACTS_COMMON_API ActsStatus ActsAPIGscDecompiler_DecompileObject(ActsHandle context, byte* data, size_t size);
+ACTS_COMMON_API ActsStatus ActsAPIGscDecompiler_DecompileObject(
+    ActsHandle context, uint8_t* data, size_t size, uint8_t* ACTS_DEFAULT(dbgData, nullptr), size_t ACTS_DEFAULT(dbgSize, 0)
+);
 
 /*
  * Get the formatter names

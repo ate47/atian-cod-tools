@@ -2424,10 +2424,10 @@ ActsHandle ActsAPIGscDecompiler_CreateDecompilerContext(
     return ctx;
 }
 
-ActsStatus ActsAPIGscDecompiler_DecompileObject(ActsHandle context, byte* data, size_t size) {
+ActsStatus ActsAPIGscDecompiler_DecompileObject(ActsHandle context, uint8_t* data, size_t size, uint8_t* dbgData, size_t dbgSize) {
     ActsAPIGscDecompiler_Context* ctx{ (ActsAPIGscDecompiler_Context*)context };
     try {
-        if (tool::gsc::DecompileGsc(data, size, {}, ctx->globalContext)) {
+        if (tool::gsc::DecompileGsc(data, size, {}, ctx->globalContext, dbgData, dbgSize)) {
             return ACTS_STATUS_ERROR;
         }
         return ACTS_STATUS_OK;
@@ -2441,7 +2441,17 @@ ActsStatus ActsAPIGscDecompiler_DecompileObject(ActsHandle context, byte* data, 
 ActsStatus ActsAPIGscDecompiler_DecompileFile(ActsHandle context, const char* file) {
     try {
         std::vector<byte> data{ utils::ReadFile<std::vector<byte>>(file) };
-		return ActsAPIGscDecompiler_DecompileObject(context, data.data(), data.size());
+
+        std::string dbgBuffer;
+        uint8_t* dbgData{};
+        size_t dbgDataSize{};
+
+        if (tool::gsc::ReadDbgFile(file, dbgBuffer)) {
+            dbgData = (uint8_t*)dbgBuffer.data();
+            dbgDataSize = dbgBuffer.size();
+        }
+
+		return ActsAPIGscDecompiler_DecompileObject(context, data.data(), data.size(), dbgData, dbgDataSize);
     }
     catch (std::runtime_error& e) {
         ActsAPISetLastMessage("%s", e.what());

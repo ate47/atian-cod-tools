@@ -13,6 +13,7 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/dev/ToolsListWidget.cpp"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/dev/ToolsListWidget.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscDecompilerWidget.ui"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscInjectorWidget.ui"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscHighlighter.cpp"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscHighlighter.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/common/UI3MdiArea.cpp"

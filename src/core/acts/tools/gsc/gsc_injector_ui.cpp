@@ -9,6 +9,7 @@
 #include "mods/custom_ees.hpp"
 #include "tools/utils/ps4_process.hpp"
 #include <core/config.hpp>
+#include <acts_api/internal.h>
 
 namespace {
     struct {
@@ -431,6 +432,183 @@ namespace {
 
         tool::ui::window().SetTitleFont(info.titleLabel);
 	}
+    const char* InjectPS4Impl(const char* filePath, const char* hookPath, const char* ps4ip) {
+        std::string file{};
+
+        try {
+            if (!utils::ReadFile(filePath, file)) {
+                throw std::runtime_error(std::format("Can't read '{}'", filePath));
+            }
+
+            if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                throw std::runtime_error("GSCBIN format not supported");
+            }
+
+            if (file.size() < 0x20) {
+                throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
+            }
+
+            uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
+
+            tool::gsc::opcode::VmInfo* nfo{};
+            if (!tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                return utils::va("Invalid magic: 0x%llx", magic);
+            }
+            else if (nfo->vmMagic == tool::gsc::opcode::VMId::VMI_T10_06) {
+                // bo6 injector
+
+                try {
+                    tool::gsc::GscObj24* script{ (tool::gsc::GscObj24*)file.data() };
+
+                    uint64_t name = script->name;
+
+                    utils::ps4::PS4Process ps4{ ps4ip };
+
+                    auto pool = ps4.ReadObject<bo6::DB_AssetPool>(ps4[0x98FEFA0] + sizeof(bo6::DB_AssetPool) * bo6::T10_ASSET_GSCOBJ);
+
+
+                    LOG_INFO("Pool: {:x}, count: {}/{}, len 0x{:x}", pool->m_entries, pool->m_loadedPoolSize, pool->m_poolSize, pool->m_elementSize);
+                    auto objs = ps4.ReadArray<bo6::GscObjEntry>(pool->m_entries, pool->m_loadedPoolSize);
+
+                    size_t i;
+                    for (i = 0; i < pool->m_loadedPoolSize; i++) {
+                        auto& obj = objs[i];
+
+                        if (obj.name != name) {
+                            continue;
+                        }
+
+                        if (!obj.buffer) {
+                            throw std::runtime_error("Empty buffer");
+                        }
+
+                        if (obj.len < file.size()) {
+                            throw std::runtime_error(utils::va("Buffer too small, can't remplace %llu < %llu", (size_t)obj.len, file.size()));
+                        }
+
+                        auto scriptTarget = ps4.ReadObject<tool::gsc::GscObj24>(obj.buffer);
+
+                        if (scriptTarget->checksum != script->checksum) {
+                            return "Find target script, but the checksum doesn't match";
+                        }
+
+                        ps4.Write(obj.buffer, file.data(), file.size());
+
+                        ps4.Notify("Script injected");
+                        return "Script injected";
+                    }
+                    return "Can't find hook script";
+                }
+                catch (std::exception& e) {
+                    return utils::va("Exception: %s", e.what());
+                }
+            }
+            else {
+                return utils::va("PS4 injector not implemented for VM: %s", nfo->name);
+            }
+        }
+        catch (std::exception& e) {
+            return utils::va("Exception: %s", e.what());
+        }
+    }
+
+    const char* InjectPCImpl(const char* filePath, const char* hookPath) {
+        std::string file{};
+
+        try {
+            if (!utils::ReadFile(filePath, file)) {
+                throw std::runtime_error(std::format("Can't read '{}'", filePath));
+            }
+
+            if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
+                throw std::runtime_error("GSCBIN format not supported");
+            }
+
+            if (file.size() < 0x20) {
+                throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
+            }
+
+            uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
+            std::string notif{};
+
+            if (magic == cw::GSC_MAGIC) {
+                // cw gsc
+
+                Process proc{ L"BlackOpsColdWar.exe" };
+
+                if (!proc || !proc.Open()) {
+                    throw std::runtime_error("Can't find Black Ops Cold War");
+                }
+                utils::CloseEnd ce{ [&proc] { proc.Close(); } };
+
+                cw::InjectScriptCW(proc, filePath, hookPath, "scripts/core_common/clientids_shared.gsc", notif);
+
+            }
+            else if (magic == bo3::GSC_MAGIC) {
+                // bo3 gsc
+
+                Process proc{ L"BlackOps3.exe" };
+
+                if (!proc || !proc.Open()) {
+                    throw std::runtime_error("Can't find Black Ops 3");
+                }
+                utils::CloseEnd ce{ [&proc] { proc.Close(); } };
+
+                bo3::InjectScriptBO3(proc, filePath, "scripts/shared/duplicaterender_mgr.gsc", notif);
+            }
+            else {
+                tool::gsc::opcode::VmInfo* nfo{};
+                if (tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
+                    return utils::va("PC injector not implemented for VM: %s", nfo->name);
+                }
+                else {
+                    return utils::va("Invalid magic: 0x%llx", magic);
+                }
+            }
+
+			return utils::CloneString(notif.c_str());
+        }
+        catch (std::exception& e) {
+            return utils::va("Exception: %s", e.what());
+        }
+    }
+
+    const char* PatchEEImpl() {
+        try {
+            std::string notif;
+            bool done{};
+
+            if (!done) {
+                Process proc{ L"BlackOpsColdWar.exe" };
+
+                if (proc.Open()) {
+
+                    mods::ee::CustomEET9(proc, notif);
+                    proc.Close();
+                    done = true;
+                }
+            }
+            if (!done) {
+                Process proc{ L"BlackOps4.exe" };
+
+                if (proc.Open()) {
+
+                    std::string notif{};
+                    mods::ee::CustomEET8(proc, notif);
+
+                    proc.Close();
+                    done = true;
+                }
+            }
+            if (!done) {
+                notif = "Can't find game";
+            }
+			return utils::CloneString(notif.c_str());
+        }
+        catch (std::exception& e) {
+            return utils::va("Exception: %s", e.what());
+        }
+    }
 
     void gsc_inject() {
         tool::nui::NuiUseDefaultWindow dw{};
@@ -495,64 +673,7 @@ namespace {
         }
         
         if (ImGui::Button("Inject PC Script")) {
-            std::string file{};
-
-            std::string filePath = gscFileIn;
-            std::string hookPath = hookIn;
-
-            try {
-                if (!utils::ReadFile(filePath, file)) {
-                    throw std::runtime_error(std::format("Can't read '{}'", filePath));
-                }
-
-                if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
-                    throw std::runtime_error("GSCBIN format not supported");
-                }
-
-                if (file.size() < 0x20) {
-                    throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
-                }
-
-                uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
-
-                if (magic == cw::GSC_MAGIC) {
-                    // cw gsc
-
-                    Process proc{ L"BlackOpsColdWar.exe" };
-
-                    if (!proc || !proc.Open()) {
-                        throw std::runtime_error("Can't find Black Ops Cold War");
-                    }
-                    utils::CloseEnd ce{ [&proc] { proc.Close(); } };
-
-                    cw::InjectScriptCW(proc, filePath.c_str(), hookPath.c_str(), "scripts/core_common/clientids_shared.gsc", notif);
-
-                }
-                else if (magic == bo3::GSC_MAGIC) {
-                    // bo3 gsc
-
-                    Process proc{ L"BlackOps3.exe" };
-
-                    if (!proc || !proc.Open()) {
-                        throw std::runtime_error("Can't find Black Ops 3");
-                    }
-                    utils::CloseEnd ce{ [&proc] { proc.Close(); } };
-
-                    bo3::InjectScriptBO3(proc, filePath.c_str(), "scripts/shared/duplicaterender_mgr.gsc", notif);
-                }
-                else {
-                    tool::gsc::opcode::VmInfo* nfo{};
-                    if (tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
-                        notif = (std::format("PC injector not implemented for VM: {}", nfo->name));
-                    }
-                    else {
-                        notif = (std::format("Invalid magic: 0x{:x}", magic));
-                    }
-                }
-            }
-            catch (std::exception& e) {
-                notif = std::format("Exception: {}", e.what());
-            }
+            notif = InjectPCImpl(gscFileIn, hookIn);
         }
 #ifdef DEV_PS4_INJECTOR
         ImGui::Spacing();
@@ -565,89 +686,7 @@ namespace {
 
 
         if (ImGui::Button("Inject PS4 Script")) {
-            std::string file{};
-
-            std::string filePath = gscFileIn;
-            std::string hookPath = hookIn;
-
-            try {
-                if (!utils::ReadFile(filePath, file)) {
-                    throw std::runtime_error(std::format("Can't read '{}'", filePath));
-                }
-
-                if (file.size() >= 4 && !memcmp("GSC", file.data(), 4)) {
-                    throw std::runtime_error("GSCBIN format not supported");
-                }
-
-                if (file.size() < 0x20) {
-                    throw std::runtime_error(std::format("Invalid gsc file '{}'", filePath));
-                }
-
-                uint64_t magic = *reinterpret_cast<uint64_t*>(file.data());
-
-                tool::gsc::opcode::VmInfo* nfo{};
-                if (!tool::gsc::opcode::IsValidVmMagic(magic, nfo)) {
-                    notif = (std::format("Invalid magic: 0x{:x}", magic));
-                }
-                else if (nfo->vm == tool::gsc::opcode::VM::VM_BO6_06) {
-                    // bo6 injector
-
-                    try {
-                        tool::gsc::GscObj24* script{ (tool::gsc::GscObj24*)file.data() };
-
-                        uint64_t name = script->name;
-
-                        utils::ps4::PS4Process ps4{ ps4In };
-
-                        auto pool = ps4.ReadObject<bo6::DB_AssetPool>(ps4[0x98FEFA0] + sizeof(bo6::DB_AssetPool) * bo6::T10_ASSET_GSCOBJ);
-
-
-                        LOG_INFO("Pool: {:x}, count: {}/{}, len 0x{:x}", pool->m_entries, pool->m_loadedPoolSize, pool->m_poolSize, pool->m_elementSize);
-                        auto objs = ps4.ReadArray<bo6::GscObjEntry>(pool->m_entries, pool->m_loadedPoolSize);
-
-                        size_t i;
-                        for (i = 0; i < pool->m_loadedPoolSize; i++) {
-                            auto& obj = objs[i];
-
-                            if (obj.name != name) {
-                                continue;
-                            }
-
-                            if (!obj.buffer) {
-                                throw std::runtime_error("Empty buffer");
-                            }
-
-                            if (obj.len < file.size()) {
-                                throw std::runtime_error(utils::va("Buffer too small, can't remplace %llu < %llu", (size_t)obj.len, file.size()));
-                            }
-
-                            auto scriptTarget = ps4.ReadObject<tool::gsc::GscObj24>(obj.buffer);
-
-                            if (scriptTarget->checksum != script->checksum) {
-                                notif = ("Find target script, but the checksum doesn't match");
-                                return TRUE;
-                            }
-
-                            ps4.Write(obj.buffer, file.data(), file.size());
-
-                            notif = ("Script injected");
-                            ps4.Notify("Script injected");
-                        }
-                        if (i == pool->m_loadedPoolSize) {
-                            notif = ("Can't find hook script");
-                        }
-                    }
-                    catch (std::exception& e) {
-                        notif = (std::format("Exception: {}", e.what()));
-                    }
-                }
-                else {
-                    notif = (std::format("PS4 injector not implemented for VM: {}", nfo->name));
-                }
-            }
-            catch (std::exception& e) {
-                notif = std::format("Exception: {}", e.what());
-            }
+            notif = InjectPS4Impl(gscFileIn, hookIn, ps4In);
         }
 #endif
 
@@ -655,38 +694,7 @@ namespace {
         ImGui::SeparatorText("Utilities");
 
         if (ImGui::Button("Patch Easter Eggs (Zombies/PC)")) {
-            try {
-                bool done{};
-
-                if (!done) {
-                    Process proc{ L"BlackOpsColdWar.exe" };
-
-                    if (proc.Open()) {
-
-                        mods::ee::CustomEET9(proc, notif);
-                        proc.Close();
-                        done = true;
-                    }
-                }
-                if (!done) {
-                    Process proc{ L"BlackOps4.exe" };
-
-                    if (proc.Open()) {
-
-                        std::string notif{};
-                        mods::ee::CustomEET8(proc, notif);
-
-                        proc.Close();
-                        done = true;
-                    }
-                }
-                if (!done) {
-                    notif = "Can't find game";
-                }
-            }
-            catch (std::exception& e) {
-                notif = std::format("Exception: {}", e.what());
-            }
+            notif = PatchEEImpl();
         }
 
         if (ImGui::Button("Print script info")) {
@@ -756,4 +764,26 @@ namespace {
     ADD_TOOL_NUI(gsc_inject, "GSC Inject", gsc_inject);
 }
 
+const char* ActsAPIGscInjection_InjectPC(const char* path, const char* hook) {
+	return InjectPCImpl(path, hook);
+}
+const char* ActsAPIGscInjection_InjectPS4(const char* path, const char* hook, const char* ps4ip) {
+	return InjectPS4Impl(path, hook, ps4ip);
+}
+const char* ActsAPIGscInjection_PatchEE() {
+    return PatchEEImpl();
+}
+#else // !_WIN32
+
+const char* ActsAPIGscInjection_InjectPC(const char* path, const char* hook) {
+    return "no supported";
+}
+
+const char* ActsAPIGscInjection_InjectPS4(const char* path, const char* hook, const char* ps4ip) {
+    return "no supported";
+}
+
+const char* ActsAPIGscInjection_PatchEE() {
+    return "no supported";
+}
 #endif // _WIN32

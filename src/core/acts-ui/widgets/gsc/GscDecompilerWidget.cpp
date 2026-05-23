@@ -109,14 +109,21 @@ GscDecompilerWidget::~GscDecompilerWidget() {}
 
 void GscDecompilerWidget::LoadFile(const QString& filePath) {
 	lastFilePath = filePath;
+	fileData.clear();
 	ReloadFile();
 }
+
+void GscDecompilerWidget::LoadData(const byte* data, size_t len, const char* fileName) {
+	lastFilePath = fileName ? fileName : "Custom GSC File";
+	fileData.assign(data, data + len);
+	ReloadFile();
+}
+
 void GscDecompilerWidget::ReloadFile() {
 	setWindowTitle(lastFilePath);
-
 	ui.textEdit->setPlainText("");
 
-	if (lastFilePath.isEmpty()) {
+	if (lastFilePath.isEmpty() && fileData.empty()) {
 		return;
 	}
 
@@ -144,9 +151,17 @@ void GscDecompilerWidget::ReloadFile() {
 
 	utils::CloseEnd cce([&]() { ActsAPICloseHandle(context); });
 
-	QByteArray filePathBytes = lastFilePath.toUtf8();
+	ActsStatus status;
 
-	if (ActsAPIGscDecompiler_DecompileFile(context, filePathBytes.constData()) != ACTS_STATUS_OK) {
+	if (!fileData.empty()) {
+		status = ActsAPIGscDecompiler_DecompileObject(context, fileData.data(), fileData.size());
+	}
+	else {
+		QByteArray filePathBytes = lastFilePath.toUtf8();
+		status = ActsAPIGscDecompiler_DecompileFile(context, filePathBytes.constData());
+	}
+
+	if (status != ACTS_STATUS_OK) {
 		ui.textEdit->setPlainText(QString("// Failed to decompile file: %1").arg(ActsGetAPILastMessage()));
 	}
 	else {

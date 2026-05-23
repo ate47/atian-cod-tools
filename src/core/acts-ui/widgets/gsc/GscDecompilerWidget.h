@@ -15,10 +15,12 @@ public:
 	~GscDecompilerWidget();
 
 	void LoadFile(const QString& filePath);
+	void LoadData(const byte* data, size_t len, const char* fileName);
 	void ReloadFile();
 private:
 	Ui::GscDecompilerWidgetClass ui;
 	GscHighlighter* highlighter;
 	QString lastFilePath;
+	std::vector<byte> fileData;
 };
 
