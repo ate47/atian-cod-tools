@@ -167,7 +167,7 @@ namespace {
 			static_assert(sizeof(AiType) == 0xf00);
 			AiType& asset{ *(AiType*)ptr };
 
-			core::hashes::raw_file_extractor::JsonWriter json{};
+			BO4JsonWriter json{};
 
 			json.BeginObject();
 
@@ -280,15 +280,7 @@ namespace {
 
 				json.EndArray();
 			}
-			if (asset.animMappingTables[0]) {
-				json.WriteFieldNameString("animMappingTables");
-				json.BeginArray();
-				for (AnimMappingTable* table : asset.animMappingTables) {
-					json.WriteValueHash(games::bo4::pool::GetAssetName(games::bo4::pool::ASSET_TYPE_ANIMMAPPINGTABLE, table)->name);
-				}
-
-				json.EndArray();
-			}
+			json.WriteFieldValueXAssetArray("animMappingTables", XAssetType::ASSET_TYPE_ANIMMAPPINGTABLE, ACTS_ARRAYSIZE(asset.animMappingTables), asset.animMappingTables);
 			if (asset.secondaryWeapon) {
 				json.WriteFieldNameString("secondaryWeapon");
 				json.WriteValueHash(games::bo4::pool::GetAssetName(games::bo4::pool::ASSET_TYPE_WEAPON, asset.secondaryWeapon)->name);
