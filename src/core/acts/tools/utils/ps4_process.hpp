@@ -12,6 +12,9 @@ namespace utils::ps4 {
 
 	public:
 		PS4Process(const std::string& ipd, const char* process = "eboot.bin") : ps4(ipd) {
+            if (ipd.empty()) {
+                throw std::runtime_error("Empty PS4 IP");
+            }
             ps4.Connect();
 
             auto procList = ps4.GetProcessList();

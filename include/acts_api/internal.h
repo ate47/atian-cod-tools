@@ -62,5 +62,7 @@ ACTS_COMMON_API void SetActsSharedConfig(void* cfg);
 ACTS_COMMON_API const char* ActsAPIGscInjection_InjectPC(const char* path, const char* hook);
 ACTS_COMMON_API const char* ActsAPIGscInjection_InjectPS4(const char* path, const char* hook, const char* ps4ip);
 ACTS_COMMON_API const char* ActsAPIGscInjection_PatchEE();
+ACTS_COMMON_API const char* ActsAPIBO6PS4_Cbuff(const char* cbuff, const char* ps4ip);
+ACTS_COMMON_API const char* ActsAPIBO6PS4_InjectScript(const char* path, const char* ps4ip);
 
 #endif // __ACTS_API_INTERNAL_H__
