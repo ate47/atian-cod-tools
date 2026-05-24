@@ -46,8 +46,8 @@ UI3SettingsWidget::UI3SettingsWidget(QWidget *parent)
     QWidget* content{ new QWidget(scroll) };
     QVBoxLayout* layout{ new QVBoxLayout(content) };
 
-    for (auto& [hash, entry] : ui3::config::GetPropertyMap()) {
-        layout->addLayout(CreateEditor(entry));
+    for (ui3::config::PropertyEntry* entry : ui3::config::GetPropertyList()) {
+        layout->addLayout(CreateEditor(*entry));
     }
 
     layout->addStretch();

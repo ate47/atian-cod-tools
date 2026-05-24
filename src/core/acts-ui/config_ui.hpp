@@ -4,6 +4,7 @@
 #include <utils/utils.hpp>
 #include <QProperty>
 #include <QLineEdit>
+#include <QComboBox>
 #include <QCheckBox>
 
 namespace ui3::config {
@@ -48,6 +49,7 @@ namespace ui3::config {
 	void SyncConfigVals();
 	void SaveConfig();
 	std::unordered_map<uint64_t, PropertyEntry>& GetPropertyMap();
+	std::vector<PropertyEntry*>& GetPropertyList();
 
 	class PropertyNotifier : public QObject {
 		Q_OBJECT
@@ -132,7 +134,7 @@ namespace ui3::config {
 		T Get() { return container.Get(); }
 
 		template<typename Widget>
-		requires std::same_as<Widget, QLineEdit>&& std::same_as<T, QString>
+			requires std::same_as<Widget, QLineEdit> && std::same_as<T, QString>
 		void Bind(Widget* edit) {
 			PropertyContainer<T>& cc{ container };
 			QObject::connect(edit, &QLineEdit::textChanged,
@@ -144,7 +146,19 @@ namespace ui3::config {
 		}
 
 		template<typename Widget>
-		requires std::same_as<Widget, QCheckBox>&& std::same_as<T, bool>
+			requires std::same_as<Widget, QComboBox> && std::same_as<T, QString>
+		void Bind(Widget* edit) {
+			PropertyContainer<T>& cc{ container };
+			QObject::connect(edit, &QComboBox::currentTextChanged,
+				&container.GetNotifier(), [&cc](const QString& s) { cc.Set(s); });
+			QObject::connect(&container.GetNotifier(), &PropertyNotifier::changed,
+				edit, [&cc, edit]() { edit->setCurrentText(cc.Get()); });
+
+			edit->setCurrentText(Get());
+		}
+
+		template<typename Widget>
+		requires std::same_as<Widget, QCheckBox> && std::same_as<T, bool>
 		void Bind(Widget* box) {
 			PropertyContainer<T>& cc{ container };
 			QObject::connect(box, &QCheckBox::toggled,
@@ -201,6 +215,7 @@ namespace ui3::config {
 			entry.path = path;
 			entry.description = description;
 			entry.Load = [](void* p) {((PropertyContainer<T>*)p)->Load(); };
+			GetPropertyList().emplace_back(&entry);
 			return *cnt;
 		}
 	};

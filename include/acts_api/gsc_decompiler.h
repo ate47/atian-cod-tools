@@ -23,6 +23,21 @@ typedef struct {
     ActsAPIGsc_VmMagic vm;
     // code formatter
     const char* formatter;
+    // some config
+    bool dumpImports;
+    bool dumpStrings;
+    bool dumpGvars;
+    bool funcRloc;
+    bool funcFloc;
+    bool showJumpDelta;
+    bool showRefCount;
+    bool hideOpcodeValues;
+    bool showInternalBlocks;
+    bool showFuncVars;
+    bool markJumpType;
+    bool displayStack;
+    bool useInternalNames;
+    bool noUsingsSort;
 } ActsAPIGscDecompiler_OptionalConfig;
 
 // code formatters

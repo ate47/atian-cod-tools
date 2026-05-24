@@ -12,6 +12,21 @@ UI_CONFIG_VAL(cfgGscDecompilerGsc, "gsc.decompiler.gsc", true, "GSC Decompile De
 UI_CONFIG_VAL(cfgGscDecompilerAsm, "gsc.decompiler.asm", false, "GSC Decompile Assembly");
 UI_CONFIG_VAL(cfgGscDecompilerHeader, "gsc.decompiler.header", false, "GSC Decompile Header");
 
+UI_CONFIG_VAL(cfgGscDecompilerOptDumpImports, "gsc.decompiler.opt.dumpImports", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptDumpStrings, "gsc.decompiler.opt.dumpStrings", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptDumpGvars, "gsc.decompiler.opt.dumpGvars", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptFuncRloc, "gsc.decompiler.opt.funcRloc", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptFuncFloc, "gsc.decompiler.opt.funcFloc", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptShowJumpDelta, "gsc.decompiler.opt.showJumpDelta", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptShowRefCount, "gsc.decompiler.opt.showRefCount", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptHideOpcodeValues, "gsc.decompiler.opt.hideOpcodeValues", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptShowInternalBlocks, "gsc.decompiler.opt.showInternalBlocks", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptShowFuncVars, "gsc.decompiler.opt.showFuncVars", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptMarkJumpType, "gsc.decompiler.opt.markJumpType", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptDisplayStack, "gsc.decompiler.opt.displayStack", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptUseInternalNames, "gsc.decompiler.opt.useInternalNames", false, "");
+UI_CONFIG_VAL(cfgGscDecompilerOptNoUsingsSort, "gsc.decompiler.opt.noUsingsSort", false, "");
+
 GscDecompilerWidget::GscDecompilerWidget(QWidget *parent)
 	: QWidget(parent)
 {
@@ -79,9 +94,29 @@ GscDecompilerWidget::GscDecompilerWidget(QWidget *parent)
 	connect(reloadAction, &QAction::triggered, this, [this]() { ReloadFile(); });
 	connect(copyAction, &QAction::triggered, this, [this]() { ui.textEdit->copy(); });
 
-	cfgGscDecompilerGsc.OnUpdate(this, [this]() { ReloadFile(); });
-	cfgGscDecompilerAsm.OnUpdate(this, [this]() { ReloadFile(); });
-	cfgGscDecompilerHeader.OnUpdate(this, [this]() { ReloadFile(); });
+	ui3::config::ConfigVal<bool>* cfgs[]{
+		&cfgGscDecompilerGsc,
+		&cfgGscDecompilerAsm,
+		&cfgGscDecompilerHeader,
+		&cfgGscDecompilerOptDumpImports,
+		&cfgGscDecompilerOptDumpStrings,
+		&cfgGscDecompilerOptDumpGvars,
+		&cfgGscDecompilerOptFuncRloc,
+		&cfgGscDecompilerOptFuncFloc,
+		&cfgGscDecompilerOptShowJumpDelta,
+		&cfgGscDecompilerOptShowRefCount,
+		&cfgGscDecompilerOptHideOpcodeValues,
+		&cfgGscDecompilerOptShowInternalBlocks,
+		&cfgGscDecompilerOptShowFuncVars,
+		&cfgGscDecompilerOptMarkJumpType,
+		&cfgGscDecompilerOptDisplayStack,
+		&cfgGscDecompilerOptUseInternalNames,
+		&cfgGscDecompilerOptNoUsingsSort,
+	};
+
+	for (ui3::config::ConfigVal<bool>* cfg : cfgs) {
+		cfg->OnUpdate(this, [this]() { ReloadFile(); });
+	}
 }
 
 GscDecompilerWidget::~GscDecompilerWidget() {}
@@ -117,6 +152,23 @@ void GscDecompilerWidget::ReloadFile() {
 		std::string* widget = static_cast<std::string*>(ud);
 		widget->append(str, len);
 	};
+
+	config.dumpImports = cfgGscDecompilerOptDumpImports;
+	config.dumpStrings = cfgGscDecompilerOptDumpStrings;
+	config.dumpGvars = cfgGscDecompilerOptDumpGvars;
+	config.funcRloc = cfgGscDecompilerOptFuncRloc;
+	config.funcFloc = cfgGscDecompilerOptFuncFloc;
+	config.showJumpDelta = cfgGscDecompilerOptShowJumpDelta;
+	config.showRefCount = cfgGscDecompilerOptShowRefCount;
+	config.hideOpcodeValues = cfgGscDecompilerOptHideOpcodeValues;
+	config.showInternalBlocks = cfgGscDecompilerOptShowInternalBlocks;
+	config.showFuncVars = cfgGscDecompilerOptShowFuncVars;
+	config.markJumpType = cfgGscDecompilerOptMarkJumpType;
+	config.displayStack = cfgGscDecompilerOptDisplayStack;
+	config.useInternalNames = cfgGscDecompilerOptUseInternalNames;
+	config.noUsingsSort = cfgGscDecompilerOptNoUsingsSort;
+
+
 	//QString fmt{ ui.formattersList->currentData().toString() };
 	//std::string fmtChars{ fmt.toStdString() };
 	//config.formatter = fmtChars.data();

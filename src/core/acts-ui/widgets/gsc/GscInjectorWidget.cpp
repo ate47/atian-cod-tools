@@ -13,6 +13,15 @@ namespace {
 	};
 }
 
+const char* injGsc{ ActsAPIConfig_GetString("", "") };
+const char* injHook{ ActsAPIConfig_GetString("", defaultHooks[0]) };
+const char* injPS4{ ActsAPIConfig_GetString("", "") };
+
+
+UI_CONFIG_VAL(cfgUiInjectorPath, "ui.injector.path", QString(""), "GSC Injector Path");
+UI_CONFIG_VAL(cfgUiInjectorHook, "ui.injector.hook", QString("scripts\\zm_common\\load.gsc"), "GSC Injector Hook");
+UI_CONFIG_VAL(cfgUiPs4Ipd, "ui.ps4.ipd", QString(""), "PS4 IP");
+
 GscInjectorWidget::GscInjectorWidget(QWidget *parent)
 	: QWidget(parent) {
 	ui.setupUi(this);
@@ -38,9 +47,6 @@ GscInjectorWidget::GscInjectorWidget(QWidget *parent)
 		QByteArray gscPath{ ui.gsccPathEdit->text().toUtf8() };
 		ui3::tools::OpenMenu("GscDecompiler", gscPath.constData());
 	});
-	connect(ui.gsccPathEdit, &QLineEdit::textChanged, this, [this]() { UpdateConfig(); });
-	connect(ui.hookBox, &QComboBox::currentTextChanged, this, [this]() { UpdateConfig(); });
-	connect(ui.ps4IpEdit, &QLineEdit::textChanged, this, [this]() { UpdateConfig(); });
 
 	ui.logLabel->setText("");
 
@@ -62,13 +68,13 @@ GscInjectorWidget::GscInjectorWidget(QWidget *parent)
 		ui.logLabel->setText(ActsAPIGscInjection_PatchEE());
 	});
 
+	cfgUiInjectorPath.OnUpdate(this, [this] { UpdateConfig(); });
+	cfgUiInjectorHook.OnUpdate(this, [this] { UpdateConfig(); });
+	cfgUiPs4Ipd.OnUpdate(this, [this] { UpdateConfig(); });
 
-	const char* injGsc{ ActsAPIConfig_GetString("ui.injector.path", "") };
-	const char* injHook{ ActsAPIConfig_GetString("ui.injector.hook", defaultHooks[0]) };
-	const char* injPS4{ ActsAPIConfig_GetString("ui.ps4.ipd", "") };
-	ui.gsccPathEdit->setText(injGsc);
-	ui.hookBox->setCurrentText(injHook);
-	ui.ps4IpEdit->setText(injPS4);
+	cfgUiInjectorPath.Bind(ui.gsccPathEdit);
+	cfgUiInjectorHook.Bind(ui.hookBox);
+	cfgUiPs4Ipd.Bind(ui.ps4IpEdit);
 
 	setLayout(ui.mainLayout);
 }
@@ -76,13 +82,9 @@ GscInjectorWidget::GscInjectorWidget(QWidget *parent)
 GscInjectorWidget::~GscInjectorWidget() {}
 
 void GscInjectorWidget::UpdateConfig() {
-	QByteArray gscPath{ ui.gsccPathEdit->text().toUtf8() };
-	QByteArray hookPath{ ui.hookBox->currentText().toUtf8() };
-	QByteArray ps4Ip{ ui.ps4IpEdit->text().toUtf8() };
-
-	ActsAPIConfig_SetString("ui.injector.path", gscPath.constData());
-	ActsAPIConfig_SetString("ui.injector.hook", hookPath.constData());
-	ActsAPIConfig_SetString("ui.ps4.ipd", ps4Ip.constData());
+	QString gscPath{ cfgUiInjectorPath };
+	QString hookPath{ cfgUiInjectorHook };
+	QString ps4Ip{ cfgUiPs4Ipd };
 
 	bool hasGscPath = !gscPath.isEmpty();
 	bool hasHook = !hookPath.isEmpty();
@@ -91,8 +93,6 @@ void GscInjectorWidget::UpdateConfig() {
 	ui.decompButton->setEnabled(hasGscPath);
 	ui.injectButton->setEnabled(hasGscPath && hasHook);
 	ui.injectPS4Button->setEnabled(hasGscPath && hasHook && hasPS4Ip);
-
-	ActsAPIConfig_SaveConfig();
 }
 
 ADD_UI_TOOL(GscInjectorWidget, "GSC Injector", "GSC");

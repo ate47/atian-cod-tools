@@ -2401,6 +2401,21 @@ ActsHandle ActsAPIGscDecompiler_CreateDecompilerContext(
         ctx->globalContext.opt.m_dcomp = optCfg->writeDecompilation;
         ctx->globalContext.opt.m_header = optCfg->writeHeader;
 		ctx->globalContext.opt.m_vm = (tool::gsc::opcode::VMId)optCfg->vm;
+        
+        ctx->globalContext.opt.m_imports = optCfg->dumpImports;
+        ctx->globalContext.opt.m_strings = optCfg->dumpStrings;
+        ctx->globalContext.opt.m_gvars = optCfg->dumpGvars;
+        ctx->globalContext.opt.m_func_rloc = optCfg->funcRloc;
+        ctx->globalContext.opt.m_func_floc = optCfg->funcFloc;
+        ctx->globalContext.opt.m_show_jump_delta = optCfg->showJumpDelta;
+        ctx->globalContext.opt.m_show_ref_count = optCfg->showRefCount;
+        ctx->globalContext.opt.m_show_opcode_values = !optCfg->hideOpcodeValues;
+        ctx->globalContext.opt.m_show_internal_blocks = optCfg->showInternalBlocks;
+        ctx->globalContext.opt.m_show_func_vars = optCfg->showFuncVars;
+        ctx->globalContext.opt.m_mark_jump_type = optCfg->markJumpType;
+        ctx->globalContext.opt.m_display_stack = optCfg->displayStack;
+        ctx->globalContext.opt.m_use_internal_names = optCfg->useInternalNames;
+        ctx->globalContext.opt.m_noUsingsSort = optCfg->noUsingsSort;
 
         if (optCfg->formatter) {
             try {
