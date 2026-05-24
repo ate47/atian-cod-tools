@@ -161,7 +161,7 @@ namespace {
 		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
 			Playlists* asset{ (Playlists*)ptr };
 
-			std::filesystem::path outDir{ opt.m_output / "bo4" / "source" / "tables" / "playlists" / hashutils::ExtractTmp("file", asset->name) };
+			std::filesystem::path outDir{ opt.m_output / "bo4" / "source" / "tables" / "playlists" / fastfile::GetCurrentContext().ffname / hashutils::ExtractTmp("file", asset->name) };
 			std::filesystem::create_directories(outDir);
 			LOG_OPT_INFO("Dump playlists {}", outDir.string());
 			{
