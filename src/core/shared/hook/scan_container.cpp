@@ -52,6 +52,7 @@ namespace hook::scan_container {
 			LOG_WARNING("Can't read ScanContainer({}): Bad uid", scanPath.string());
 			return; // wtf
 		}
+		LOG_TRACE("Loaded ScanContainer({})", scanPath.string());
 
 		uint32_t scans{ reader.Read<uint32_t>() };
 		for (size_t i = 0; i < scans; i++) {
@@ -101,7 +102,7 @@ namespace hook::scan_container {
 		}
 
 		// search value
-		std::vector<hook::library::ScanResult> r{ lib.Scan(path, name) };
+		std::vector<hook::library::ScanResult> r{ lib.Scan(path, false, name) };
 
 		val.res.reserve(r.size());
 		val.loaded = true;

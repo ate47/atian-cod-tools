@@ -7,6 +7,7 @@
 #include <hook/process.hpp>
 #include <hook/error.hpp>
 #include <core/memory_allocator.hpp>
+#include <game_data.hpp>
 
 namespace {
 
@@ -19,6 +20,7 @@ namespace {
 	struct LuaCompOption {
 		bool help{};
 		bool compressed{};
+		const char* gamePath{};
 	};
 
 	enum LuaJitFlags : byte {
@@ -339,16 +341,19 @@ namespace {
 		core::bytebuffer::ByteBuffer reader;
 		core::memory_allocator::MemoryAllocator alloc{};
 	public:
+		acts::game_data::GameData data;
 		std::vector<byte>* outDump{};
 
 
+		lua_State* (*lua_newstate)(lua_Alloc alloc, void* ud, int a3, int a4) {};
+		void (*cod_lua_setxhash)(lua_State* L, uint64_t(__fastcall* XHash)(const char* str, uint32_t len), void* a3, void* a4) {};
 		int (*lua_loadx)(lua_State* L, lua_Reader reader, void* ud, const char* chunkname, const char* mode) {};
 		int (*lj_cf_string_dump)(lua_State* L) {};
 		const char* (*lua_tolstring)(lua_State* L, int idx, size_t* len) {};
 		int (*writer_buf)(lua_State* L, const void* p, size_t sz, void* ud) {};
 		void (*lj_err_throw)(lua_State* L, int status) {};
 
-		ljec_Context(std::vector<byte>& file) : reader(file) {
+		ljec_Context(const char* game, std::vector<byte>& file) : reader(file), data(game) {
 		}
 		
 
@@ -380,6 +385,46 @@ namespace {
 
 			return 0;
 		}
+
+		void LoadPaths(hook::scan_container::ScanContainer& scan) {
+			data.SetScanContainer(&scan);
+			data.Get("lua_newstate", &lua_newstate);
+			data.Get("lua_loadx", &lua_loadx);
+			data.Get("lj_cf_string_dump", &lj_cf_string_dump);
+			data.Get("lua_tolstring", &lua_tolstring);
+			data.Get("writer_buf", &writer_buf);
+			data.Get("cod_lua_setxhash", &cod_lua_setxhash);
+		}
+
+		void PatchAntiCheat(hook::scan_container::ScanContainer& scan) {
+			size_t patches{};
+			struct PatchInfo {
+				const char* sig;
+				uint32_t len;
+			} patchInfo[]{
+				{ "49 3B C2 0F 82 ?? ?? ?? ?? 48 8B 84 24 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 49 3B C2 0F 87 ?? ?? ?? ?? 48 8B 84 24 ?? ?? ?? ?? 80 78 FB E8 74 ??", 46 },
+				{ "48 3b c1 0f 82 ?? ?? ?? ?? 48 8b 44 24 ?? 48 ?? ?? ?? ?? ?? ?? 48 3b c1 0f ?? ?? ?? ?? ?? 48 8b 44 24 ?? 80 78 fb e8 74 ??", 40 },
+			};
+
+			for (PatchInfo& info : patchInfo) {
+				std::vector<hook::library::ScanResult> ress{ scan.Scan(info.sig, "AC patch") };
+				//LOG_TRACE("{}", scan.GetLibrary().Scan(info.sig).size());
+				if (ress.empty()) {
+					throw std::runtime_error(std::format("Can't find patch {}", info.sig));
+				}
+
+				for (hook::library::ScanResult& res : ress) {
+					// patch the whole if and goto the end 
+					byte patch[]{
+						0xe9, 0xFF, 0xFF, 0xFF, 0xFF // jmp XXXX
+					};
+					*(uint32_t*)&patch[1] = (uint32_t)res.Get<byte>(info.len) + info.len + 1 - 5;
+					hook::process::WriteMemSafe(res.location, patch, sizeof(patch));
+					patches++;
+				}
+			}
+			LOG_TRACE("patched {} lua func(s)", patches);
+		}
 	};
 
 	static ljec_Context* currentCtx{};
@@ -396,28 +441,15 @@ namespace {
 		return currentCtx->Write(L, p, sz);
 	}
 
-	void PatchAntiCheat(hook::scan_container::ScanContainer& scan) {
-		size_t patches{};
-		struct PatchInfo {
-			const char* sig;
-			uint32_t len;
-		} patchInfo[]{
-			{ "49 3B C2 0F 82 ?? ?? ?? ?? 48 8B 84 24 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 49 3B C2 0F 87 ?? ?? ?? ?? 48 8B 84 24 ?? ?? ?? ?? 80 78 FB E8 74 ??", 46 },
-			{ "48 3b c1 0f 82 ?? ?? ?? ?? 48 8b 44 24 ?? 48 ?? ?? ?? ?? ?? ?? 48 3b c1 0f ?? ?? ?? ?? ?? 48 8b 44 24 ?? 80 78 fb e8 74 ??", 40 },
-		};
-
-		for (PatchInfo& info : patchInfo) {
-			for (hook::library::ScanResult& res : scan.Scan(info.sig, "AC patch")) {
-				// patch the whole if and goto the end 
-				byte patch[]{
-					0xe9, 0xFF, 0xFF, 0xFF, 0xFF // jmp XXXX
-				};
-				*(uint32_t*)&patch[1] = (uint32_t)res.Get<byte>(info.len) + info.len + 1 - 5;
-				hook::process::WriteMemSafe(res.location, patch, sizeof(patch));
-				patches++;
-			}
+	uint64_t lua_XHash(const char* str, uint32_t len) {
+		char buff[0x400];
+		if (len >= sizeof(buff)) {
+			throw std::runtime_error("lua_XHash: string too large");
 		}
-		LOG_TRACE("patched {} lua func(s)", patches);
+
+		std::memcpy(buff, str, len);
+		buff[len] = 0;
+		return hash::Hash64(buff);
 	}
 
 	int ljec(int argc, const char* argv[]) {
@@ -426,19 +458,12 @@ namespace {
 
 		opts.addOption(&opt.help, "show help", "--help", "", "-h");
 		opts.addOption(&opt.compressed, "compress result", "--compressed", "", "-z");
+		opts.addOption(&opt.gamePath, "exe path", "--exe", "", "-e");
 
 		if (!opts.ComputeOptions(2, argc, argv) || opt.help || opts.NotEnoughParam(2)) {
 			opts.PrintOptions();
 			return tool::OK;
 		}
-
-		hook::error::InstallErrorHooks(true);
-		hook::module_mapper::Module mod{ true };
-		if (!mod.Load(opts[0], true)) {
-			LOG_ERROR("Can't load module");
-			return tool::BASIC_ERROR;
-		}
-		hook::scan_container::ScanContainer scan{ *mod };
 
 		std::filesystem::path in{ opts[1] };
 		std::filesystem::path out;
@@ -447,50 +472,39 @@ namespace {
 			out.replace_extension(".luac");
 		}
 		else {
-			out = opts[3];
+			out = opts[2];
 		}
 
 		std::vector<byte> input{ utils::ReadFile<std::vector<byte>>(in) };
 
-		ljec_Context ctx{ input };
+		ljec_Context ctx{ opts[0], input };
 
-		lua_State* (*lua_newstate)(lua_Alloc alloc, void* ud, int a3, int a4) =
-			scan.ScanSingle("E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B C8 48 8B D8 E8 ?? ?? ?? ?? BA FF FF FF FF", "lua_newstate")
-			.GetRelative<int32_t, decltype(lua_newstate)>(1);
+		hook::error::InstallErrorHooks(true);
+		hook::module_mapper::Module mod{ true };
+		std::filesystem::path modPath{ opt.gamePath ? opt.gamePath : (utils::GetProgDir() / "deps" / ctx.data.GetModuleName()) };
+		if (!mod.Load(modPath, true)) {
+			LOG_ERROR("Can't load module: '{}', did you dump the game?", modPath.string());
+			return tool::BASIC_ERROR;
+		}
+		hook::scan_container::ScanContainer scan{ *mod };
 
-		//void (*luaL_openlibs)(lua_State* L) =
-		//	scan.ScanSingle("E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B C3", "luaL_openlibs")
-		//	.GetRelative<int32_t, decltype(luaL_openlibs)>(1);
-
-		ctx.lua_loadx = scan.ScanSingle("E8 ?? ?? ?? ?? 41 B8 04 00 00 00 8B D0 48 8B CF 48 8B 74 24 50", "lua_loadx")
-			.GetRelative<int32_t, decltype(ctx.lua_loadx)>(1);
-
-		ctx.lj_cf_string_dump = scan.ScanSingle("48 89 5C 24 08 57 48 83 EC 30 BA 01 00 00 00 48 8B D9 E8 ?? ?? ?? ?? 48", "lj_cf_string_dump")
-			.GetPtr<decltype(ctx.lj_cf_string_dump)>();
-
-		ctx.lua_tolstring = scan.ScanSingle("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B F1", "lua_tolstring")
-			.GetPtr<decltype(ctx.lua_tolstring)>();
-
-		ctx.writer_buf = scan.ScanSingle("4C 8D 05 ?? ?? ?? ?? 89 4C 24 20 48 83 EA 68", "writer_buf")
-			.GetRelative<int32_t, decltype(ctx.writer_buf)>(3);
-
-
-		PatchAntiCheat(scan);
+		ctx.LoadPaths(scan);
+		ctx.PatchAntiCheat(scan);
 		scan.Save();
 		hook::memory::RedirectJmp(ctx.writer_buf, ljec_Writer);
 
 		currentCtx = &ctx;
 
-		lua_State* L = lua_newstate(ljec_Alloc, &ctx, 0, 0);
+		lua_State* L = ctx.lua_newstate(ljec_Alloc, &ctx, 0, 0);
 
 		if (!L) {
 			LOG_ERROR("Can't alloc lua_State");
 			return tool::BASIC_ERROR;
 		}
 
-		LOG_TRACE("lua_State loaded {}", (void*)L);
+		ctx.cod_lua_setxhash(L, lua_XHash, nullptr, nullptr);
 
-		// luaL_openlibs(L); // create issue?
+		LOG_TRACE("lua_State loaded {}", (void*)L);
 
 		int r;
 
@@ -509,6 +523,7 @@ namespace {
 		std::vector<byte> obuff{};
 		ctx.outDump = &obuff;
 		ctx.lj_cf_string_dump(L);
+		obuff.push_back(0);
 
 		if (opt.compressed) {
 			size_t compressSize{};
@@ -531,5 +546,5 @@ namespace {
 
 	ADD_TOOL(luajit, "lib", " [file] (out=file.csv)", "Read luajit file", luajit);
 	ADD_TOOL(lj_errors, "lib", " [exe] (start)", "Dump luajit error from exe", lj_errors);
-	ADD_TOOL(ljec, "lib", " [exe] [in] (out)", "Compile Lua jit file using exe compiler", ljec);
+	ADD_TOOL(ljec, "lib", " [game] [in] (out)", "Compile Lua jit file using exe compiler", ljec);
 }

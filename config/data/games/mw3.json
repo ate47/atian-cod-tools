@@ -211,6 +211,34 @@
             "ctype": "void* DB_LinkXModel(void** handle)",
             "type": "Absolute",
             "single": true
+        },
+        "lua_newstate": {
+            "scan": "E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B C8 48 8B D8 E8 ?? ?? ?? ?? BA FF FF FF FF",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "lua_loadx": {
+            "scan": "E8 ?? ?? ?? ?? 41 B8 04 00 00 00 8B D0 48 8B CF 48 8B 74 24 50",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "lj_cf_string_dump": {
+            "scan": "48 89 5C 24 08 57 48 83 EC 30 BA 01 00 00 00 48 8B D9 E8 ?? ?? ?? ?? 48",
+            "type": "Absolute",
+            "single": true
+        },
+        "lua_tolstring": {
+            "scan": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 44 24 28 48 8B F1",
+            "type": "Absolute",
+            "single": true
+        },
+        "writer_buf": {
+            "scan": "4C 8D 05 ?? ?? ?? ?? 89 4C 24 20 48 83 EA 68",
+            "type": "Relative",
+            "offset": 3,
+            "single": true
         }
     },
     "nullscans": {

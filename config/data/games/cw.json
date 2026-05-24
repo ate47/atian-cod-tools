@@ -118,7 +118,44 @@
             "offset": 1,
             "type": "Relative",
             "single": true
+        },
+        "lua_newstate": {
+            "scan": "E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 0F 84 92 01 00 00",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "lua_loadx": {
+            "scan": "E8 ?? ?? ?? ?? 41 B8 ?? ?? ?? ?? 8B D0 48 8B CB 48 8B 7C 24 ?? 48 8B 74 24",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "lj_cf_string_dump": {
+            "scan": "48 89 5C 24 08 57 48 83 EC 30 BA 01 00 00 00 48 8B D9 E8 ?? ?? ?? ?? 48",
+            "type": "Absolute",
+            "single": true
+        },
+        "lua_tolstring": {
+            "scan": "E8 ?? ?? ?? ?? 41 BF ?? ?? ?? ?? 48 8B CD",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
+        },
+        "writer_buf": {
+            "scan": "4C 8D 05 ?? ?? ?? ?? 89 4C 24 20 48 83 EA 68",
+            "type": "Relative",
+            "offset": 3,
+            "single": true
+        },
+        "cod_lua_setxhash": {
+            "scan": "E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 45 33 C9",
+            "type": "Relative",
+            "offset": 1,
+            "single": true
         }
+
+       
     },
     "nullscans": {
         "fastfile": {
