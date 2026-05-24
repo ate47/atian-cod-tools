@@ -20,11 +20,6 @@ jobs:
   build:
     name: Atian Tools Build
     runs-on: windows-latest
-    strategy:
-      matrix:
-        gen_type: ["library", "app"]
-    outputs:
-      version: ${{ steps.get_version.outputs.version }}
     steps:
       - uses: actions/checkout@v3.5.3
         with:
@@ -42,7 +37,6 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         # only install qt in shared context
-        if: matrix.gen_type == 'app'
         with:
           version: "6.11.0"
           host: "windows"
@@ -70,58 +64,28 @@ jobs:
         shell: pwsh
         run: |
           scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
-          scripts/setup.ps1 -ci -build "Visual Studio 17 2022" -deployType "${{ matrix.gen_type }}"
+          scripts/setup.ps1 -ci -build "Visual Studio 17 2022"
       - name: Build project
         shell: pwsh
         run: msbuild build/AtianCodTools.sln /p:Configuration=Release /p:Platform=x64
       - name: Run tests
-        if: matrix.gen_type == 'app'
         run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
-      - name: Pack artifacts
-        if: matrix.gen_type == 'app'
-        run: scripts/copyartifacts.ps1 -outDirectory upload -deployQt
-      - name: Pack artifacts
-        if: matrix.gen_type != 'app'
-        run: scripts/copyartifacts.ps1 -outDirectory upload
-      - name: Upload build
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: "acts-upload-${{ matrix.gen_type }}"
-          path: "upload"
-
-  release:
-    name: Atian Tools Release
-    runs-on: windows-latest
-    if: github.ref == 'refs/heads/main'
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3.5.3
-        with:
-          submodules: false
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: build/bin/Release
-          pattern: acts-upload-*
-          merge-multiple: true
       - name: Package project
         shell: pwsh
-        run: scripts/package.ps1
+        run: scripts/package.ps1 -deployQt
       - name: Upload dev release
         uses: ncipollo/release-action@v1
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: "latest_build"
-          artifacts: "build/package/acts.zip,build/package/acts-library.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
+          artifacts: "build/package/acts.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
           artifactErrorsFailBuild: true
           makeLatest: false
           removeArtifacts: true
           replacesArtifacts: true
           allowUpdates: true
-          name: "Dev build ${{ needs.build.outputs.version }}"
+          name: "Dev build ${{ steps.get_version.outputs.version }}"
           body: "Latest dev build, [get the latest release build here](https://github.com/${{ github.repository }}/releases/latest)."
       - name: Upload release
         if: inputs.release
@@ -129,11 +93,11 @@ jobs:
         with:
           commit: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: "build/package/acts.zip,build/package/acts-library.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
+          artifacts: "build/package/acts.zip,build/package/acts/bin/acts-shield-plugin.dll,build/package/acts/bin/version"
           artifactErrorsFailBuild: true
           makeLatest: true
-          tag: "${{ needs.build.outputs.version }}"
-          name: "${{ needs.build.outputs.version }}"
+          tag: "${{ steps.get_version.outputs.version }}"
+          name: "${{ steps.get_version.outputs.version }}"
           bodyFile: release/RELEASE.MD
 
 

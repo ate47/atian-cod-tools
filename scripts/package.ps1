@@ -18,21 +18,12 @@ try {
     # Delete previous builds
     Remove-Item -Recurse -Force -ErrorAction Ignore  "$base" > $null
     Remove-Item -Force -ErrorAction Ignore "$base.zip" > $null
-    Remove-Item -Force -ErrorAction Ignore "$base-library.zip" > $null
 
     # Create structure
     New-Item "$base" -ItemType Directory > $null
     New-Item "$base/bin" -ItemType Directory > $null
     New-Item "$base/lib" -ItemType Directory > $null
 
-
-    # api
-    Copy-Item "build/bin/Release/acts-common.dll" "$base/bin" > $null
-    Copy-Item "build/bin/Release/acts-common.lib" "$base/lib" > $null
-    Copy-Item "build/bin/Release/acts-common-static.lib" "$base/lib" -ErrorAction Ignore > $null
-    Copy-Item -Recurse "include" "$base" > $null
-    Copy-Item -Recurse "licenses" "$base" > $null
-    Copy-Item -Recurse "examples" "$base" > $null
 
     # Scans
     Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
@@ -44,19 +35,23 @@ try {
     # Clear config data
     # Remove-Item build\bin\Release\acts.json
 
-    # Info data
-    Copy-Item "LIBRARY.md" "$base/README.md" > $null
-
-    # Compress library
-    Compress-Archive -LiteralPath "$base" -DestinationPath "$base-library.zip" > $null
-    Write-Host "Packaged to '$base-library.zip'"
-
     # Remove it from main build
     Remove-Item "$base/bin/acts-common.dll" -ErrorAction Ignore > $null
     Remove-Item "$base/README.md" -ErrorAction Ignore > $null
     Remove-Item "$base/lib" -Recurse -ErrorAction Ignore > $null
     Remove-Item "$base/include" -Recurse -ErrorAction Ignore > $null
     Remove-Item "$base/examples" -Recurse -ErrorAction Ignore > $null
+
+    # Info data
+    Copy-Item "README.md" "$base/README.md" > $null
+    Copy-Item "release/version" "$base/bin/version" > $null
+
+    # Binaries
+    Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
+    Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
+    New-Item "$base/bin/package_index" -ItemType Directory > $null
+    New-Item "$base/bin/deps" -ItemType Directory > $null
+    "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
 
     # Build exec data
 
@@ -73,17 +68,6 @@ try {
             Remove-Item "$base/bin/$_" -Recurse -Force -ErrorAction Ignore
         }
     }
-
-    # Info data
-    Copy-Item "README.md" "$base/README.md" > $null
-    Copy-Item "release/version" "$base/bin/version" > $null
-
-    # Binaries
-    Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
-    Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
-    New-Item "$base/bin/package_index" -ItemType Directory > $null
-    New-Item "$base/bin/deps" -ItemType Directory > $null
-    "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
 
     # Build hashes
     Write-Host "Building hash index directory"

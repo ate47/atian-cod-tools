@@ -14,8 +14,7 @@ param(
     [switch]
     $allPlatform,
     $build = "Visual Studio 18 2026",
-    $msvc = "v143",
-    $deployType = "app"
+    $msvc = "v143"
 )
 
 
@@ -51,11 +50,6 @@ try {
     }
     if ($allPlatform) {
         $params += @( "-DALL_PLATFORM_ACTS=ON" )
-    }
-
-    if ("library" -eq $deployType) {
-        $params += @( "-DSTATIC_ACTS=ON" )
-        $params += @( "-DNO_QT_BUILD=ON" )
     }
 
     if ($verbose) {
