@@ -18,7 +18,8 @@ try {
     # Delete previous builds
     Remove-Item -Recurse -Force -ErrorAction Ignore  "$base" > $null
     Remove-Item -Force -ErrorAction Ignore "$base.zip" > $null
-
+    Remove-Item -Force -ErrorAction Ignore "$base-dev.zip" > $null
+    
     # Create structure
     New-Item "$base" -ItemType Directory > $null
     New-Item "$base/bin" -ItemType Directory > $null
@@ -33,16 +34,6 @@ try {
 
     # Scans
     Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
-    
-    # Clear config data
-    # Remove-Item build\bin\Release\acts.json
-
-    # Remove it from main build
-    Remove-Item "$base/bin/acts-common.dll" -ErrorAction Ignore > $null
-    Remove-Item "$base/README.md" -ErrorAction Ignore > $null
-    Remove-Item "$base/lib" -Recurse -ErrorAction Ignore > $null
-    Remove-Item "$base/include" -Recurse -ErrorAction Ignore > $null
-    Remove-Item "$base/examples" -Recurse -ErrorAction Ignore > $null
 
     # Info data
     Copy-Item "README.md" "$base/README.md" > $null
@@ -129,6 +120,29 @@ try {
     # Compress
     Compress-Archive -LiteralPath "$base" -DestinationPath "$base.zip" > $null
     Write-Host "Packaged to '$base.zip'"
+
+    Write-Host "Building dev package..."
+    foreach ($fileItem in (Get-ChildItem $base/bin)) {
+        $fileName = $fileItem.Name
+        $split = $fileName.LastIndexOf(".exe")
+
+        if ($split -ne -1) {
+            $pdbFile = "build/bin/$($fileName.SubString(0, $split)).pdb"
+        }
+        else {
+            $split = $fileName.LastIndexOf(".dll")
+
+            if ($split -ne -1) {
+                $pdbFile = "build/bin/$($fileName.SubString(0, $split)).pdb"
+            }
+            else {
+                continue
+            }
+        }
+        Copy-Item $pdbFile "$base/bin" -ErrorAction Ignore
+    }
+    Compress-Archive -LiteralPath "$base" -DestinationPath "$base-dev.zip" > $null
+    Write-Host "Packaged to '$base-dev.zip'"
 
 }
 finally {
