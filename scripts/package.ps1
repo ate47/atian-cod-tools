@@ -24,13 +24,15 @@ try {
     New-Item "$base/bin" -ItemType Directory > $null
     New-Item "$base/lib" -ItemType Directory > $null
 
+    # api
+    Copy-Item "build/bin/Release/acts-common.lib" "$base/lib" > $null
+    Copy-Item "build/bin/Release/acts-common-ui.lib" "$base/lib" > $null
+    Copy-Item -Recurse "include" "$base" > $null
+    Copy-Item -Recurse "licenses" "$base" > $null
+    Copy-Item -Recurse "examples" "$base" > $null
 
     # Scans
     Copy-Item "build/bin/Release/data" "$base/bin" -Recurse > $null
-    
-    # Clear test dlls/exes
-    Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
-    Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.exe" > $null
     
     # Clear config data
     # Remove-Item build\bin\Release\acts.json
@@ -50,8 +52,10 @@ try {
     Copy-Item "build/bin/Release/*.dll" "$base/bin" > $null
     Copy-Item "build/bin/Release/*.exe" "$base/bin" > $null
     New-Item "$base/bin/package_index" -ItemType Directory > $null
-    New-Item "$base/bin/deps" -ItemType Directory > $null
-    "Put the game dependencies in this directory." > "$base/bin/deps/README.md"
+
+    # Clear test dlls/exes
+    Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
+    Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.exe" > $null
 
     # Build exec data
 
