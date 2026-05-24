@@ -55,13 +55,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     QMenu* menu{};
 
-    std::vector<tools::ui::AbstractUITool*>& tools{ tools::ui::GetTools() };
+    std::vector<ui3::tools::AbstractUITool*>& tools{ ui3::tools::GetTools() };
 
-	std::sort(tools.begin(), tools.end(), [](tools::ui::AbstractUITool* a, tools::ui::AbstractUITool* b) {
-		return _strcmpi(a->path ? a->path : "", b->path ? b->path : "") < 0;
+	std::sort(tools.begin(), tools.end(), [](ui3::tools::AbstractUITool* a, ui3::tools::AbstractUITool* b) {
+		int c{ _strcmpi(a->path ? a->path : "", b->path ? b->path : "") };
+		if (c != 0) return c < 0;
+		return _strcmpi(a->name ? a->name : "", b->name ? b->name : "") < 0;
 	});
 
-	for (tools::ui::AbstractUITool* tool : tools) {
+	for (ui3::tools::AbstractUITool* tool : tools) {
         if (!tool->path) {
             continue;
         }
@@ -97,7 +99,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 		QMetaObject::invokeMethod(this, [this]() {
 			menuBar()->setEnabled(true);
 
-			for (tools::ui::AbstractUITool* tool : tools::ui::GetTools()) {
+			for (ui3::tools::AbstractUITool* tool : ui3::tools::GetTools()) {
 				if (tool->needsInitialization) {
 					tool->action->setEnabled(true);
 				}
@@ -162,7 +164,7 @@ void MainWindow::OpenFile(const QString& path) {
     QByteArray dd{ path.toUtf8() };
     std::filesystem::path p{ dd.data() };
 
-    for (tools::ui::AbstractUITool* tool : tools::ui::GetTools()) {
+    for (ui3::tools::AbstractUITool* tool : ui3::tools::GetTools()) {
 
 		if (tool->path && tool->name && (path.compare(tool->name, Qt::CaseInsensitive) == 0 || path.compare(tool->id, Qt::CaseInsensitive) == 0)) {
 			if (tool->needsInitialization) {

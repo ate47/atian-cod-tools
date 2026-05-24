@@ -2,7 +2,7 @@
 #include <tools_ui.hpp>
 #include <QMessageBox>
 
-namespace tools::ui {
+namespace ui3::tools {
 	std::vector<AbstractUITool*>& GetTools() {
 		static std::vector<AbstractUITool*> tools{};
 		return tools;

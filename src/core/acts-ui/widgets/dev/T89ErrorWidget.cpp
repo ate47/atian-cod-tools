@@ -134,4 +134,4 @@ void T89ErrorWidget::ComputeDecode() {
 	}
 }
 
-ADD_UI_TOOL(T89ErrorWidget, "T89 Errors", "Utilities/Developper");
+ADD_UI_TOOL(T89ErrorWidget, "T89 Errors", "Games/Black Ops 4");

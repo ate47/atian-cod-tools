@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QWidget>
 #include <MainWindow.h>
+#include <config_ui.hpp>
 #include <platform/platform_windows.hpp>
 
 namespace {
@@ -73,6 +74,8 @@ int MainActsUI(int argc, const char** argv) {
             //"qt.*=true\n"
         );
     }
+
+    ui3::config::SyncConfigVals();
 
     qInstallMessageHandler(ActsQTMessageHandler);
 

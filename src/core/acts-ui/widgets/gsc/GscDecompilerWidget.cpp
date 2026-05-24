@@ -6,7 +6,11 @@
 #include <QMenuBar>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <config_ui.hpp>
 
+UI_CONFIG_VAL(cfgGscDecompilerGsc, "gsc.decompiler.gsc", true, "GSC Decompile Decompilation");
+UI_CONFIG_VAL(cfgGscDecompilerAsm, "gsc.decompiler.asm", false, "GSC Decompile Assembly");
+UI_CONFIG_VAL(cfgGscDecompilerHeader, "gsc.decompiler.header", false, "GSC Decompile Header");
 
 GscDecompilerWidget::GscDecompilerWidget(QWidget *parent)
 	: QWidget(parent)
@@ -14,34 +18,24 @@ GscDecompilerWidget::GscDecompilerWidget(QWidget *parent)
 	ui.setupUi(this);
 	QMenuBar* bar{ new QMenuBar(this) };
 
-	// Example menu
 	QMenu* fileMenu{ bar->addMenu("File") };
 	QAction* openAction{ fileMenu->addAction("Open") };
 	QAction* saveAction{ fileMenu->addAction("Save") };
 	QAction* reloadAction{ fileMenu->addAction("Reload") };
 	QMenu* editMenu{ bar->addMenu("Edit") };
 	QAction* copyAction{ editMenu->addAction("Copy") };
-
-	//ui.tabDecompLayout
 	ui.mainLayout->insertWidget(0, bar);
-	ui.tabSettingsLayout->setAlignment(Qt::AlignTop);
-	ui.tabDecompilation->setLayout(ui.tabDecompLayout);
-	ui.tabSettings->setLayout(ui.tabSettingsLayout);
 
-	ui.checkBoxDecompilation->setChecked(ActsAPIConfig_GetBool("gsc.decompiler.gsc", true));
-	ui.checkBoxAssembly->setChecked(ActsAPIConfig_GetBool("gsc.decompiler.asm", false));
-	ui.checkBoxHeader->setChecked(ActsAPIConfig_GetBool("gsc.decompiler.header", false));
-	ui.tabWidget->setCurrentIndex(0);
-
+	/*
 	ActsAPIGscDecompiler_Formatters* formatters{ ActsAPIGscDecompiler_GetFormatters() };
 
 	for (size_t i = 0; i < formatters->count; i++) {
 		const char* name{ formatters->formatters[i] };
 		ui.formattersList->addItem(name, name);
 	}
-
-
 	ActsAPIConfig_SaveConfig();
+	*/
+
 
 	setLayout(ui.mainLayout);
     highlighter = new GscHighlighter(ui.textEdit->document());
@@ -85,24 +79,9 @@ GscDecompilerWidget::GscDecompilerWidget(QWidget *parent)
 	connect(reloadAction, &QAction::triggered, this, [this]() { ReloadFile(); });
 	connect(copyAction, &QAction::triggered, this, [this]() { ui.textEdit->copy(); });
 
-	connect(ui.checkBoxDecompilation, &QCheckBox::toggled, this, [this](bool checked) {
-		ActsAPIConfig_SetBool("gsc.decompiler.gsc", checked);
-		ActsAPIConfig_SaveConfig();
-		ReloadFile();
-	});
-	connect(ui.checkBoxAssembly, &QCheckBox::toggled, this, [this](bool checked) {
-		ActsAPIConfig_SetBool("gsc.decompiler.asm", checked);
-		ActsAPIConfig_SaveConfig();
-		ReloadFile();
-	});
-	connect(ui.checkBoxHeader, &QCheckBox::toggled, this, [this](bool checked) {
-		ActsAPIConfig_SetBool("gsc.decompiler.header", checked);
-		ActsAPIConfig_SaveConfig();
-		ReloadFile();
-	});
-	connect(ui.formattersList, &QComboBox::currentTextChanged, this, [this]() {
-		ReloadFile();
-	});
+	cfgGscDecompilerGsc.OnUpdate(this, [this]() { ReloadFile(); });
+	cfgGscDecompilerAsm.OnUpdate(this, [this]() { ReloadFile(); });
+	cfgGscDecompilerHeader.OnUpdate(this, [this]() { ReloadFile(); });
 }
 
 GscDecompilerWidget::~GscDecompilerWidget() {}
@@ -129,18 +108,18 @@ void GscDecompilerWidget::ReloadFile() {
 
 	ActsAPIGscDecompiler_OptionalConfig config{};
 
-	config.writeDecompilation = ui.checkBoxDecompilation->isChecked();
-	config.writeHeader = ui.checkBoxHeader->isChecked();
-	config.writeAsm = ui.checkBoxAssembly->isChecked();
+	config.writeDecompilation = cfgGscDecompilerGsc;
+	config.writeHeader = cfgGscDecompilerHeader;
+	config.writeAsm = cfgGscDecompilerAsm;
 	std::string str{};
 	config.WriteAsmFunctionUserData = &str;
 	config.WriteAsmFunction = [](const char* str, size_t len, void* ud) {
 		std::string* widget = static_cast<std::string*>(ud);
 		widget->append(str, len);
 	};
-	QString fmt{ ui.formattersList->currentData().toString() };
-	std::string fmtChars{ fmt.toStdString() };
-	config.formatter = fmtChars.data();
+	//QString fmt{ ui.formattersList->currentData().toString() };
+	//std::string fmtChars{ fmt.toStdString() };
+	//config.formatter = fmtChars.data();
 
 	ActsHandle context{ ActsAPIGscDecompiler_CreateDecompilerContext(ActsAPIGsc_Platform::PLATFORM_PC, &config) };
 

@@ -2,7 +2,7 @@
 #include <QAction>
 #include <widgets/common/UI3MdiArea.h>
 
-namespace tools::ui {
+namespace ui3::tools {
 	class AbstractUITool {
 	public:
 		char id[64];
@@ -69,4 +69,4 @@ namespace tools::ui {
 
 // widgetType, name, path, extensions=nullptr, allowDupe=false, needsInitialization=false
 #define ADD_UI_TOOL(WidgetType, ...) \
-	static utils::ArrayAdder<tools::ui::UITool<WidgetType>, tools::ui::AbstractUITool> impl{ tools::ui::GetTools(), #WidgetType, __VA_ARGS__ }
+	static utils::ArrayAdder<ui3::tools::UITool<WidgetType>, ui3::tools::AbstractUITool> impl{ ui3::tools::GetTools(), #WidgetType, __VA_ARGS__ }

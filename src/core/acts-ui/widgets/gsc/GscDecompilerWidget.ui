@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>944</width>
-    <height>542</height>
+    <width>959</width>
+    <height>622</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -22,86 +22,15 @@
   <widget class="QWidget" name="verticalLayoutWidget">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>50</y>
+     <x>20</x>
+     <y>30</y>
      <width>911</width>
      <height>481</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="mainLayout">
     <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="tabPosition">
-       <enum>QTabWidget::TabPosition::South</enum>
-      </property>
-      <property name="currentIndex">
-       <number>1</number>
-      </property>
-      <widget class="QWidget" name="tabDecompilation">
-       <attribute name="title">
-        <string>Decompilation</string>
-       </attribute>
-       <widget class="QWidget" name="verticalLayoutWidget_2">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>881</width>
-          <height>431</height>
-         </rect>
-        </property>
-        <layout class="QVBoxLayout" name="tabDecompLayout">
-         <item>
-          <widget class="QTextEdit" name="textEdit"/>
-         </item>
-        </layout>
-       </widget>
-      </widget>
-      <widget class="QWidget" name="tabSettings">
-       <attribute name="title">
-        <string>Settings</string>
-       </attribute>
-       <widget class="QWidget" name="layoutWidget">
-        <property name="geometry">
-         <rect>
-          <x>60</x>
-          <y>10</y>
-          <width>451</width>
-          <height>241</height>
-         </rect>
-        </property>
-        <layout class="QVBoxLayout" name="tabSettingsLayout">
-         <property name="spacing">
-          <number>6</number>
-         </property>
-         <item>
-          <widget class="QCheckBox" name="checkBoxDecompilation">
-           <property name="text">
-            <string>Dump Decompilation</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBoxAssembly">
-           <property name="text">
-            <string>Dump Assembly</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="checkBoxHeader">
-           <property name="text">
-            <string>Dump Header</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="formattersList"/>
-         </item>
-        </layout>
-       </widget>
-      </widget>
-     </widget>
+     <widget class="QTextEdit" name="textEdit"/>
     </item>
    </layout>
   </widget>

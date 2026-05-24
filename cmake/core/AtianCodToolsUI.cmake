@@ -16,9 +16,12 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscInjectorWidget.ui"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscHighlighter.cpp"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/gsc/GscHighlighter.h"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/common/UI3SettingsWidget.ui"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/common/UI3MdiArea.cpp"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/common/UI3MdiArea.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/MainWindow.ui"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/config_ui.hpp"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/config_ui.cpp"
     )
 
     set(CMAKE_AUTOUIC ON)

@@ -20,7 +20,7 @@ ToolsListWidget::ToolsListWidget(QWidget* parent) : QWidget(parent) {
 	setMinimumWidth(700);
 	setMinimumHeight(400);
 	
-	std::vector<tools::ui::AbstractUITool*>& tools{ tools::ui::GetTools() };
+	std::vector<ui3::tools::AbstractUITool*>& tools{ ui3::tools::GetTools() };
 
 	table->setRowCount((int)tools.size());
 	table->setColumnCount(6);
@@ -28,7 +28,7 @@ ToolsListWidget::ToolsListWidget(QWidget* parent) : QWidget(parent) {
 	QStringList headers{ "ID", "Name", "Path", "Extensions", "Allow Duplicates", "Needs Initialization" };
 	table->setHorizontalHeaderLabels(headers);
 	for (size_t i = 0; i < tools.size(); i++) {
-		tools::ui::AbstractUITool* tool{ tools[i] };
+		ui3::tools::AbstractUITool* tool{ tools[i] };
 
 		QTableWidgetItem* idItem{ new QTableWidgetItem(tool->id) };
 		QTableWidgetItem* nameItem{ new QTableWidgetItem(tool->name ? tool->name : "") };
@@ -50,4 +50,4 @@ ToolsListWidget::ToolsListWidget(QWidget* parent) : QWidget(parent) {
 
 ToolsListWidget::~ToolsListWidget() {}
 
-ADD_UI_TOOL(ToolsListWidget, "Tools List", "Utilities/Developper");
+ADD_UI_TOOL(ToolsListWidget, "Tools List", "Utilities");

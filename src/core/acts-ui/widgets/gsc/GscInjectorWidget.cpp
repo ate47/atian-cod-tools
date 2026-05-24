@@ -2,6 +2,7 @@
 #include "GscInjectorWidget.h"
 #include <acts_api/config.h>
 #include <acts_api/internal.h>
+#include <config_ui.hpp>
 #include <QFileDialog>
 
 namespace {
@@ -35,7 +36,7 @@ GscInjectorWidget::GscInjectorWidget(QWidget *parent)
 	});
 	connect(ui.decompButton, &QPushButton::clicked, this, [this]() {
 		QByteArray gscPath{ ui.gsccPathEdit->text().toUtf8() };
-		tools::ui::OpenMenu("GscDecompiler", gscPath.constData());
+		ui3::tools::OpenMenu("GscDecompiler", gscPath.constData());
 	});
 	connect(ui.gsccPathEdit, &QLineEdit::textChanged, this, [this]() { UpdateConfig(); });
 	connect(ui.hookBox, &QComboBox::currentTextChanged, this, [this]() { UpdateConfig(); });
