@@ -3,35 +3,65 @@
 	0x2256DA41	Parameter 2 can't be casted to string
 	0x26BE81F8	FlatArgs can only be used with arrays (not a pointer)
 	0x27C292DB	Error when linking gsc script
+	0x35969E3C	LaunchGrenade(): provided rethrow entity is not an entity.
 	0x35B7B85F	Too many parameters
 	0x372CFD81	Parameter can't be added to an XHashDVar
 	0x385B7666	Parameter isn't a valid XHashAsset
+	0x3ABEE91A	vehicle entity %i is not being controlled by the player
 	0x3F92ED52	Parameter can't be added to an XHashAsset
+	0x45F4EEF5	IsPlatformPC can only be called from SP
+	0x465787D1	mod takes 2 paramaters
 	0x477310BA	FlatArgs can only be used with arrays
+	0x493D51FE	IsPlatformPS5 can only be called from SP
 	0x4C8A3E2A	Invalid param number
 	0x4CF0CD29	Unmatching types
 	0x4F5055A4	Parameter isn't a valid XHashScr
 	0x53425EFA	Parameter can't be added to an XHash32
+	0x5861E537	not an entity
 	0x58C9598E	Parameter isn't a valid Vector3
 	0x5A9DDF97	Parameter isn't a valid hash type
 	0x5C355588	Throw (no message)
 	0x5E4A432E	Can't allocate new event handler
+	0x61908445	IsPlatformXB3 can only be called from SP
+	0x61D83DDB	Specified grenade weapon is not valid
 	0x62227133	Parameter isn't a valid XHash32
 	0x62599D0A	Parameter isn't a valid XHashDVar
+	0x634AFA24	LaunchGrenade(): provided rethrow entity type is not ET_MISSILE.
 	0x6A5674E7	Parameter can't be added to an XHashScr
 	0x6A5B9EC5	Can't allocate new event handler (Script)
+	0x6C30FCD4	GetDvar( <dvar>, <default> ) takes either one or two parameters
+	0x6DB25B91	IsPlatformXbox can only be called from SP
+	0x73BAA88A	Parameter isn't a valid XHashLocalized
+	0x80EECD59	GetDvarFloat( <dvar>, <default> ) takes either one or two parameters
 	0x89205B8E	Stack overflow
 	0x949854A	Throw (message)
+	0x94E64827	LaunchGrenade <grenade type> <origin> <velocity> [time to blow (seconds)] [rethrow grenade entity].\n
+	0x9B07EA90	index out of range
 	0xA3889F7F	Parameter isn't a valid Array
 	0xA8D274EB	Parameter isn't a valid Struct
+	0xAE2ABE65	LaunchGrenade(): provided rethrow entity script_classname is not 'grenade'.
+	0xB2FD54D	Incorrect usage for getpartname()
+	0xB387A961	bad model
+	0xB73EC451	string too long
+	0xB8BE7994	IsPlatformPS4 can only be called from SP
+	0xBA91C496	GetDvarVector( <dvar>, <default> ) takes either one or two parameters
+	0xBDCEE163	IsPlatformSony can only be called from SP
 	0xBE400231	Invalid bundle name
 	0xC08C4D05	Parameter isn't a valid hash type
+	0xC0BBE6EA	Can't divide by 0
 	0xC0D2E7EA	Parameter 1 can't be casted to string
 	0xC595F74E	Invalid gsc string type
 	0xC62D074E	Parameter can't be added to an XHash
 	0xC666918F	Missing param
 	0xC8DF580C	Type isn't a key type
+	0xC9B44D3	LaunchGrenade(): provided rethrow entity classname is not 'grenade'.
+	0xD294F5EA	cannot cast to int
 	0xD3320372	Missing param
+	0xD665F321	IsPlatformXB4 can only be called from SP
+	0xD87D833F	GetDvarInt( <dvar>, <default> ) takes either one or two parameters
+	0xDB077CC0	cannot cast to float
+	0xDC559740	GetDvarVector: Dvar isn't parsable as a vector
 	0xE0695562	Invalid operator
 	0xE089845	Parameter isn't a valid XHash
 	0xE4F22AA2	Parameter isn't a valid hash type
+	0xFBD60559	Invalid parameters.
