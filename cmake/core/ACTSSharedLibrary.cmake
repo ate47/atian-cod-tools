@@ -42,6 +42,7 @@ if(ALL_PLATFORM_ACTS)
         zstd
         zlib
         t89_generate_errors
+        t10_generate_errors
     )
 else()
     target_include_directories(ACTSSharedLibrary PRIVATE
@@ -78,6 +79,7 @@ else()
         zstd
         zlib
         t89_generate_errors
+        t10_generate_errors
     )
 endif()
 

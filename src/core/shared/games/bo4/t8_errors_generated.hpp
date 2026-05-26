@@ -1,6 +1,6 @@
 // Auto-generated file, do not write in it
 
-static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
+static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3199439626, "Can't register dvar" }, // Adam 156 Sub-zero Abyss
     { 2082640650, "No file descriptor available" }, // Adam 156 Urban Parachute
     { 2612114442, "Firing a weapon with fire type Aim Only." }, // Adam 18 Miami Case
@@ -71,7 +71,9 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 3706227705, "Invalid threat bias group" }, // Delta 884 Aggressive Sunrise
     { 2955023929, "not an object" }, // Delta 899 Urban Claw
     { 409067247, "No clientfield named found in set." }, // Dog 415 Dry Owl
+    { 969013743, "The server sent us a config checksum but we have don't have one" }, // Dog 557 Mythic Werewolf
     { 3042707823, "Corrupt or invalid string reference (not a string)" }, // Dog 620 Barricaded Rage
+    { 1170973103, "checksum/mapcrc mismatch" }, // Dog 805 Due Alligator
     { 269518924, "Ammo count must not be negative" }, // East 1005 Found Badger
     { 2019033740, "mission index out of range" }, // East 211 Dual Munition
     { 3482075788, "caller is not an object" }, // East 481 Knockout Crossbones
@@ -156,6 +158,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 655503056, "script stack overflow (too many embedded function calls)" }, // Kilo 56 Small Gemini
     { 4220857104, "Cannot call IncrementClientField on a 'counter' type clientfield on the frame it is spawned, since newEnts on the clientside will not process 'counter' type clientfields." }, // Kilo 717 Clockwork Refuge
     { 3059411687, "Argument and parameter count mismatch for LUINotifyEvent" }, // King 1002 Fast Linebacker
+    { 1364389287, "Our config string checksum doesn't match the server's checksum" }, // King 114 Quick Conflict
     { 2940210599, "Invalid Version Handling. Grab Bat !!!" }, // King 220 Wartorn Fury
     { 2577695271, "SetModel can only be called on a script mover" }, // King 30 Tough Asset
     { 3635717863, "end time must be between 0 and 1" }, // King 404 Sapphire Ice
@@ -212,6 +215,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 1480821566, "Error registering client field.  Attempted field size is not acceptable bit number range 1->32" }, // November 990 Fake Operator
     { 1642120921, "1st param should be a hash or a string" }, // Ocean 116 Confused Corps
     { 1850691545, "Debug Break" }, // Ocean 270 Grounded Infantry
+    { 3913663257, "Failed to create database thread" }, // Ocean 281 Conflicted Outlander
     { 3134536217, "Corrupt or invalid string reference (not a string)" }, // Ocean 288 Victorious Breakfast
     { 3967909977, "Trying to get version of a demo when the demo system is idle." }, // Ocean 529 Broken Lamprey
     { 3677886809, "parameter does not exist" }, // Ocean 78 Melted Lantern
@@ -221,6 +225,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 2687742442, "Forced script exception." }, // Option 365 Old Ghoul
     { 3523382186, "ScrEvent map is full, unable to register new event" }, // Option 961 Blue Whisper
     { 1908025062, "parameter isn't a string" }, // Oscar 1009 Emerald Invasion
+    { 4278104166, "Illegal objective state, possible values: active, invisible, done, current or failed" }, // Oscar 283 Barren Eye
     { 277765798, "Error loading fastfile: uncompressed delta fast file is not supported" }, // Oscar 66 Burn Badger
     { 3329708710, "Unable to find default bitfield, dropping" }, // Oscar 771 Central Zeus
     { 3030895505, "Whitelist failure for title" }, // Papa 1018 Rocky Beastmaster
@@ -296,6 +301,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 3524990949, "not an array key" }, // Sail 543 Earth Whisper
     { 2894056997, "DEV: CL_SetCGameTime: !cl->snap.valid" }, // Sail 630 Nuclear Bug
     { 833940261, "divide by 0" }, // Sail 692 Sapphire Avalanche
+    { 897625509, "Can't find xasset (name,type)" }, // Sail 780 Risky Zombie
     { 2250249765, "Corrupt or invalid string reference (not a valid string)" }, // Sail 899 Good Retreat
     { 3922439973, "ArraySort: array can only contain entities or structs or vectors" }, // Sail 946 Due Outlander
     { 1292858725, "Invalid mission name" }, // Sail 962 Hidden Buffalo
@@ -349,6 +355,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 1064295945, "Could not allocate asset - increase XASSET_ENTRY_POOL_SIZE" }, // Uniform 58 Guerrilla Boa
     { 3122940489, "caller is not an entity" }, // Uniform 587 Nickel Breakfast
     { 1088349385, "Corrupt or invalid string reference (not a valid string)" }, // Uniform 854 Positive Jaguar
+    { 174350744, "PMem: failed to free memory (name,stack)" }, // Union 138 Shade Tornado
     { 969461336, "The setHintStringForPlayer command only works on trigger or script mover entities." }, // Union 152 Midas Werewolf
     { 3837625752, "abort" }, // Union 296 Poison Luck
     { 3630798232, "caller is not an object" }, // Union 326 Boiling Ice
@@ -380,6 +387,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 2250913242, "XFile Read error" }, // Victor 727 River Retreat
     { 1137123674, "GScr_LUINotifyEvent: Expected Istrings, hash or integers only" }, // Victor 768 Golden Wolverine
     { 240121690, "waittill_timeout must have at least one valid argument" }, // Victor 851 Grounded Lion
+    { 2618727779, "The server did not send us a config checksum but we have one" }, // West 243 Brass Cipher
     { 3400130275, "VEH_IsSeatOccupied() called on invalid seat position." }, // West 415 Midnight Victory
     { 1252503459, "caller is not an entity" }, // West 728 Rocky Goat
     { 1190254947, "waittill must have at least one valid argument" }, // West 9 Unlimited Rat
@@ -388,6 +396,7 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 1045192683, "Scr_RandomFloatRange's second parameter must be greater than the first." }, // Whiskey 159 Calm Python
     { 3086288875, "playFx called with (0 0 0) forward direction" }, // Whiskey 230 Destructive Guardian
     { 3015158315, "getperks() can only be called on local players" }, // Whiskey 456 Blazing Cause
+    { 2162131755, "Can't find prng algorithm" }, // Whiskey 938 Dazed Ship
     { 968521323, "player hasperk(<localClientNum>, <perk>): localClientNum out of range" }, // Whiskey 960 Emerald Werewolf
     { 2429764318, "GetRandomCompatibleAttachmentsForWeapon: Weapon has more than allowed number attachments" }, // Winter 564 Goodbye Specialist
     { 280703902, "parameter does not exist" }, // Winter 6 Almighty Badger
@@ -444,13 +453,4 @@ static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {
     { 1363519084, "key is not internally a string" }, // Zulu 636 Conflicted Conflict
     { 2836526124, "value out of range (acos)" }, // Zulu 770 Mountain Traffic
     { 3671833516, "accuracy mod must be nonnegative" }, // Zulu 974 Winning Clover
-    { 4278104166, "Illegal objective state, possible values: active, invisible, done, current or failed" }, // Oscar 283 Barren Eye
-    { 1364389287, "Our config string checksum doesn't match the server's checksum" }, // King 114 Quick Conflict
-    { 2618727779, "The server did not send us a config checksum but we have one" }, // West 243 Brass Cipher
-    { 969013743, "The server sent us a config checksum but we have don't have one" }, // Dog 557 Mythic Werewolf
-    { 3913663257, "Failed to create database thread" }, // Ocean 281 Conflicted Outlander
-    { 174350744, "PMem: failed to free memory (name,stack)" }, // Union 138 Shade Tornado
-    { 897625509, "Can't find xasset (name,type)" }, // Sail 780 Risky Zombie
-    { 1170973103, "checksum/mapcrc mismatch" }, // Dog 805 Due Alligator
-    { 2162131755, "Can't find prng algorithm" }, // Whiskey 938 Dazed Ship
 };

@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     }
 
     out << "// Auto-generated file, do not write in it\n\n";
-    out << "static const struct { uint32_t code; const char* msg; } T89_ERRORS[] {\n";
+    out << "static const struct { uint32_t code; const char* msg; } ERRORS[] {\n";
 
     std::string render, code, msg;
     while (std::getline(in, render, '\t') &&
@@ -35,7 +35,13 @@ int main(int argc, char **argv) {
             if (msg[i] == '"')
                 msg.insert(i++, "\\");
 
-        out << "    { " << code << ", \"" << msg << "\" }, // " << render << "\n";
+        out << "    { " << code << ", \"" << msg << "\" },";
+        
+        if (!render.empty()) {
+            out << " // " << render;
+        }
+
+        out << "\n";
     }
 
     out << "};\n";
