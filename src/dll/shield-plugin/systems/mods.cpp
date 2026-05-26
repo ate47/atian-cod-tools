@@ -198,7 +198,7 @@ namespace systems::mods {
 		hook::library::Detour PMem_Free_Detour;
 		hook::library::Detour DB_LoadXAssets_Detour;
 		hook::library::Detour DB_LinkXAssetEntry_Detour;
-		hook::library::Detour UnkCheckSum_Detour;
+		hook::library::Detour DB_AuthLoad_End_Detour;
 		hook::library::Detour DB_FindXAssetHeader_Detour;
 		hook::library::Detour DB_DoesXAssetExist_Detour;
 		hook::library::Detour Stream_OpenFileInternal_Detour;
@@ -503,9 +503,9 @@ namespace systems::mods {
 		}
 
 
-		void UnkCheckSum_Stub() {
+		void  DB_AuthLoad_End_Stub() {
 			if (!loadFakeFastFile) {
-				UnkCheckSum_Detour.Call();
+				DB_AuthLoad_End_Detour.Call();
 			}
 		}
 
@@ -730,7 +730,7 @@ namespace systems::mods {
 			DB_ValidateFileHeader_Detour.Create(0x2E0EBE0_a, DB_ValidateFileHeader_Stub);
 			DB_AuthLoad_AnalyzeData_Detour.Create(0x28B5F40_a, DB_AuthLoad_AnalyzeData_Stub);
 			DB_LinkXAssetEntry_Detour.Create(0x2EB84F0_a, DB_LinkXAssetEntry_Stub);
-			UnkCheckSum_Detour.Create(0x28B5FA0_a, UnkCheckSum_Stub);
+			DB_AuthLoad_End_Detour.Create(0x28B5FA0_a, DB_AuthLoad_End_Stub);
 			DB_FindXAssetHeader_Detour.Create(0x2EB75B0_a, DB_FindXAssetHeader_Stub);
 			DB_DoesXAssetExist_Detour.Create(0x2EB6C90_a, DB_DoesXAssetExist_Stub);
 			Stream_OpenFileInternal_Detour.Create(0x3C4CE00_a, Stream_OpenFileInternal_Stub);

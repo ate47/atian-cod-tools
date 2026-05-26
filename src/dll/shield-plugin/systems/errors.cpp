@@ -5,14 +5,21 @@
 #include <hook/error.hpp>
 #include <rapidcsv.h>
 #include <systems/errors.hpp>
+#include <games/bo4/t8_errors.hpp>
 
 namespace systems::errors {
 	namespace {
 		std::unordered_map<uint32_t, std::string> errorCodes{};
 
 		const char* GetErrorMessage(uint32_t code) {
+			const char* msg{ games::bo4::errors::TranslateError(code, false) };
+			if (msg) {
+				return msg;
+			}
 			auto it{ errorCodes.find(code) };
-			if (it != errorCodes.end()) return it->second.data();
+			if (it != errorCodes.end()) {
+				return it->second.data();
+			}
 			return nullptr;
 		}
 

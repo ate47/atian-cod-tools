@@ -25,6 +25,7 @@ target_include_directories(AtianCodToolsBO4ShieldPlugin PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
     "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src"
+    "${CMAKE_SOURCE_DIR}/deps/libtomcrypt/src/headers/"
 )
 append_common_defs(AtianCodToolsBO4ShieldPlugin)
 
@@ -33,10 +34,12 @@ target_link_libraries(AtianCodToolsBO4ShieldPlugin PRIVATE
     detours
     asmjit
     libcurl
+    libtomcrypt
 )
 add_dependencies(AtianCodToolsBO4ShieldPlugin
     ACTSSharedLibrary
     detours
     asmjit
     libcurl
+    libtomcrypt
 )

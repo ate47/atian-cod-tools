@@ -48,6 +48,9 @@ try {
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.dll" > $null
     Remove-Item -Force -ErrorAction Ignore "$base/bin/test-*.exe" > $null
 
+    # Clear builder
+    Remove-Item -Force -ErrorAction Ignore "$base/bin/abp_*.exe" > $null
+
     # Build exec data
 
     if ($deployQt) {

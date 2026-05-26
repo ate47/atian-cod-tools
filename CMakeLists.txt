@@ -189,6 +189,7 @@ load_dir_recurse(deps)
 if (GPL_BUILD)
     load_dir_recurse(deps-gpl)
 endif()
+load_dir_recurse(tools)
 load_dir_recurse(core)
 
 if (NOT STATIC_ACTS)
