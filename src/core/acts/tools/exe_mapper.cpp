@@ -165,7 +165,7 @@ namespace {
 			
 			for (size_t i = 0; i < blockSize - 4; i++) {
 				int32_t rl{ *(int32_t*)&buffer[i] };
-				if (base + i + 4 + rl == toSearch) {
+				if (rl && base + i + 4 + rl == toSearch) {
 					LOG_INFO("{}", hook::library::CodePointer{ base + i });
 				}
 			}
