@@ -1,6 +1,7 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <map>
 
 int main(int argc, char **argv) {
     if (argc < 3) {
@@ -21,9 +22,15 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    out << "// Auto-generated file, do not write in it\n\n";
-    out << "static const struct { uint32_t code; const char* msg; } ERRORS[] {\n";
+    struct ErrorInfo {
+        std::string msg{};
+        std::string render{};
+        bool loaded{};
+    };
 
+    std::map<std::string, ErrorInfo> vals{};
+
+    bool anyError{};
     std::string render, code, msg;
     while (std::getline(in, render, '\t') &&
            std::getline(in, code, '\t') &&
@@ -35,10 +42,33 @@ int main(int argc, char **argv) {
             if (msg[i] == '"')
                 msg.insert(i++, "\\");
 
-        out << "    { " << code << ", \"" << msg << "\" },";
-        
-        if (!render.empty()) {
-            out << " // " << render;
+
+        ErrorInfo& r{ vals[code] };
+        if (r.loaded) {
+            std::cerr
+                << "found duplicated entry: \n"
+                << "old: " << code << " = " << r.msg << "/" << r.render << "\n"
+                << "new: " << code << " = " << msg << "/" << render << "\n"
+                ;
+            anyError = true;
+            continue;
+        }
+
+        r.msg = msg;
+        r.render = render;
+        r.loaded = true;
+    }
+
+    if (anyError) return -1;
+
+    out << "// Auto-generated file, do not write in it\n\n";
+    out << "static const struct { uint32_t code; const char* msg; } ERRORS[] {\n";
+
+    for (auto& pair : vals) {
+        out << "    { " << pair.first << ", \"" << pair.second.msg << "\" },";
+
+        if (!pair.second.render.empty()) {
+            out << " // " << pair.second.render;
         }
 
         out << "\n";

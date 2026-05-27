@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <cli/cli_options.hpp>
 #include <platform/platform_windows.hpp>
 #include <game_data.hpp>
 #include <games/cod/asset_names.hpp>
@@ -153,10 +154,10 @@ namespace {
 
 		const byte* toSearch{ mod->Get<byte>(rva) };
 
-		byte buffer[blockSize];
+		std::unique_ptr<byte[]> buffer{ std::make_unique<byte[]>(blockSize) };
 		for (size_t r = 0; r < maxSize;) {
 			byte* base{ (byte*)mod->Get<byte>(r) };
-			if (!hook::memory::ReadMemorySafe(base, buffer, blockSize)) {
+			if (!hook::memory::ReadMemorySafe(base, buffer.get(), blockSize)) {
 				r += 0x100;
 				continue;
 			}
@@ -176,6 +177,184 @@ namespace {
 
 		return tool::OK;
 	}
+
+	int exe_rcx(int argc, const char* argv[]) {
+		if (tool::NotEnoughParam(argc, 3)) return tool::BAD_USAGE;
+
+
+		const char* exe{ argv[2] };
+		uint64_t rva{ (uint64_t)utils::ParseFormatInt(argv[3]) };
+		uint64_t value{ (uint64_t)utils::ParseFormatInt(argv[4]) };
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe);
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		constexpr size_t maxSize = 0x20000000;
+		constexpr size_t blockSize = 0x4000;
+
+		byte* toSearch{ (byte*)mod->Get<byte>(rva) };
+
+		size_t findSize{};
+
+		uint64_t mask{};
+		uint64_t valueDecomp{ value };
+
+		while (valueDecomp) {
+			valueDecomp >>= 8;
+			mask = (mask << 8) | 0xFF;
+			findSize++;
+		}
+
+		LOG_INFO("Loaded, searching {} 0x{:x}/{}", hook::library::CodePointer{ toSearch }, value, findSize * 8);
+
+		size_t window = findSize + 1 + 4; // ECX E8/E9 rva
+
+		std::unique_ptr<byte[]> buffer{ std::make_unique<byte[]>(blockSize) };
+		for (size_t r = 0; r < maxSize;) {
+			byte* base{ (byte*)mod->Get<byte>(r) };
+			if (!hook::memory::ReadMemorySafe(base, buffer.get(), blockSize)) {
+				r += 0x100;
+				continue;
+			}
+
+			r += blockSize - window + 1;
+
+			for (size_t i = 0; i < blockSize - window; i++) {
+				byte* wbase{ &buffer[i] };
+				byte* deltaBase{ &wbase[window - 4] };
+				int32_t rl{ *(int32_t*)deltaBase };
+				if (rl && base + i + window + rl == toSearch) {
+					byte op{ wbase[window - 5] };
+
+					if (op != 0xE9 && op != 0xE8) {
+						LOG_ERROR("Unknown call {:x} at {}", (int)op, hook::library::CodePointer{ base + i });
+						continue;
+					}
+
+					uint64_t rv{ *(uint64_t*)wbase };
+					if ((rv & mask) == value) {
+						LOG_INFO("{}", hook::library::CodePointer{ base + i });
+					}
+					else {
+						LOG_DEBUG("ignore {}", hook::library::CodePointer{ base + i });
+					}
+				}
+			}
+		}
+
+
+		LOG_INFO("Done");
+
+		return tool::OK;
+	}
+
+	int exe_rcx_find(int argc, const char* argv[]) {
+		bool showHelp{};
+		bool ignoreDupe{};
+
+		cli::options::CliOptions opts{};
+
+		opts.addOption(&showHelp, "help", "--help", "", "-h");
+		opts.addOption(&ignoreDupe, "ignore duplicated", "--no-dupe", "", "-d");
+
+		if (!opts.ComputeOptions(2, argc, argv) || showHelp || opts.NotEnoughParam(3)) {
+			opts.PrintOptions();
+			return showHelp ? tool::OK : tool::BAD_USAGE;
+		}
+
+		const char* exe{ opts[0] };
+		uint64_t rva{ (uint64_t)utils::ParseFormatInt(opts[1]) };
+		uint64_t len{ (uint64_t)utils::ParseFormatInt(opts[2]) };
+		const char* output{ opts.NotEnoughParam(4) ? nullptr : opts[3] };
+
+		utils::OutFileCE os{};
+
+		if (output) {
+			LOG_INFO("dump to {}...", output);
+			os.Open(output, true);
+		}
+
+		hook::module_mapper::Module mod{ true };
+
+		LOG_INFO("Loading module {}", exe);
+		if (!mod.Load(exe) || !mod) {
+			LOG_ERROR("Can't load module");
+			return tool::BASIC_ERROR;
+		}
+
+		constexpr size_t maxSize = 0x20000000;
+		constexpr size_t blockSize = 0x4000;
+
+		byte* toSearch{ (byte*)mod->Get<byte>(rva) };
+
+		size_t findSize{};
+
+		uint64_t mask{};
+
+		for (size_t i = 0; i < len; i++) {
+			mask = (mask << 8) | 0xFF;
+			findSize++;
+		}
+
+		LOG_INFO("Loaded, searching {} {:x}/{}", hook::library::CodePointer{ toSearch }, mask, findSize * 8);
+
+		size_t window = findSize + 1 + 4; // ECX E8/E9 rva
+
+		std::unordered_set<uint64_t> values{};
+		std::unique_ptr<byte[]> buffer{ std::make_unique<byte[]>(blockSize) };
+		for (size_t r = 0; r < maxSize;) {
+			byte* base{ (byte*)mod->Get<byte>(r) };
+			if (!hook::memory::ReadMemorySafe(base, buffer.get(), blockSize)) {
+				r += 0x100;
+				continue;
+			}
+
+			r += blockSize - window + 1;
+
+			for (size_t i = 0; i < blockSize - window; i++) {
+				byte* wbase{ &buffer[i] };
+				byte* deltaBase{ &wbase[window - 4] };
+				int32_t rl{ *(int32_t*)deltaBase };
+				if (rl && base + i + window + rl == toSearch) {
+					byte op{ wbase[window - 5] };
+
+					const char* call;
+					switch (op) {
+					case 0xE9: call = "jmp"; break;
+					case 0xE8: call = "call"; break;
+					default: call = utils::va("unk:%02x", (int)op);
+					}
+
+					uint64_t value{ *(uint64_t*)wbase & mask };
+
+					if (ignoreDupe) {
+						if (values.contains(value)) {
+							continue;
+						}
+						values.insert(value);
+					}
+
+					if (output) {
+						os << hook::library::CodePointer{ base + i } << " " << call << "\t0x" << std::hex << value << "\t\n";
+					}
+					else {
+						LOG_INFO("{} {} {} (0x{:x})", hook::library::CodePointer{ base + i }, call, value, value);
+					}
+				}
+			}
+		}
+
+
+		LOG_INFO("Done");
+
+		return tool::OK;
+	}
+
 	int exe_ret_string(int argc, const char* argv[]) {
 		if (tool::NotEnoughParam(argc, 2)) return tool::BAD_USAGE;
 
@@ -572,6 +751,8 @@ namespace {
 	ADD_TOOL(exe_mapper, "dev", "[exe]", "Map exe in memory", exe_mapper);
 	ADD_TOOL(exe_scan, "dev", "[exe] [pattern]", "Scan exe", exe_scan);
 	ADD_TOOL(exe_rva, "dev", "[exe] [rva]", "Find all rva for an exe", exe_rva);
+	ADD_TOOL(exe_rcx, "dev", "[exe] [rva] [rcx]", "Find all call for a rva with a param", exe_rcx);
+	ADD_TOOL(exe_rcx_find, "dev", "[exe] [rva] [len] (output tsv)", "Find all call for a rva with a param", exe_rcx_find);
 	ADD_TOOL(exe_ret_string, "dev", "[exe] [rva]", "Load a string from an exe", exe_ret_string);
 	ADD_TOOL(game_validate, "dev", " [game=all]", "Validate scans for an exe", game_validate);
 	ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);

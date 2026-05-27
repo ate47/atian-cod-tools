@@ -638,6 +638,19 @@ namespace utils {
 			os << t;
 			return *this;
 		}
+
+		void Open(const char* f, bool failOpen = false, std::ios::openmode mode = std::ios::out) {
+			os.open(f, mode);
+			if (failOpen && !os) throw std::runtime_error(std::format("Can't open {}", f));
+		}
+
+		void Open(const std::string& f, bool failOpen = false, std::ios::openmode mode = std::ios::out) {
+			Open(f.data(), failOpen, mode);
+		}
+
+		void Open(const std::filesystem::path& f, bool failOpen = false, std::ios::openmode mode = std::ios::out) {
+			Open(f.string(), failOpen, mode);
+		}
 	};
 
 	class InFileCE {
@@ -685,6 +698,19 @@ namespace utils {
 		OutFileCE& operator<<(const T& t) {
 			is >> t;
 			return *this;
+		}
+
+		void Open(const char* f, bool failOpen = false, std::ios::openmode mode = std::ios::in) {
+			is.open(f, mode);
+			if (failOpen && !is) throw std::runtime_error(std::format("Can't open {}", f));
+		}
+
+		void Open(const std::string& f, bool failOpen = false, std::ios::openmode mode = std::ios::in) {
+			Open(f.data(), failOpen, mode);
+		}
+
+		void Open(const std::filesystem::path& f, bool failOpen = false, std::ios::openmode mode = std::ios::in) {
+			Open(f.string(), failOpen, mode);
 		}
 	};
 

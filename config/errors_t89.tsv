@@ -62,6 +62,7 @@ Delta 291 Operation Stockade	2473308409	Execution Queue out of memory
 Delta 320 Monster Tornado	179749049	cannot cast to bool
 Delta 321 Classic Corps	1634348473	Vehicles only support bullet, bomb, gas, grenade and projectile weapons
 Delta 357 Divebomb Fleet	1703931129	Trying to read corrupted file
+Delta 418 Boiling Overlord	2909354809	invalid team name (not possible)
 Delta 515 United Mauler	3137736761	script stack overflow (too many embedded function calls)
 Delta 694 Fierce Fort	1752379961	param is not an object
 Delta 796 Nightshade Artillery	2274889209	Invalid type passed in from array into waittill parameter list
@@ -89,6 +90,7 @@ Edward 427 Platinum Mirage	3257432710	type is not a float or int
 Edward 43 Sleeper Sabotage	2289696774	Driver Internal Error
 Edward 522 Risky Wolverine	1132507782	bad opcode
 Edward 807 Revolutionary Cover	2667191558	Unknown ent type in GScr_GetFieldSetForEntityType.
+Fall 146 Unlimited Activity	4042343709	bad anim tree
 Fall 242 Resolute Force	1721606685	script stack overflow (too many embedded function calls)
 Fall 29 Tall Undertow	3410121757	cannot cast to bool
 Fall 313 Nickel Operator	1478783005	Pointer types passed into waittill_timeout expressions must evaluate as arrays
@@ -99,6 +101,7 @@ Fall 52 Air Spear	2921226909	Can't register dvar
 Fall 640 Risky Sunrise	3699398237	controllerIndex doesn't index MAX_GPAD_COUNT
 Fall 697 Defiant Owl	417653725	EXE_PATCH_STATSOVERFLOW
 Fall 78 Sub-zero Serpent	3098745181	invalid character index
+Fall 828 Divided Razor	3791399389	invalid team name (not possible)
 Foxtrot 14 Nuclear Cobra	209668787	RandomInt parm must be positive integer.
 Foxtrot 150 Bayou Hound	489261299	Invalid gunner index set in FireWeapon
 Foxtrot 187 Aggressive Ordnance	2078816051	not a valid name for a clientfield set.
@@ -169,7 +172,6 @@ Lima 495 Old Security	2033447003	not an array key
 Lima 510 Bogus Rescue	2235303131	not a player entity
 Lima 886 Flat Jaguar	1080214043	caller is not an object
 May 1009 Torched Sunrise	3699844858	model not precached
-May 1009 Torched Sunrise	3699844858	parameter does not exist
 May 267 Tragic Whisper	3527043258	Com_EventLoop: bad event type
 May 612 Snow Obelisk	1333649786	IsMature can only be called on a player.
 May 706 Due Sagittarius	768316282	script stack overflow (too many embedded function calls)
@@ -206,7 +208,6 @@ November 116 Mythic Scorpio	750896894	Invalid bgCache type
 November 268 Wild Greyhound	475330046	Invalid dvar type
 November 417 Silver Sunrise	3692510654	Invalid type passed in from array into waittill parameter list
 November 588 Barren Carrier	1593720126	Can't register dvar
-November 670 Boiling Avalanche	829015102	not a pointer
 November 670 Boiling Avalanche	829015102	var isn't a field object
 November 817 Tall Shell	2369974846	Invalid threat bias group
 November 990 Fake Operator	1480821566	Error registering client field.  Attempted field size is not acceptable bit number range 1->32
@@ -293,6 +294,7 @@ Rush 755 Light Gladiator	3314084408	not a string index
 Sail 1020 Clean Goodnight	4101525669	Can't use wait with profiler
 Sail 208 Goodbye Arrow	1507063205	CMD_VEH_SetPlaneGoalPos entity is at rest ( speed of 0 ), new speed is needed to make plane move.
 Sail 312 Extreme Boa	1072585573	Raw file is not a file of the right type
+Sail 323 Stealth Firestarter	3437940389	unable to find animation in tree
 Sail 397 Skyline Firestarter	3423138661	not a script function pointer
 Sail 506 Blink Alligator	1167129573	key does not internally belong to generic entities
 Sail 543 Earth Whisper	3524990949	not an array key
@@ -305,7 +307,6 @@ Sail 962 Hidden Buffalo	1292858725	Invalid mission name
 Sierra 190 Knight Thunder	530250396	Source Damage vector is invalid.
 Sierra 54 Found Treasure	4178589916	Model was not cached by the linker.
 South 1020 Calm Potato	2538360978	caller is not an object
-South 1020 Calm Potato	2538360978	not a function pointer
 South 108 Determined Yeti	3874454418	negative wait is not allowed
 South 209 Shadow Stallion	949934674	Invalid Version Handling. Grab Bat !!!
 South 263 Confused Artillery	2279633554	SV_SetConfigstring: bad index
@@ -319,6 +320,7 @@ Spring 779 Nickel Shell	2367948992	Can't find sha1 hash algorithm
 Spring 805 Apollo Valentine	1099145600	Can't find asset
 Spring 81 Snap Soldier	2408700928	not a valid name for a clientfield set.
 Spring 817 Wild Star	3847549440	Exceeded limit for assets.
+Spring 89 Pale Giant	878538048	invalid const string ref
 Summer 146 Satellite Ultra	2863351045	bad vm instance
 Summer 164 Brass Dove	219569925	hasperk() can only be called on local players
 Summer 213 Good Invasion	1897931653	AIType has no characters specified. There should be at least one chatacter associated with an AIType.
@@ -352,6 +354,7 @@ Uniform 31 Empty Jet	1915758537	RegisterClientField can only accept bit ranges b
 Uniform 58 Guerrilla Boa	1064295945	Could not allocate asset - increase XASSET_ENTRY_POOL_SIZE
 Uniform 587 Nickel Breakfast	3122940489	caller is not an entity
 Uniform 854 Positive Jaguar	1088349385	Corrupt or invalid string reference (not a valid string)
+Uniform 956 Ace Aquarius	597121289	invalid platoon name (not possible)
 Union 138 Shade Tornado	174350744	PMem: failed to free memory (name,stack)
 Union 152 Midas Werewolf	969461336	The setHintStringForPlayer command only works on trigger or script mover entities.
 Union 296 Poison Luck	3837625752	abort
@@ -359,6 +362,7 @@ Union 326 Boiling Ice	3630798232	caller is not an object
 Union 344 Blue Headquarters	1795335576	not an object
 Union 701 Sick Eclipse	1013305560	Pointer types passed into waittill expressions must evaluate as arrays
 Union 753 Right Shell	2371852248	No tag_barrel for
+Union 757 Rare Tank	3291994136	invalid animtree id
 Union 908 Evil Giant	876169112	key value provided for struct is not valid
 Union 958 Mad Retreat	2253722136	CamAnimScripted can only be called on a player.
 Vic 227 Recovered Goat	1246470805	mission index out of range
@@ -367,6 +371,7 @@ Vic 366 Crystal Lion	249068885	Failed to allocate from state pool
 Vic 415 Aggressive Pisces	619241173	Failed to allocate from element pool
 Vic 504 Pale Fury	2942156629	not an array
 Vic 520 Barren Scorpio	754846421	invalid vehicle spawn origin
+Vic 803 Chief Drop	2824316565	parameter does not exist
 Vic 820 Nitro Goodnight	4103906837	Entity is not an item.
 Vic 983 Extreme Traffic	2851002517	param is not an object
 Vice 164 Vengeful Raven	451698481	Unk fastfile load error
@@ -379,11 +384,11 @@ Vice 697 Metal Service	2355618801	Gesture table key can't have the higher bit se
 Vice 70 Grim Storm	1402557361	bad opcode
 Vice 804 Axiom Conquest	3385008561	cannot set field on type
 Victor 616 Barricaded Fort	1750886746	The setHintString command only works on triggers, script mover entities, or players.
-Victor 629 Frozen Gemini	665902298	not an array
 Victor 629 Frozen Gemini	665902298	Parameter must be an array
 Victor 727 River Retreat	2250913242	XFile Read error
 Victor 768 Golden Wolverine	1137123674	GScr_LUINotifyEvent: Expected Istrings, hash or integers only
 Victor 851 Grounded Lion	240121690	waittill_timeout must have at least one valid argument
+Victor 857 Covert Formation	1736003354	parameter does not exist
 West 243 Brass Cipher	2618727779	The server did not send us a config checksum but we have one
 West 415 Midnight Victory	3400130275	VEH_IsSeatOccupied() called on invalid seat position.
 West 728 Rocky Goat	1252503459	caller is not an entity
@@ -407,12 +412,12 @@ XRay 470 Screaming Justice	2974839555	invalid session mode
 XRay 552 Burned Station	2792722947	RegisterClientField can only accept 5 parameters
 XRay 740 Fire Valentine	1092422851	Optional argument must be of integer type
 XRay 775 Split Python	1056823939	Invalid type passed in from array into waittill parameter list
+Yankee 106 Dry Spartan	576843940	type is not an anim
 Yankee 13 United Wombat	84281764	not a field object
 Yankee 220 Divided Intelligence	1895566756	dvar is not a 3d vector, but GetDvarVector3D has been called on it
 Yankee 444 Nitro Spartan	580674660	Unknown ent type in GScr_GetFieldSetForEntityType.
 Yankee 541 Numbered Boar	104978404	cannot cast type to canon
 Yankee 687 Screech Snake	512306404	caller is not an object
-Yankee 687 Screech Snake	512306404	not a function pointer
 Yankee 780 Bad Shell	2368908708	invalid session mode
 Yankee 913 Evil Libra	725202020	caller is not an object
 Yankee 921 Gothic Navy	2055356644	entity is not a script_brushmodel, script_model, script_origin, probe, or light
