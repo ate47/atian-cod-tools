@@ -18,6 +18,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1088349385, "Corrupt or invalid string reference (not a valid string)" }, // Uniform 854 Positive Jaguar
     { 1092422851, "Optional argument must be of integer type" }, // XRay 740 Fire Valentine
     { 1099145600, "Can't find asset" }, // Spring 805 Apollo Valentine
+    { 1109572499, "invalid session mode" }, // Golf 974 Urban Bison
     { 1109633678, "Execution Queue out of memory" }, // Prep 390 Iron Bison
     { 1132507782, "bad opcode" }, // Edward 522 Risky Wolverine
     { 1137123674, "GScr_LUINotifyEvent: Expected Istrings, hash or integers only" }, // Victor 768 Golden Wolverine
@@ -48,6 +49,8 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1363519084, "key is not internally a string" }, // Zulu 636 Conflicted Conflict
     { 1364331101, "Object must be an array" }, // Fall 388 Quick Conflict
     { 1364389287, "Our config string checksum doesn't match the server's checksum" }, // King 114 Quick Conflict
+    { 1365291145, "invalid gesture in player role template" }, // Uniform 48 Hurt Conflict
+    { 1374289393, "invalid session mode" }, // Vice 925 Silent Conflict
     { 1377489376, "Gesture key can't have the higher bit set" }, // Roger 356 Gray Pig
     { 1385570291, "assert fail (with message)" }, // Foxtrot 345 Strange Pig
     { 1402557361, "bad opcode" }, // Vice 70 Grim Storm
@@ -91,12 +94,14 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1752379961, "param is not an object" }, // Delta 694 Fierce Fort
     { 1756043215, "Usage: kill( <source position>, <attacker>, <inflictor>, <weapon>)" }, // Collar 543 Satellite Fort
     { 1757941509, "divide by 0" }, // Summer 603 Midas Fort
+    { 1770186571, "invalid loadout slot" }, // David 151 Gothic Garrison
     { 177453967, "bad dvar type" }, // Collar 974 Furious Tornado
     { 1777362536, "Could not allocate memory for zone" }, // Mike 434 Discovered Garrison
     { 1782227888, "Invalid volume decal index in SetVolumeDecalHidden." }, // Romeo 967 Tragic Grunt
     { 1795335576, "not an object" }, // Union 344 Blue Headquarters
     { 179749049, "cannot cast to bool" }, // Delta 320 Monster Tornado
     { 1804370036, "Failed to verify file type " }, // Quebec 529 Knockout Headquarters
+    { 1816372513, "invalid session mode" }, // Hotel 422 Fake Helmet
     { 1824757220, "calcWeaponOptions takes at least 2 arguments" }, // Yankee 953 Axiom Helmet
     { 1850691545, "Debug Break" }, // Ocean 270 Grounded Infantry
     { 1895566756, "dvar is not a 3d vector, but GetDvarVector3D has been called on it" }, // Yankee 220 Divided Intelligence
@@ -172,6 +177,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2420909621, "no free xpak slots loading pak" }, // Queen 233 Calm Specialist
     { 2429764318, "GetRandomCompatibleAttachmentsForWeapon: Weapon has more than allowed number attachments" }, // Winter 564 Goodbye Specialist
     { 243367053, "The setHintStringForPlayer command can only change prompts for players." }, // Yorker 553 Broken Lion
+    { 2440869003, "can't find item for mode" }, // David 1016 Grizzly Squad
     { 2448966512, "string too long" }, // Romeo 569 Clipped Squad
     { 245612264, "foreach should be used with an array" }, // Mike 664 Steel Lion
     { 2473308409, "Execution Queue out of memory" }, // Delta 291 Operation Stockade
@@ -181,6 +187,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2489324310, "cannot switch on type" }, // June 426 Hurt Tactics
     { 249068885, "Failed to allocate from state pool" }, // Vic 366 Crystal Lion
     { 2498210007, "-- can only be used with integer type" }, // Tango 516 Advanced Tactics
+    { 2504938884, "outfit id out of bound" }, // Charlie 332 Apocalyptic Theater
     { 2512843688, "GetVehicleNode used with more than one node" }, // Mike 465 Great Theater
     { 2517242050, "parameter does not exist" }, // Zed 105 Riptide Volley
     { 2532286589, "error message" }, // Tommy 478 Determined Volley
@@ -204,6 +211,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2658987327, "Invalid string" }, // Bravo 822 Grizzly Cover
     { 2665902678, "CMD_VEH_SetPlaneGoalPos called with a non vector param" }, // June 104 Late Cover
     { 2667191558, "Unknown ent type in GScr_GetFieldSetForEntityType." }, // Edward 807 Revolutionary Cover
+    { 2674310011, "invalid session mode" }, // Zebra 868 Metallic Escort
     { 2681972741, "bad clientfield for name" }, // Summer 534 Winning Escort
     { 2687742442, "Forced script exception." }, // Option 365 Old Ghoul
     { 269518924, "Ammo count must not be negative" }, // East 1005 Found Badger
@@ -265,6 +273,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3137736761, "script stack overflow (too many embedded function calls)" }, // Delta 515 United Mauler
     { 3142427498, "not an object" }, // Option 173 Camouflaged Mauler
     { 3143575744, "parameter does not exist" }, // Spring 361 Right Mauler
+    { 3159820546, "invalid session mode" }, // Zed 41 Chief Rodeo
     { 317100267, "unmatching types" }, // Whiskey 110 Late Tiger
     { 3189465155, "Invalid bgCache type" }, // XRay 353 Earth Abyss
     { 3199439626, "Can't register dvar" }, // Adam 156 Sub-zero Abyss
@@ -284,6 +293,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3304446514, "not an entity" }, // Boy 145 Destructive Tank
     { 3314084408, "not a string index" }, // Rush 755 Light Gladiator
     { 3320597663, "SetSavedDvar can only be called on dvars with the SAVED flag set" }, // Baker 546 Vengeful Gladiator
+    { 3328272376, "invalid player role" }, // Rush 439 Dry Zeus
     { 3329708710, "Unable to find default bitfield, dropping" }, // Oscar 771 Central Zeus
     { 3346055721, "GetWeapon: array can only contain strings or hashes" }, // Young 886 Major Payday
     { 3361905947, "Pointer is not an entity" }, // Lima 486 Flat Apocalypse
@@ -333,6 +343,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3706227705, "Invalid threat bias group" }, // Delta 884 Aggressive Sunrise
     { 3714655621, "Invalid mission name" }, // Summer 347 Boiling Fox
     { 3723589344, "not a function pointer" }, // Roger 440 Unlimited Fox
+    { 3734527949, "no character customization table for this mode" }, // Yorker 159 Nightshade Karma
     { 375374976, "Can't use wait with profiler" }, // Spring 756 Right Lizard
     { 3761634992, "not a pointer" }, // Romeo 836 Deadly Scythe
     { 377246011, "invalid session mode" }, // Zebra 32 Grizzly Lizard
@@ -403,6 +414,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 487917415, "Invalid mission name" }, // King 537 Ghost Hound
     { 489261299, "Invalid gunner index set in FireWeapon" }, // Foxtrot 150 Bayou Hound
     { 512306404, "caller is not an object" }, // Yankee 687 Screech Snake
+    { 521321850, "invalid session mode" }, // May 950 Small Thunder
     { 525308842, "GetBaseWeaponItemIndex: invalid weapon named passed." }, // Option 102 Grounded Thunder
     { 530250396, "Source Damage vector is invalid." }, // Sierra 190 Knight Thunder
     { 530300974, "divide by 0" }, // India 811 Max Thunder

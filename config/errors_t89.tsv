@@ -39,6 +39,7 @@ Cast 899 Dazed Management	4242478637	Trying to read corrupted file
 Charlie 1009 War Leviathan	4163774148	Optional argument must be a float or integer type
 Charlie 19 Loud Arrow	1498641348	not an array
 Charlie 285 Military Gorilla	359760836	G_Spawn: no free entities
+Charlie 332 Apocalyptic Theater	2504938884	outfit id out of bound
 Charlie 376 Steel Alligator	1168374532	Trying to read corrupted file
 Charlie 530 Cut Security	2036025092	formatting can only be used with player entity, string, hash, int or float
 Charlie 555 Acid Jackpot	3812357892	script stack overflow (too many embedded function calls)
@@ -48,6 +49,8 @@ Collar 543 Satellite Fort	1756043215	Usage: kill( <source position>, <attacker>,
 Collar 738 Destructive Crocodile	1156941583	Invalid threat bias group
 Collar 772 Flying Shell	2378228303	invalid session mode
 Collar 974 Furious Tornado	177453967	bad dvar type
+David 1016 Grizzly Squad	2440869003	can't find item for mode
+David 151 Gothic Garrison	1770186571	invalid loadout slot
 David 180 Camouflaged Asset	2572009355	vector scale expecting vector
 David 246 Violet Axe	285416523	not an object
 David 368 Fast Highway	3596277323	endoncallback must have at least one valid argument
@@ -121,10 +124,12 @@ Golf 1002 Desert Beastmaster	3020745427	DirectX Error
 Golf 375 Green Ship	2147578195	not a float,
 Golf 643 Earth Specialist	2417691091	Execution Queue out of memory
 Golf 668 Nuclear Cougar	998219219	parameter does not exist
+Golf 974 Urban Bison	1109572499	invalid session mode
 Hotel 151 Guerrilla Jackpot	3815761761	Error when loading fastfile
 Hotel 173 Tragic Goblin	3459949409	Failed to alloc client field - MAX_CLIENTFIELD_FIELDS_IN_SET=512 exceeded.
 Hotel 39 Weak Outlaw	4048135393	Can't find variable
 Hotel 418 Grey Management	4229118753	Invalid threat bias group
+Hotel 422 Fake Helmet	1816372513	invalid session mode
 Hotel 460 United Goblin	3456527393	script stack overflow (too many embedded function calls)
 Hotel 511 Meridian Boar	114609313	USAGE: GetInfluencerPreset could not find influencer with name
 Hotel 621 Dry Greyhound	476151073	invalid session mode
@@ -176,6 +181,7 @@ May 267 Tragic Whisper	3527043258	Com_EventLoop: bad event type
 May 612 Snow Obelisk	1333649786	IsMature can only be called on a player.
 May 706 Due Sagittarius	768316282	script stack overflow (too many embedded function calls)
 May 74 Left Scorpio	744383994	SetLoadingMovie error
+May 950 Small Thunder	521321850	invalid session mode
 Mike 232 Proper Alligator	1172448744	Max zone count exceeded
 Mike 331 Marsh Rain	3509276200	Invalid mission name
 Mike 419 Violet Tank	3288551912	expected array type to add value pair
@@ -290,6 +296,7 @@ Romeo 913 Blink Demon	546354288	SysError in another thread (msg)
 Romeo 967 Tragic Grunt	1782227888	Invalid volume decal index in SetVolumeDecalHidden.
 Rush 114 Camouflaged Management	4232965560	divide by 0
 Rush 280 Extinct Storm	1403832952	Attempt to register ClientField failed.  Client Field set either already contains a field, or a hash collision has occurred.
+Rush 439 Dry Zeus	3328272376	invalid player role
 Rush 755 Light Gladiator	3314084408	not a string index
 Sail 1020 Clean Goodnight	4101525669	Can't use wait with profiler
 Sail 208 Goodbye Arrow	1507063205	CMD_VEH_SetPlaneGoalPos entity is at rest ( speed of 0 ), new speed is needed to make plane move.
@@ -351,6 +358,7 @@ Tommy 833 Rightful Hippo	987874813	self isn't a field object
 Tommy 942 Numbered Section	2336297405	Execution Queue out of memory
 Uniform 205 Air Gorilla	354335369	Unable to find HierarchicalTaskNetwork asset
 Uniform 31 Empty Jet	1915758537	RegisterClientField can only accept bit ranges between 1 and 32.
+Uniform 48 Hurt Conflict	1365291145	invalid gesture in player role template
 Uniform 58 Guerrilla Boa	1064295945	Could not allocate asset - increase XASSET_ENTRY_POOL_SIZE
 Uniform 587 Nickel Breakfast	3122940489	caller is not an entity
 Uniform 854 Positive Jaguar	1088349385	Corrupt or invalid string reference (not a valid string)
@@ -383,6 +391,7 @@ Vice 644 Old Formation	1731431985	DirectX Error
 Vice 697 Metal Service	2355618801	Gesture table key can't have the higher bit set
 Vice 70 Grim Storm	1402557361	bad opcode
 Vice 804 Axiom Conquest	3385008561	cannot set field on type
+Vice 925 Silent Conflict	1374289393	invalid session mode
 Victor 616 Barricaded Fort	1750886746	The setHintString command only works on triggers, script mover entities, or players.
 Victor 629 Frozen Gemini	665902298	Parameter must be an array
 Victor 727 River Retreat	2250913242	XFile Read error
@@ -422,6 +431,7 @@ Yankee 780 Bad Shell	2368908708	invalid session mode
 Yankee 913 Evil Libra	725202020	caller is not an object
 Yankee 921 Gothic Navy	2055356644	entity is not a script_brushmodel, script_model, script_origin, probe, or light
 Yankee 953 Axiom Helmet	1824757220	calcWeaponOptions takes at least 2 arguments
+Yorker 159 Nightshade Karma	3734527949	no character customization table for this mode
 Yorker 313 Empty Parachute	2083549197	CScr_FindVolumeDecalIndexArray: unsupported parameter type
 Yorker 54 Violet Zombie	889403597	SpawnCollision: Collision model name is not valid
 Yorker 553 Broken Lion	243367053	The setHintStringForPlayer command can only change prompts for players.
@@ -435,11 +445,13 @@ Zebra 1005 TD Rat	1183484027	SetSavedDvar(): The dvar does not exist
 Zebra 112 Vicious Stallion	946363963	Invalid opcode
 Zebra 32 Grizzly Lizard	377246011	invalid session mode
 Zebra 84 World Bayonet	1524410875	Execution Queue out of memory
+Zebra 868 Metallic Escort	2674310011	invalid session mode
 Zebra 909 Aurora Wave	3654063291	ScrEvent map is full, unable to register new event
 Zed 105 Riptide Volley	2517242050	parameter does not exist
 Zed 135 Titanium Ant	1193670850	parameter is not a valid weapon index
 Zed 170 Extreme Gorilla	367932162	ArraySort: array contains more than 4096 entities
 Zed 251 Silent Scorpio	753495682	RandomIntRange's second parameter must be greater than the first.
+Zed 41 Chief Rodeo	3159820546	invalid session mode
 Zed 453 Kinetic Devil	1211376898	DEV: Could not load level fastfile for level
 Zed 606 Tin Refuge	4213634562	precacheLeaderboards must be called before any wait statements in the gametype or level script
 Zed 675 Axiom Manuever	1975752514	DirectX Error

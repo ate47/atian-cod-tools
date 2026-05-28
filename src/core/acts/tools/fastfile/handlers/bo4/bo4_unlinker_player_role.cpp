@@ -28,6 +28,27 @@ namespace {
 
     // playerroletemplate
 
+    struct PlayerArmorTiers {
+        int armorBarCount;
+        int armorBarMaxCount;
+    };
+
+    struct PlayerArmorInfo {
+        PlayerArmorTiers tiers[3];
+        float armorRegenDelay;
+        float armorRegenTime;
+        int armorPerBar;
+    };
+    struct PlayerSlideType {
+        int time;
+        int speed;
+    };
+
+    struct PlayerSlide {
+        PlayerSlideType types[3];
+    };
+
+
     struct PlayerRoleTemplate {
         XHash name;
         XHash unk10;
@@ -40,17 +61,12 @@ namespace {
         XHash specialistWeapon;
         XHash ultimateWeapon;
         scriptbundle::SB_ObjectsArray bundle;
-        uint64_t unka0;
+        int32_t classIndex;
+        uint32_t unka4;
         uint64_t unka8;
         uint64_t unkb0;
-        uint64_t unkb8;
-        uint64_t unkc0;
-        uint64_t unkc8;
-        uint64_t unkd0;
-        uint64_t unkd8;
-        uint64_t unke0;
-        uint64_t unke8;
-        uint64_t unkf0;
+        PlayerSlide slide;
+        PlayerArmorInfo armorInfo;
         uint64_t unkf8;
         uint64_t unk100;
         uint64_t unk108;
@@ -73,7 +89,8 @@ namespace {
         uint64_t unk190;
         uint64_t unk198;
         uint64_t unk1a0;
-        uint64_t unk1a8;
+        int playerTunableInts[1];
+        bool playerTunableBools[3];
         ScriptBundle* (*bundleLists)[4];
     };
     static_assert(sizeof(PlayerRoleTemplate) == 0x1b8);
@@ -160,19 +177,12 @@ namespace {
             json.WriteFieldValueXHash("specialistEquipment", asset->specialistEquipment);
             json.WriteFieldValueXHash("specialistWeapon", asset->specialistWeapon);
             json.WriteFieldValueXHash("ultimateWeapon", asset->ultimateWeapon);
+            json.WriteFieldValueNumber("classIndex", asset->classIndex);
+
 
             if (opt.testDump) {
-                json.WriteFieldValueUnknown("unka0", asset->unka0);
                 json.WriteFieldValueUnknown("unka8", asset->unka8);
                 json.WriteFieldValueUnknown("unkb0", asset->unkb0);
-                json.WriteFieldValueUnknown("unkb8", asset->unkb8);
-                json.WriteFieldValueUnknown("unkc0", asset->unkc0);
-                json.WriteFieldValueUnknown("unkc8", asset->unkc8);
-                json.WriteFieldValueUnknown("unkd0", asset->unkd0);
-                json.WriteFieldValueUnknown("unkd8", asset->unkd8);
-                json.WriteFieldValueUnknown("unke0", asset->unke0);
-                json.WriteFieldValueUnknown("unke8", asset->unke8);
-                json.WriteFieldValueUnknown("unkf0", asset->unkf0);
                 json.WriteFieldValueUnknown("unkf8", asset->unkf8);
                 json.WriteFieldValueUnknown("unk100", asset->unk100);
                 json.WriteFieldValueUnknown("unk108", asset->unk108);
@@ -195,7 +205,10 @@ namespace {
                 json.WriteFieldValueUnknown("unk190", asset->unk190);
                 json.WriteFieldValueUnknown("unk198", asset->unk198);
                 json.WriteFieldValueUnknown("unk1a0", asset->unk1a0);
-                json.WriteFieldValueUnknown("unk1a8", asset->unk1a8);
+                //PlayerSlide slide;
+                //PlayerArmorInfo armorInfo;
+                //int playerTunableInts[1];
+                //bool playerTunableBools[3];
             }
 
 

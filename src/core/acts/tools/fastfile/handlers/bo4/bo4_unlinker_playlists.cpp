@@ -141,7 +141,7 @@ namespace {
 	static_assert(sizeof(PlaylistGroup) == 0x50);
 
 
-	struct __declspec(align(8)) Playlists {
+	struct Playlists {
 		uint32_t unk0;
 		uint32_t unk4;
 		uint64_t unk8;
@@ -154,6 +154,97 @@ namespace {
 		int32_t categories_count;
 	};
 	static_assert(sizeof(Playlists) == 0x50);
+
+	struct PlaylistsGlobalSettings {
+		uint32_t checksum;
+		uint32_t version;
+		XHash name;
+		PlaylistRule* rules;
+		int32_t count;
+	};
+	static_assert(sizeof(PlaylistsGlobalSettings) == 0x28);
+
+	struct PlaylistEventScheduleMember {
+		uint32_t category;
+		byte unk4;
+		byte mask;
+		uint16_t unk6;
+	};
+	static_assert(sizeof(PlaylistEventScheduleMember) == 8);
+
+
+	struct PlaylistEventSchedule {
+		XHash name;
+		bool softRestartRequired;
+		uint32_t startTime;
+		uint32_t endTime;
+		int32_t count;
+		PlaylistEventScheduleMember* members;
+	};
+	static_assert(sizeof(PlaylistEventSchedule) == 0x28);
+
+	struct PlaylistEventScheduleEntry {
+		uint32_t checksum;
+		XHash name;
+		uint32_t version;
+		uint32_t startTime;
+		uint32_t periodTime;
+		bool isPeriodical;
+		int32_t numEntries;
+		PlaylistEventSchedule* schedules;
+	};
+	static_assert(sizeof(PlaylistEventScheduleEntry) == 0x38);
+
+
+
+	void WritePlayListRule(BO4JsonWriter& json, PlaylistRule* rule) {
+		json.BeginObject();
+		const char* type;
+		if (rule->type < ACTS_ARRAYSIZE(PlaylistRuleTypesNames)) {
+			type = PlaylistRuleTypesNames[rule->type];
+		}
+		else {
+			type = utils::va("unk:%d", rule->type);
+		}
+		json.WriteFieldValueString("type", type);
+		json.WriteFieldValueXHash("name", rule->name);
+		if (rule->value) json.WriteFieldValueString("value", rule->value);
+		json.WriteFieldValueNumber("platformMask", (int)rule->platformMask);
+		json.WriteFieldValueNumber("environmentMask", rule->environmentMask);
+		json.WriteFieldValueNumber("utcStartTime", rule->utcStartTime);
+		json.WriteFieldValueNumber("utcEndTime", rule->utcEndTime);
+
+
+		if (rule->unk30_count) {
+			json.WriteFieldNameString("unk30");
+			json.BeginArray();
+			for (size_t k = 0; k < rule->unk30_count; k++) {
+				PlaylistRule30* v{ rule->unk30 + k };
+				json.BeginObject();
+				json.WriteFieldValueNumber("unk0", v->unk0);
+				json.WriteFieldValueNumber("unk8", v->unk8);
+				if (v->unk10) json.WriteFieldValueString("unk10", v->unk10);
+				json.EndObject();
+			}
+			json.EndArray();
+		}
+
+		if (rule->unk40) {
+			json.WriteFieldNameString("unk40");
+			json.BeginArray();
+			for (size_t k = 0; k < rule->unk40_count; k++) {
+				PlaylistRule40* v{ rule->unk40 + k };
+				json.BeginObject();
+				json.WriteFieldValueXHash("unk0", v->unk0);
+				json.WriteFieldValueNumber("unk10", v->unk10);
+				json.EndObject();
+			}
+			json.EndArray();
+		}
+
+		json.EndObject();
+	}
+
 
 	class ImplWorker : public Worker {
 		using Worker::Worker;
@@ -207,53 +298,6 @@ namespace {
 					LOG_ERROR("Error when dumping {}", outFile.string());
 				}
 			}
-			auto WritePlayListRule = [](BO4JsonWriter& json, PlaylistRule* rule) {
-				json.BeginObject();
-				const char* type;
-				if (rule->type < ACTS_ARRAYSIZE(PlaylistRuleTypesNames)) {
-					type = PlaylistRuleTypesNames[rule->type];
-				}
-				else {
-					type = utils::va("unk:%d", rule->type);
-				}
-				json.WriteFieldValueString("type", type);
-				json.WriteFieldValueXHash("name", rule->name);
-				if (rule->value) json.WriteFieldValueString("value", rule->value);
-				json.WriteFieldValueNumber("platformMask", (int)rule->platformMask);
-				json.WriteFieldValueNumber("environmentMask", rule->environmentMask);
-				json.WriteFieldValueNumber("utcStartTime", rule->utcStartTime);
-				json.WriteFieldValueNumber("utcEndTime", rule->utcEndTime);
-
-
-				if (rule->unk30_count) {
-					json.WriteFieldNameString("unk30");
-					json.BeginArray();
-					for (size_t k = 0; k < rule->unk30_count; k++) {
-						PlaylistRule30* v{ rule->unk30 + k };
-						json.BeginObject();
-						json.WriteFieldValueNumber("unk0", v->unk0);
-						json.WriteFieldValueNumber("unk8", v->unk8);
-						if (v->unk10) json.WriteFieldValueString("unk10", v->unk10);
-						json.EndObject();
-					}
-					json.EndArray();
-				}
-
-				if (rule->unk40) {
-					json.WriteFieldNameString("unk40");
-					json.BeginArray();
-					for (size_t k = 0; k < rule->unk40_count; k++) {
-						PlaylistRule40* v{ rule->unk40 + k };
-						json.BeginObject();
-						json.WriteFieldValueXHash("unk0", v->unk0);
-						json.WriteFieldValueNumber("unk10", v->unk10);
-						json.EndObject();
-					}
-					json.EndArray();
-				}
-
-				json.EndObject();
-			};
 
 			{
 				BO4JsonWriter json{};
@@ -433,5 +477,103 @@ namespace {
 		}
 	};
 
+	class PlaylistsGlobalSettingsImplWorker : public Worker {
+		using Worker::Worker;
+
+		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+			PlaylistsGlobalSettings& asset{ *(PlaylistsGlobalSettings*)ptr };
+
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "playlists" / fastfile::GetCurrentContext().ffname / std::format("{}.json", hashutils::ExtractTmp("file", asset.name)) };
+			std::filesystem::create_directories(outFile.parent_path());
+			LOG_OPT_INFO("Dump playlistglobalsettings {}", outFile.string());
+			BO4JsonWriter json{};
+
+			json.BeginObject();
+			json.WriteFieldValueXHash("name", asset.name);
+			json.WriteFieldValueNumber("version", asset.version);
+			json.WriteFieldValueNumber("checksum", asset.checksum);
+
+			if (asset.rules) {
+				json.WriteFieldNameString("rules");
+				json.BeginArray();
+				for (size_t k = 0; k < asset.count; k++) {
+					WritePlayListRule(json, &asset.rules[k]);
+				}
+				json.EndArray();
+			}
+
+			json.EndObject();
+
+
+			if (!json.WriteToFile(outFile)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+	};
+
+	class PlaylistEventScheduleEntryImplWorker : public Worker {
+		using Worker::Worker;
+
+		void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+			PlaylistEventScheduleEntry& asset{ *(PlaylistEventScheduleEntry*)ptr };
+
+			std::filesystem::path outFile{ opt.m_output / "bo4" / "source" / "tables" / "playlists" / fastfile::GetCurrentContext().ffname / std::format("{}.json", hashutils::ExtractTmp("file", asset.name)) };
+			std::filesystem::create_directories(outFile.parent_path());
+			LOG_OPT_INFO("Dump playlistschedule {}", outFile.string());
+			BO4JsonWriter json{};
+
+
+			json.BeginObject();
+			json.WriteFieldValueXHash("name", asset.name);
+			json.WriteFieldValueNumber("checksum", asset.checksum);
+			json.WriteFieldValueNumber("version", asset.version);
+			json.WriteFieldValueNumber("startTime", asset.startTime);
+			json.WriteFieldValueNumber("periodTime", asset.periodTime);
+			json.WriteFieldValueBool("isPeriodical", asset.isPeriodical);
+
+			if (asset.schedules) {
+				json.WriteFieldNameString("schedules");
+				json.BeginArray();
+				for (size_t k = 0; k < asset.numEntries; k++) {
+					PlaylistEventSchedule& sc{ asset.schedules[k] };
+					json.BeginObject();
+					json.WriteFieldValueXHash("name", sc.name);
+
+					json.WriteFieldValueBool("softRestartRequired", sc.softRestartRequired);
+					json.WriteFieldValueNumber("startTime", sc.startTime);
+					json.WriteFieldValueNumber("endTime", sc.endTime);
+
+					if (sc.members) {
+						json.WriteFieldNameString("members");
+						json.BeginArray();
+						for (size_t i = 0; i < sc.count; i++) {
+							PlaylistEventScheduleMember& member{ sc.members[i] };
+							json.BeginObject();
+							json.WriteFieldValueNumber("category", member.category);
+							json.WriteFieldValueNumber("member:unk4", (int)member.unk4);
+							json.WriteFieldValueNumber("mask", (int)member.mask);
+							json.WriteFieldValueUnknown("member:unk6", (int)member.unk6);
+							json.EndObject();
+						}
+						json.EndArray();
+					}
+
+
+					json.EndObject();
+				}
+				json.EndArray();
+			}
+
+			json.EndObject();
+
+
+			if (!json.WriteToFile(outFile)) {
+				LOG_ERROR("Error when dumping {}", outFile.string());
+			}
+		}
+	};
+
 	utils::MapAdder<ImplWorker, games::bo4::pool::XAssetType, Worker> impl{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_PLAYLISTS };
+	utils::MapAdder<PlaylistsGlobalSettingsImplWorker, games::bo4::pool::XAssetType, Worker> implgs{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_PLAYLIST_GLOBAL_SETTINGS };
+	utils::MapAdder<PlaylistEventScheduleEntryImplWorker, games::bo4::pool::XAssetType, Worker> impls{ GetWorkers(), games::bo4::pool::XAssetType::ASSET_TYPE_PLAYLIST_SCHEDULE };
 }

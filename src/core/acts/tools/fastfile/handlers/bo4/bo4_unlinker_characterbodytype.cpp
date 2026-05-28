@@ -8,6 +8,16 @@ namespace {
 	using namespace fastfile::handlers::bo4;
 	using namespace games::bo4::pool;
 
+	struct PlayerOutfit;
+
+	struct CharacterBodyTypeUnk {
+		uint32_t* unk0;
+		uint16_t* unk8;
+		uint16_t unk0_count;
+		uint16_t unk8_count;
+	};
+	static_assert(sizeof(CharacterBodyTypeUnk) == 0x18);
+
 	struct CharacterBodyType {
 		XHash name;
 		XHash displayName;
@@ -26,8 +36,8 @@ namespace {
 		GfxImage* positionDraftPortrait;
 		GfxImage* positionDraftIcon;
 		GfxImage* lootUiIcon;
-		uint64_t unka8;
-		uint64_t unkb0;
+		uint32_t numOutfits;
+		PlayerOutfit** outfits;
 		uint64_t unkb8;
 		uint64_t unkc0;
 		scriptbundle::SB_ObjectsArray bundle;
@@ -41,13 +51,9 @@ namespace {
 		FootstepTableDef* characterFootstepsNPCQuiet;
 		XModel* dogtagFriendly;
 		XModel* dogTagEnemy;
-		uint64_t unk138;
-		uint64_t unk140;
-		uint64_t unk148;
-		uint64_t unk150;
+		CharacterBodyTypeUnk unk138;
+		void* unk150;
 	};
-
-
 	static_assert(sizeof(CharacterBodyType) == 0x158);
 
 	class ImplWorker : public Worker {
@@ -105,6 +111,7 @@ namespace {
 			json.WriteFieldValueXAsset("characterFootstepsNPC", ASSET_TYPE_FOOTSTEP_TABLE, asset->characterFootstepsNPC);
 			json.WriteFieldValueXAsset("characterFootstepsNPCLoud", ASSET_TYPE_FOOTSTEP_TABLE, asset->characterFootstepsNPCLoud);
 			json.WriteFieldValueXAsset("characterFootstepsNPCQuiet", ASSET_TYPE_FOOTSTEP_TABLE, asset->characterFootstepsNPCQuiet);
+			json.WriteFieldValueXAssetArray("outfits", ASSET_TYPE_PLAYER_OUTFIT, asset->numOutfits, asset->outfits);
 
 			bool error{};
 			json.WriteFieldNameString("bundle");
