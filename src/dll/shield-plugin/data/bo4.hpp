@@ -616,4 +616,44 @@ namespace bo4 {
 	};
 	static_assert(sizeof(sharedUiInfo_t) == 0x80);
 
+
+	enum itemTextStyle {
+		ITEM_TEXTSTYLE_NORMAL = 0,
+		ITEM_TEXTSTYLE_SHADOWED = 3,
+		ITEM_TEXTSTYLE_SHADOWEDMORE = 6,
+		ITEM_TEXTSTYLE_BORDERED = 7,
+		ITEM_TEXTSTYLE_BORDEREDMORE = 8,
+		ITEM_TEXTSTYLE_MONOSPACE = 128,
+		ITEM_TEXTSTYLE_MONOSPACESHADOWED = 132,
+	};
+
+	struct ScreenPlacement {
+		vec2_t scaleVirtualToReal;
+		vec2_t scaleVirtualToFull;
+		vec2_t scaleRealToVirtual;
+		vec2_t virtualViewableMin;
+		vec2_t virtualViewableMax;
+		vec2_t virtualTweakableMin;
+		vec2_t virtualTweakableMax;
+		vec2_t realViewportBase;
+		vec2_t realViewportSize;
+		vec2_t realViewportMid;
+		vec2_t realViewableMin;
+		vec2_t realViewableMax;
+		vec2_t realTweakableMin;
+		vec2_t realTweakableMax;
+		float hudSplitscreenScale;
+	};
+	static_assert(sizeof(ScreenPlacement) == 0x74);
+
+
+	enum LocalClientNum_t : int32_t {
+		INVALID_LOCAL_CLIENT = -1,
+		LOCAL_CLIENT_0 = 0x0,
+		LOCAL_CLIENT_FIRST = 0x0,
+		LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
+		LOCAL_CLIENT_1 = 0x1,
+		LOCAL_CLIENT_COUNT = 0x2, // bo4 pc is 2 for the count
+	};
+
 }

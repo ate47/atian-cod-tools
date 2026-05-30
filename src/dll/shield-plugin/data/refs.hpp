@@ -105,7 +105,11 @@ namespace bo4 {
 	S_ANY Ref<void(bool enabled, int x, int y, int width, int height)> R_AddCmdSetScissorValues{ 0x3617100_a };
 	S_ANY Ref<void(bool forceBlack)> R_AddCmdSetUITextureSources{ 0x3617170_a };
 	S_ANY Ref<void(int x, int y, int width, int height)> R_AddCmdSetViewportValues{ 0x36171A0_a };
-	S_ANY Ref<void(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor, float padding)> AddBaseDrawTextCmd{ 0x3616B60_g };
+	S_ANY Ref<void(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor, float padding)> AddBaseDrawTextCmd{ 0x3616B60_a };
+
+	S_ANY Ref<uint32_t(Font* font)> R_TextHeight{ 0x35B2350_a };
+	S_ANY Ref<uint32_t(Font* font, float scale)> UI_TextHeight{ 0x3CD6560_a };
+	S_ANY Ref<const ScreenPlacement*(const LocalClientNum_t localClientNum)> ScrPlace_GetView{ 0x2876E70_a };
 
 	inline void R_AddCmdDrawText(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style) {
 		AddBaseDrawTextCmd(text, maxChars, font, x, y, xScale, yScale, rotation, color, style, -1, 0, 0);

@@ -12,10 +12,29 @@
 
 namespace systems::gsc::debug {
 	namespace {
-		bo4::vec4_t colorWhite{ 1, 1, 1, 1 };
+		bo4::vec4_t colorWhite{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+		bo4::vec4_t& GetColor(uint32_t hex) {
+			static thread_local struct {
+				size_t idx{};
+				bo4::vec4_t buff[16];
+			} tmp{};
+
+			bo4::vec4_t& v{ tmp.buff[tmp.idx] };
+			tmp.idx = (tmp.idx + 1) % ACTS_ARRAYSIZE(tmp.buff);
+
+			// 0xRRGGBBAA
+			v[3] = (hex & 0xFF) / 255.0f;
+			v[2] = ((hex << 8) & 0xFF) / 255.0f;
+			v[1] = ((hex << 16) & 0xFF) / 255.0f;
+			v[0] = ((hex << 24) & 0xFF) / 255.0f;
+
+			return v;
+		}
 
 		struct {
-			bool vmStarted{};
+
+
 		} dbgData{};
 		
 		void GScr_NewDebugHudElem(bo4::scriptInstance_t inst) {
@@ -213,19 +232,31 @@ namespace systems::gsc::debug {
 		};
 
 		bool R_IsInit() {
-			return bo4::sharedUiInfo->assets.whiteMaterial && bo4::sharedUiInfo->assets.bigFont && dbgData.vmStarted;
+			return bo4::sharedUiInfo->assets.whiteMaterial && bo4::sharedUiInfo->assets.bigFont;
 		}
 
-		void RenderPostFrame() {
+		void RenderFrame() {
 			if (!R_IsInit()) {
 				return;
 			}
 
-			//bo4::R_AddCmdDrawText(utils::va("acts %s", core::actsinfo::VERSION), 128, bo4::sharedUiInfo->assets.textFont, 0, 2, 1, 1, 0, colorWhite, 0);
+			/*
+			const bo4::ScreenPlacement& screen{ *bo4::ScrPlace_GetView(bo4::LOCAL_CLIENT_0) };
+
+			uint32_t height{ bo4::UI_TextHeight(bo4::sharedUiInfo->assets.bigFont, 0.4f) };
+
+			bo4::R_AddCmdDrawText(
+				utils::va("acts %s", core::actsinfo::VERSION), 
+				128, 
+				bo4::sharedUiInfo->assets.bigFont, 
+				screen.realViewportBase[0] + 15, screen.realViewportBase[1] + 15 + height,
+				0.4f, 0.4f, 0.0f, colorWhite, bo4::ITEM_TEXTSTYLE_NORMAL
+			);
+			*/
 		}
 
 		void Scr_ResetLinkInfo(bo4::scriptInstance_t inst) {
-			dbgData.vmStarted = true;
+
 		}
 
 		void PostInit(uint64_t uid) {
@@ -233,7 +264,7 @@ namespace systems::gsc::debug {
 			systems::gsc::funcs::ScrVm_RegisterFunctionContainer(bo4::scriptInstance_t::SI_SERVER, true, actsGscDebugMethods);
 
 			systems::events::EVENT_RESET_LINKS.Callback(Scr_ResetLinkInfo);
-			systems::events::EVENT_RENDERER_ENDFRAME.Callback(RenderPostFrame);
+			systems::events::EVENT_RENDERER_ENDFRAME.Callback(RenderFrame);
 		}
 
 		REGISTER_SYSTEM(gsc_debug, nullptr, PostInit);
