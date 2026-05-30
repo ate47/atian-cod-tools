@@ -93,6 +93,7 @@ Edward 427 Platinum Mirage	3257432710	type is not a float or int
 Edward 43 Sleeper Sabotage	2289696774	Driver Internal Error
 Edward 522 Risky Wolverine	1132507782	bad opcode
 Edward 807 Revolutionary Cover	2667191558	Unknown ent type in GScr_GetFieldSetForEntityType.
+Edward 943 Bogus Siege	2386350598	index is an illegal objective index.
 Fall 146 Unlimited Activity	4042343709	bad anim tree
 Fall 242 Resolute Force	1721606685	script stack overflow (too many embedded function calls)
 Fall 29 Tall Undertow	3410121757	cannot cast to bool
@@ -455,6 +456,7 @@ Zed 41 Chief Rodeo	3159820546	invalid session mode
 Zed 453 Kinetic Devil	1211376898	DEV: Could not load level fastfile for level
 Zed 606 Tin Refuge	4213634562	precacheLeaderboards must be called before any wait statements in the gametype or level script
 Zed 675 Axiom Manuever	1975752514	DirectX Error
+Zed 696 Clean Mauler	3145219970	Objective not found in bgcache. Add an objective asset and add that asset to a loaded objectivelist asset.
 Zed 711 Resolute Raven	446529346	the function can only be used with string or hash
 Zed 737 United Parole	2751867714	self isn't a field object
 Zulu 198 Split Clover	3674028780	Invalid type in waittill parameter list

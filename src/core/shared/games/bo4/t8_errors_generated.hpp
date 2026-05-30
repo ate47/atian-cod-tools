@@ -170,6 +170,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2371852248, "No tag_barrel for" }, // Union 753 Right Shell
     { 2378228303, "invalid session mode" }, // Collar 772 Flying Shell
     { 2379198149, "waittill must have at least one valid argument" }, // Summer 494 General Shell
+    { 2386350598, "index is an illegal objective index." }, // Edward 943 Bogus Siege
     { 2387120645, "exceeded string argument limit" }, // Summer 552 Soaring Siege
     { 240121690, "waittill_timeout must have at least one valid argument" }, // Victor 851 Grounded Lion
     { 2408700928, "not a valid name for a clientfield set." }, // Spring 81 Snap Soldier
@@ -273,6 +274,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3137736761, "script stack overflow (too many embedded function calls)" }, // Delta 515 United Mauler
     { 3142427498, "not an object" }, // Option 173 Camouflaged Mauler
     { 3143575744, "parameter does not exist" }, // Spring 361 Right Mauler
+    { 3145219970, "Objective not found in bgcache. Add an objective asset and add that asset to a loaded objectivelist asset." }, // Zed 696 Clean Mauler
     { 3159820546, "invalid session mode" }, // Zed 41 Chief Rodeo
     { 317100267, "unmatching types" }, // Whiskey 110 Late Tiger
     { 3189465155, "Invalid bgCache type" }, // XRay 353 Earth Abyss

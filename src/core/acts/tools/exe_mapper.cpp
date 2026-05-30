@@ -153,7 +153,7 @@ namespace {
 		constexpr size_t blockSize = 0x4000;
 
 		const byte* toSearch{ mod->Get<byte>(rva) };
-
+		size_t matchcount{};
 		std::unique_ptr<byte[]> buffer{ std::make_unique<byte[]>(blockSize) };
 		for (size_t r = 0; r < maxSize;) {
 			byte* base{ (byte*)mod->Get<byte>(r) };
@@ -168,12 +168,13 @@ namespace {
 				int32_t rl{ *(int32_t*)&buffer[i] };
 				if (rl && base + i + 4 + rl == toSearch) {
 					LOG_INFO("{}", hook::library::CodePointer{ base + i });
+					matchcount++;
 				}
 			}
 		}
 
 
-		LOG_INFO("Done");
+		LOG_INFO("Done with {}", matchcount);
 
 		return tool::OK;
 	}

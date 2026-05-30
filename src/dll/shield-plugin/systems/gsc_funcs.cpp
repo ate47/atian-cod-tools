@@ -11,16 +11,6 @@
 #include <utils/decrypt.hpp>
 
 namespace systems::gsc::funcs {
-	uint32_t ScrVm_GetHashScr(bo4::scriptInstance_t inst, unsigned int index) {
-		if (bo4::ScrVm_GetType(inst, index) == bo4::TYPE_HASH) {
-			XHash hash{};
-			return (uint32_t)bo4::ScrVm_GetHash(&hash, inst, index)->name;
-		}
-
-		const char* str{ bo4::ScrVm_GetString(inst, index) };
-		return hash::HashT89Scr(str);
-	}
-
 	namespace {
 
 		void Scr_ActsLog(bo4::scriptInstance_t inst) {
@@ -130,247 +120,130 @@ namespace systems::gsc::funcs {
 			}
 		}
 
-		void GScr_NewDebugHudElem(bo4::scriptInstance_t inst) {
-			LOG_WARNING("NewDebugHudElem not implemented");
-			bo4::ScrVm_AddStruct(inst); // create empty struct
-		}
-
-		void HECmd_SetText(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetText not implemented");
-		}
-
-		void HECmd_SetMaterial(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetMaterial not implemented");
-		}
-
-		void HECmd_SetTargetEnt(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetTargetEnt not implemented");
-		}
-
-		void HECmd_ClearTargetEnt(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_ClearTargetEnt not implemented");
-		}
-
-		void HECmd_SetTimer(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetTimer not implemented");
-		}
-
-		void HECmd_SetTenthsTimer(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetTenthsTimer not implemented");
-		}
-
-		void HECmd_SetValue(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetValue not implemented");
-		}
-
-		void HECmd_SetWaypoint(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetWaypoint not implemented");
-		}
-
-		void HECmd_FadeOverTime(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_FadeOverTime not implemented");
-		}
-
-		void HECmd_ScaleOverTime(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_ScaleOverTime not implemented");
-		}
-
-		void HECmd_MoveOverTime(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_MoveOverTime not implemented");
-		}
-
-		void HECmd_Destroy(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_Destroy not implemented");
-		}
-
-		void HECmd_SetPulseFX(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetPulseFX not implemented");
-		}
-
-		void HECmd_SetCOD7DecodeFX(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetCOD7DecodeFX not implemented");
-		}
-
-		void HECmd_SetPlayerNameString(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_SetPlayerNameString not implemented");
-		}
-
-		void HECmd_ChangeFontScaleOverTime(bo4::scriptInstance_t inst, void* ref) {
-			LOG_WARNING("HECmd_ChangeFontScaleOverTime not implemented");
-		}
-
-		bo4::BuiltinFunctionDef customFuncsGsc[] {
-			{ // ActsLog(message)
-				.canonId = hash::HashT89Scr("ActsLog"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = Scr_ActsLog,
-				.type = bo4::BUILTIN_DEFAULT,
-			},
-			{ // ActsHashLookup(hash)
-				.canonId = hash::HashT89Scr("ActsHashLookup"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = Scr_ActsHashLookup,
-				.type = bo4::BUILTIN_DEFAULT,
-			},
-			{ // ActsGetDetour(script, nsp, func)
-				.canonId = hash::HashT89Scr("ActsGetDetour"),
-				.min_args = 3,
-				.max_args = 3,
-				.actionFunc = Scr_ActsGetDetour,
-				.type = bo4::BUILTIN_DEFAULT,
-			},
-			{ // NewDebugHudElem(owner) -> helem
-				.canonId = hash::HashT89Scr("NewDebugHudElem"),
-				.min_args = 0,
-				.max_args = 1,
-				.actionFunc = GScr_NewDebugHudElem,
-				.type = bo4::BUILTIN_DEV,
-			},
-		};
-		bo4::BuiltinFunctionDef customMethodGsc[]{
-			{
-				.canonId = hash::HashT89Scr("settext"),
-				.min_args = 1,
-				.max_args = 0x7FFFFFFF,
-				.actionFunc = HECmd_SetText,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("setshader"),
-				.min_args = 1,
-				.max_args = 3,
-				.actionFunc = HECmd_SetMaterial,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("settargetent"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_SetTargetEnt,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("cleartargetent"),
-				.min_args = 0,
-				.max_args = 0,
-				.actionFunc = HECmd_ClearTargetEnt,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("settimer"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_SetTimer,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("settenthstimer"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_SetTenthsTimer,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("setvalue"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_SetValue,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("setwaypoint"),
-				.min_args = 1,
-				.max_args = 4,
-				.actionFunc = HECmd_SetWaypoint,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("fadeovertime"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_FadeOverTime,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("scaleovertime"),
-				.min_args = 3,
-				.max_args = 3,
-				.actionFunc = HECmd_ScaleOverTime,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("moveovertime"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_MoveOverTime,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("destroy"),
-				.min_args = 0,
-				.max_args = 0,
-				.actionFunc = HECmd_Destroy,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("setpulsefx"),
-				.min_args = 3,
-				.max_args = 3,
-				.actionFunc = HECmd_SetPulseFX,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("setcod7decodefx"),
-				.min_args = 3,
-				.max_args = 3,
-				.actionFunc = HECmd_SetCOD7DecodeFX,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("setplayernamestring"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_SetPlayerNameString,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-			{
-				.canonId = hash::HashT89Scr("changefontscaleovertime"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = HECmd_ChangeFontScaleOverTime,
-				.type = bo4::BUILTIN_DEFAULT
-			},
-		};
-		bo4::BuiltinFunctionDef customFuncsCsc[] {
-			{ // ActsLog(message)
-				.canonId = hash::HashT89Scr("ActsLog"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = Scr_ActsLog,
-				.type = bo4::BUILTIN_DEFAULT,
-			},
-			{ // ActsHashLookup(hash)
-				.canonId = hash::HashT89Scr("ActsHashLookup"),
-				.min_args = 1,
-				.max_args = 1,
-				.actionFunc = Scr_ActsHashLookup,
-				.type = bo4::BUILTIN_DEFAULT,
-			},
-			{ // ActsGetDetour(script, nsp, func)
-				.canonId = hash::HashT89Scr("ActsGetDetour"),
-				.min_args = 3,
-				.max_args = 3,
-				.actionFunc = Scr_ActsGetDetour,
-				.type = bo4::BUILTIN_DEFAULT,
-			},
+		struct FunctionContainer {
+			bo4::BuiltinFunctionDef* array;
+			size_t len;
 		};
 
-		bo4::BuiltinFunctionDef customMethodCsc[1]{
-			{
-				.canonId = 9999999, // mock
+		constexpr size_t maxContainer = 8;
+
+		class GscContainer {
+			FunctionContainer functions[maxContainer]{};
+			FunctionContainer methods[maxContainer]{};
+			size_t numFunctions{};
+			size_t numMethods{};
+
+		public:
+			GscContainer() {}
+
+			bo4::BuiltinFunctionDef* FindDef(uint32_t canonId, bool isMethod) {
+				FunctionContainer* containers{ isMethod ? methods : functions };
+				size_t len{ isMethod ? numMethods : numFunctions };
+
+				for (size_t i = 0; i < len; i++) {
+					const FunctionContainer& c{ containers[i] };
+					for (size_t i = 0; i < c.len; i++) {
+						if (c.array[i].canonId == canonId) {
+							return &c.array[i];
+						}
+					}
+				}
+				return nullptr;
 			}
+
+
+			bo4::BuiltinFunctionDef* FindRef(void* func, bool isMethod) const {
+				const FunctionContainer* containers{ isMethod ? methods : functions };
+				size_t len{ isMethod ? numMethods : numFunctions };
+
+				for (size_t i = 0; i < len; i++) {
+					const FunctionContainer& c{ containers[i] };
+					for (size_t i = 0; i < c.len; i++) {
+						if (c.array[i].actionFunc == func) {
+							return &c.array[i];
+						}
+					}
+				}
+				return nullptr;
+			}
+
+			bool LookupRef(void* func, uint32_t* hash, bool* isFunction) const {
+				bo4::BuiltinFunctionDef* f{ FindRef(func, false) };
+				if (f) {
+					if (isFunction) *isFunction = true;
+					if (hash) *hash = f->canonId;
+					return true;
+				}
+				bo4::BuiltinFunctionDef* m{ FindRef(func, true) };
+				if (m) {
+					if (isFunction) *isFunction = false;
+					if (hash) *hash = m->canonId;
+					return true;
+				}
+				return false;
+			}
+
+			void RegisterFunctionContainer(bool isMethods, bo4::BuiltinFunctionDef* array, size_t len) {
+				FunctionContainer* containers{ isMethods ? methods : functions };
+				size_t& count{ isMethods ? numMethods : numFunctions };
+				if (count == maxContainer) {
+					throw std::runtime_error(std::format("Can't register more than {} containers", maxContainer));
+				}
+
+				FunctionContainer& c{ containers[count++] };
+				c.array = array;
+				c.len = len;
+			}
+		};
+
+		GscContainer customContainerGsc[bo4::scriptInstance_t::SI_COUNT]{};
+
+		std::array actsBaseGscFunctions{
+			bo4::BuiltinFunctionDef{ // ActsLog(message)
+				.canonId = hash::HashT89Scr("ActsLog"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = Scr_ActsLog,
+				.type = bo4::BUILTIN_DEFAULT,
+			},
+			bo4::BuiltinFunctionDef{ // ActsHashLookup(hash)
+				.canonId = hash::HashT89Scr("ActsHashLookup"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = Scr_ActsHashLookup,
+				.type = bo4::BUILTIN_DEFAULT,
+			},
+			bo4::BuiltinFunctionDef{ // ActsGetDetour(script, nsp, func)
+				.canonId = hash::HashT89Scr("ActsGetDetour"),
+				.min_args = 3,
+				.max_args = 3,
+				.actionFunc = Scr_ActsGetDetour,
+				.type = bo4::BUILTIN_DEFAULT,
+			},
+		};
+
+		std::array actsBaseCscFunctions{
+			bo4::BuiltinFunctionDef{ // ActsLog(message)
+				.canonId = hash::HashT89Scr("ActsLog"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = Scr_ActsLog,
+				.type = bo4::BUILTIN_DEFAULT,
+			},
+			bo4::BuiltinFunctionDef{ // ActsHashLookup(hash)
+				.canonId = hash::HashT89Scr("ActsHashLookup"),
+				.min_args = 1,
+				.max_args = 1,
+				.actionFunc = Scr_ActsHashLookup,
+				.type = bo4::BUILTIN_DEFAULT,
+			},
+			bo4::BuiltinFunctionDef{ // ActsGetDetour(script, nsp, func)
+				.canonId = hash::HashT89Scr("ActsGetDetour"),
+				.min_args = 3,
+				.max_args = 3,
+				.actionFunc = Scr_ActsGetDetour,
+				.type = bo4::BUILTIN_DEFAULT,
+			},
 		};
 
 		hook::library::Detour Scr_GetFunction_Detour;
@@ -387,23 +260,7 @@ namespace systems::gsc::funcs {
 				return true;
 			}
 
-			auto f = std::find_if(std::begin(customFuncsGsc), std::end(customFuncsGsc), [func](const bo4::BuiltinFunctionDef& def) { return def.actionFunc == func; });
-
-			if (f != std::end(customFuncsGsc)) {
-				*hash = f->canonId;
-				*isFunction = true;
-				return true;
-			}
-
-			auto m = std::find_if(std::begin(customMethodGsc), std::end(customMethodGsc), [func](const bo4::BuiltinFunctionDef& def) { return def.actionFunc == func; });
-
-			if (m != std::end(customMethodGsc)) {
-				*hash = m->canonId;
-				*isFunction = false;
-				return true;
-			}
-
-			return false;
+			return customContainerGsc[bo4::scriptInstance_t::SI_SERVER].LookupRef(func, hash, isFunction);
 		}
 
 		bool CScr_GetFunctionReverseLookup_Stub(void* func, uint32_t* hash, bool* isFunction) {
@@ -411,23 +268,7 @@ namespace systems::gsc::funcs {
 				return true;
 			}
 
-			auto f = std::find_if(std::begin(customFuncsCsc), std::end(customFuncsCsc), [func](const bo4::BuiltinFunctionDef& def) { return def.actionFunc == func; });
-
-			if (f != std::end(customFuncsCsc)) {
-				*hash = f->canonId;
-				*isFunction = true;
-				return true;
-			}
-
-			auto m = std::find_if(std::begin(customMethodCsc), std::end(customMethodCsc), [func](const bo4::BuiltinFunctionDef& def) { return def.actionFunc == func; });
-
-			if (m != std::end(customMethodCsc)) {
-				*hash = m->canonId;
-				*isFunction = false;
-				return true;
-			}
-
-			return false;
+			return customContainerGsc[bo4::scriptInstance_t::SI_CLIENT].LookupRef(func, hash, isFunction);
 		}
 
 		void* Scr_GetFunction_Stub(uint32_t name, int32_t* type, int32_t* min_args, int32_t* max_args) {
@@ -437,9 +278,9 @@ namespace systems::gsc::funcs {
 				return func;
 			}
 
-			auto f = std::find_if(std::begin(customFuncsGsc), std::end(customFuncsGsc), [name](const bo4::BuiltinFunctionDef& func) { return func.canonId == name; });
+			const bo4::BuiltinFunctionDef* f{ customContainerGsc[bo4::scriptInstance_t::SI_SERVER].FindDef(name, false) };
 
-			if (f != std::end(customFuncsGsc)) {
+			if (f) {
 				*type = f->type;
 				*min_args = f->min_args;
 				*max_args = f->max_args;
@@ -456,9 +297,9 @@ namespace systems::gsc::funcs {
 				return func;
 			}
 
-			auto f = std::find_if(std::begin(customFuncsCsc), std::end(customFuncsCsc), [name](const bo4::BuiltinFunctionDef& func) { return func.canonId == name; });
+			const bo4::BuiltinFunctionDef* f{ customContainerGsc[bo4::scriptInstance_t::SI_CLIENT].FindDef(name, false) };
 
-			if (f != std::end(customFuncsCsc)) {
+			if (f) {
 				*type = f->type;
 				*min_args = f->min_args;
 				*max_args = f->max_args;
@@ -476,14 +317,14 @@ namespace systems::gsc::funcs {
 				return func;
 			}
 
-			auto f = std::find_if(std::begin(customMethodGsc), std::end(customMethodGsc), [name](const bo4::BuiltinFunctionDef& func) { return func.canonId == name; });
+			const bo4::BuiltinFunctionDef* m{ customContainerGsc[bo4::scriptInstance_t::SI_SERVER].FindDef(name, true) };
 
-			if (f != std::end(customMethodGsc)) {
-				*type = f->type;
-				*min_args = f->min_args;
-				*max_args = f->max_args;
+			if (m) {
+				*type = m->type;
+				*min_args = m->min_args;
+				*max_args = m->max_args;
 
-				return f->actionFunc;
+				return m->actionFunc;
 			}
 
 			return nullptr;
@@ -496,20 +337,23 @@ namespace systems::gsc::funcs {
 				return func;
 			}
 
-			auto f = std::find_if(std::begin(customMethodCsc), std::end(customMethodCsc), [name](const bo4::BuiltinFunctionDef& func) { return func.canonId == name; });
+			const bo4::BuiltinFunctionDef* m{ customContainerGsc[bo4::scriptInstance_t::SI_CLIENT].FindDef(name, true) };
 
-			if (f != std::end(customMethodCsc)) {
-				*type = f->type;
-				*min_args = f->min_args;
-				*max_args = f->max_args;
+			if (m) {
+				*type = m->type;
+				*min_args = m->min_args;
+				*max_args = m->max_args;
 
-				return f->actionFunc;
+				return m->actionFunc;
 			}
 
 			return nullptr;
 		}
 
 		void PostInit(uint64_t uid) {
+			ScrVm_RegisterFunctionContainer(bo4::scriptInstance_t::SI_SERVER, false, actsBaseGscFunctions);
+			ScrVm_RegisterFunctionContainer(bo4::scriptInstance_t::SI_CLIENT, false, actsBaseCscFunctions);
+
 			Scr_GetFunctionReverseLookup_Detour.Create(0x33AF8A0_a, Scr_GetFunctionReverseLookup_Stub);
 			CScr_GetFunctionReverseLookup_Detour.Create(0x1F132A0_a, CScr_GetFunctionReverseLookup_Stub);
 			Scr_GetFunction_Detour.Create(0x33AF840_a, Scr_GetFunction_Stub);
@@ -520,5 +364,22 @@ namespace systems::gsc::funcs {
 
 
 		REGISTER_SYSTEM(gsc_funcs, nullptr, PostInit);
+	}
+
+	uint32_t ScrVm_GetHashScr(bo4::scriptInstance_t inst, unsigned int index) {
+		if (bo4::ScrVm_GetType(inst, index) == bo4::TYPE_HASH) {
+			XHash hash{};
+			return (uint32_t)bo4::ScrVm_GetHash(&hash, inst, index)->name;
+		}
+
+		const char* str{ bo4::ScrVm_GetString(inst, index) };
+		return hash::HashT89Scr(str);
+	}
+
+	void ScrVm_RegisterFunctionContainer(bo4::scriptInstance_t inst, bool isMethods, bo4::BuiltinFunctionDef* array, size_t len) {
+		if (!len) {
+			return; // empty container, useless
+		}
+		customContainerGsc[inst].RegisterFunctionContainer(isMethods, array, len);
 	}
 }

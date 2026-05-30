@@ -86,6 +86,35 @@ namespace bo4 {
 	S_ANY Ref<const dvar_t*> dvar_loc_language{ 0xF92B348_a };
 	S_ANY Ref<bool()> DB_Is4KEnabled{0x35D6EC0_a};
 
+	// renderer
+	S_ANY Ref<sharedUiInfo_t> sharedUiInfo{ 0xF956850_a };
+	S_ANY Ref<void(const void* sceneDef, const void* viewParms)> R_AddCmdBeginView{ 0x36164C0_a };
+	S_ANY Ref<void> R_AddCmdClearScreen{ 0x3616510_a };
+	S_ANY Ref<void(const void* emblemLayer)> R_AddCmdDrawEmblemLayer{ 0x3616580_a };
+	S_ANY Ref<void(const vec_t* verts, const vec_t* color, Material* material)> R_AddCmdDrawQuadPic{ 0x3616640_a };
+	S_ANY Ref<void> R_AddCmdDrawQuadPicW{ 0x36166E0_a };
+	S_ANY Ref<void(float x, float y, float w, float h, float s0, float t0, float s1, float t1, float* color, Material* material)> R_AddCmdDrawStretchPic{ 0x3616790_a };
+	S_ANY Ref<void(const char* text, Font* font, const vec_t* org, const vec_t* xPixelStep, const vec_t* color, const vec_t* yPixelStep)> R_AddCmdDrawTextInSpace{ 0x3616A00_a };
+	S_ANY Ref<void> R_AddCmdDrawUIQuads{ 0x3616CE0_a };
+	S_ANY Ref<void> R_AddCmdDrawUIQuadsReplaceImage{ 0x3616E10_a };
+	S_ANY Ref<void()> R_AddCmdEndOfList{ 0x3616F50_a };
+	S_ANY Ref<void()> R_AddCmdProjectionSet2D{ 0x3616F70_a };
+	S_ANY Ref<void()> R_AddCmdProjectionSet3D{ 0x3616FA0_a };
+	S_ANY Ref<void(GfxImage* image, void* callback)> R_AddCmdResolveComposite{0x3616FD0_a};
+	S_ANY Ref<void(const GfxImage* rt)> R_AddCmdSetImageRenderTarget{ 0x36170D0_a };
+	S_ANY Ref<void(bool enabled, int x, int y, int width, int height)> R_AddCmdSetScissorValues{ 0x3617100_a };
+	S_ANY Ref<void(bool forceBlack)> R_AddCmdSetUITextureSources{ 0x3617170_a };
+	S_ANY Ref<void(int x, int y, int width, int height)> R_AddCmdSetViewportValues{ 0x36171A0_a };
+	S_ANY Ref<void(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor, float padding)> AddBaseDrawTextCmd{ 0x3616B60_g };
+
+	inline void R_AddCmdDrawText(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style) {
+		AddBaseDrawTextCmd(text, maxChars, font, x, y, xScale, yScale, rotation, color, style, -1, 0, 0);
+	}
+
+	inline void R_AddCmdDrawTextWithCursor(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor) {
+		AddBaseDrawTextCmd(text, maxChars, font, x, y, xScale, yScale, rotation, color, style, cursorPos, cursor, 0);
+	}
+
 	// mutex
 	class ScopedCriticalSection;
 	S_ANY Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor{ 0x289E3C0_a };

@@ -4,10 +4,12 @@
 #include <data/refs.hpp>
 #include <core/config.hpp>
 #include <core/system.hpp>
+#include <core/eventhandler.hpp>
 #include <hook/library.hpp>
 #include <gsc/gsc_gdb.hpp>
 #include <core/hashes/hash_store.hpp>
 #include <systems/gsc_link.hpp>
+#include <systems/events.hpp>
 
 namespace systems::gsc::link {
 	using namespace shared::gsc::acts_debug;
@@ -313,8 +315,6 @@ namespace systems::gsc::link {
 		}
 
 		void Scr_ResetLinkInfo_Stub(bo4::scriptInstance_t inst) {
-			bo4::ScopedCriticalSection scs{ bo4::CRITSECT_VM, bo4::SCOPED_CRITSECT_NORMAL };
-			Scr_ResetLinkInfo_Detour.Call(inst);
 			// cleanup debug data
 			std::memset(gObjGDBFileInfo[inst], 0, sizeof(gObjGDBFileInfo[inst]));
 			gObjGDBFileInfoCount[inst] = 0;
@@ -325,8 +325,8 @@ namespace systems::gsc::link {
 			traceDetours = core::config::GetBool("test.tracedetours");
 
 			Scr_GscLink_Detour.Create(0x2748BB0_a, Scr_GscLink_Stub);
-			Scr_ResetLinkInfo_Detour.Create(0x2749480_a, Scr_ResetLinkInfo_Stub);
 			hook::memory::RedirectJmp(0x2748550_a, Scr_GetGscExportInfo_Stub);
+			events::EVENT_RESET_LINKS.Callback(Scr_ResetLinkInfo_Stub);
 		}
 
 

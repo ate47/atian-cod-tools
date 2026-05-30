@@ -468,12 +468,21 @@ namespace bo4 {
 	};
 	static_assert(sizeof(LocalizeEntry) == 0x18);
 
+	struct GfxImage;
+	struct Material;
+	struct TTFDef;
+	struct Font;
+
 	union XAssetHeader {
 		void* data;
 		ScriptParseTree* spt;
 		ScriptParseTreeDBG* sptdbg;
 		LuaFile* luafile;
 		LocalizeEntry* localize;
+		GfxImage* image;
+		Material* material;
+		TTFDef* ttf;
+		Font* font;
 	}; static_assert(sizeof(XAssetHeader) == 8);
 
 	enum BuiltinType : uint32_t {
@@ -581,4 +590,30 @@ namespace bo4 {
 		int itemAllocCount;
 		AssetLink* freeHead;
 	}; static_assert(sizeof(XAssetPool) == 0x20);
+
+	struct CachedAssets_t {
+		Material* whiteMaterial;
+		Material* cursor;
+		Material* blur;
+		TTFDef* devFont;
+		TTFDef* defaultFont;
+		Font* bigFont;
+		Font* smallFont;
+		Font* consoleFont;
+		Font* boldFont;
+		Font* textFont;
+		Font* extraBigFont;
+		Font* extraSmallFont;
+		Font* fxFont;
+	};
+	static_assert(sizeof(CachedAssets_t) == 0x68);
+
+	struct sharedUiInfo_t {
+		CachedAssets_t assets;
+		Material* talkingIcons[3];
+
+		// ...
+	};
+	static_assert(sizeof(sharedUiInfo_t) == 0x80);
+
 }
