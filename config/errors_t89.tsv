@@ -87,6 +87,7 @@ Echo 690 Dazed Owl	4173088841	xpak file does not contain a valid header
 Echo 758 Sleeper Pavement	3615151060	SysError in thread (msg)
 Echo 782 Shellshocked Artillery	2269096660	vector scale expecting vector
 Echo 795 Tan Mirage	3256105940	Could not find zone
+Echo 819 Ballistic Hound	493677524	Cannot delete entity during its think
 Echo 828 Hurt Scorpio	744499668	too many vehicles
 Edward 388 Embattled Ultra	2855209542	Cannot call IncrementClientField on a non-'counter' type clientfield.
 Edward 427 Platinum Mirage	3257432710	type is not a float or int
@@ -153,6 +154,7 @@ Juliett 820 Melted Badger	272147969	SetAILimit error
 Juliett 859 Small Rookie	554833601	Can only do this call for node_turret
 June 104 Late Cover	2665902678	CMD_VEH_SetPlaneGoalPos called with a non vector param
 June 104 Skyline Boat	2131259990	Can't set read only field
+June 150 Gray Noise	3541731542	readonly field
 June 301 Strange Leo	697732694	entity is not a missile
 June 426 Hurt Tactics	2489324310	cannot switch on type
 June 503 Swamp Lizard	369972438	First argument of a match call must be a struct
@@ -173,6 +175,7 @@ King 537 Ghost Hound	487917415	Invalid mission name
 King 593 Late Ant	1206320999	getClosestOrFarthestEntity: struct passed in doesn't have an origin
 King 703 Due Agent	2563481959	DirectX Error
 King 712 Golden Menace	1439117735	value out of range (acos)
+Lima 115 Sick Cobra	208009819	Cannot delete a client entity
 Lima 486 Flat Apocalypse	3361905947	Pointer is not an entity
 Lima 495 Old Security	2033447003	not an array key
 Lima 510 Bogus Rescue	2235303131	not a player entity
@@ -195,6 +198,7 @@ Negative 184 Fake Locker	2202233143	waittill_timeout must have at least one vali
 Negative 274 Right Activity	4032788023	param is not an object
 Negative 780 Bad Security	2033364407	Failed to link entity
 Negative 8 Tough Doppelganger	4255418935	Pointer types passed into waittill expressions must evaluate as arrays
+Negative 806 Armored Cover	2666843255	duplicated field name
 Nora 205 Almighty Cipher	2629548679	Entity is not a player
 Nora 261 Marsh Blizzard	1412130119	parameter can't be cast to a hash
 Nora 264 Dangerous Homerun	4196473479	parameter does not exist
@@ -228,6 +232,7 @@ Option 102 Grounded Thunder	525308842	GetBaseWeaponItemIndex: invalid weapon nam
 Option 129 Knockout Rescue	2240566762	entity is not a player
 Option 173 Camouflaged Mauler	3142427498	not an object
 Option 365 Old Ghoul	2687742442	Forced script exception.
+Option 599 Nitro Fox	3718026602	unknown radiant type
 Option 961 Blue Whisper	3523382186	ScrEvent map is full, unable to register new event
 Oscar 1009 Emerald Invasion	1908025062	parameter isn't a string
 Oscar 283 Barren Eye	4278104166	Illegal objective state, possible values: active, invisible, done, current or failed
@@ -303,6 +308,7 @@ Sail 1020 Clean Goodnight	4101525669	Can't use wait with profiler
 Sail 208 Goodbye Arrow	1507063205	CMD_VEH_SetPlaneGoalPos entity is at rest ( speed of 0 ), new speed is needed to make plane move.
 Sail 312 Extreme Boa	1072585573	Raw file is not a file of the right type
 Sail 323 Stealth Firestarter	3437940389	unable to find animation in tree
+Sail 327 Iron Coyote	388183077	missing field name
 Sail 397 Skyline Firestarter	3423138661	not a script function pointer
 Sail 506 Blink Alligator	1167129573	key does not internally belong to generic entities
 Sail 543 Earth Whisper	3524990949	not an array key
@@ -348,7 +354,9 @@ Tango 383 Emerald Goblin	3468307479	DirectX Error
 Tango 516 Advanced Tactics	2498210007	-- can only be used with integer type
 Tango 534 Blind Asset	2572593175	unable to spawn entity
 Tango 648 Arctic Ship	2147942487	DirectX Invalid Call.
+Tango 758 Fake Dynamite	3577992151	weapon is read-only
 Tango 8 Knight Taurus	647662103	parameter can't be cast to a string
+Tango 834 Dry Mole	2741070999	not a xhash
 Tango 882 Aurora Invasion	1909233687	Optional argument must be a vector type
 Tommy 439 Tin Highway	3592841213	cannot directly set the origin on AI.  Use the teleport command instead.
 Tommy 443 Destructive Command	1609894461	bad entity
@@ -358,6 +366,7 @@ Tommy 706 Nitro Bridge	2593952637	not an array
 Tommy 833 Rightful Hippo	987874813	self isn't a field object
 Tommy 942 Numbered Section	2336297405	Execution Queue out of memory
 Uniform 205 Air Gorilla	354335369	Unable to find HierarchicalTaskNetwork asset
+Uniform 210 Atomic Infantry	1855943177	parameter doesn't exist
 Uniform 31 Empty Jet	1915758537	RegisterClientField can only accept bit ranges between 1 and 32.
 Uniform 48 Hurt Conflict	1365291145	invalid gesture in player role template
 Uniform 58 Guerrilla Boa	1064295945	Could not allocate asset - increase XASSET_ENTRY_POOL_SIZE
@@ -372,6 +381,7 @@ Union 344 Blue Headquarters	1795335576	not an object
 Union 701 Sick Eclipse	1013305560	Pointer types passed into waittill expressions must evaluate as arrays
 Union 753 Right Shell	2371852248	No tag_barrel for
 Union 757 Rare Tank	3291994136	invalid animtree id
+Union 851 Taz Centaur	3179607896	ScrVar_AddFields: Can't find file
 Union 908 Evil Giant	876169112	key value provided for struct is not valid
 Union 958 Mad Retreat	2253722136	CamAnimScripted can only be called on a player.
 Vic 227 Recovered Goat	1246470805	mission index out of range
@@ -380,6 +390,7 @@ Vic 366 Crystal Lion	249068885	Failed to allocate from state pool
 Vic 415 Aggressive Pisces	619241173	Failed to allocate from element pool
 Vic 504 Pale Fury	2942156629	not an array
 Vic 520 Barren Scorpio	754846421	invalid vehicle spawn origin
+Vic 667 Hidden Defense	1661960405	weapon is read-only
 Vic 803 Chief Drop	2824316565	parameter does not exist
 Vic 820 Nitro Goodnight	4103906837	Entity is not an item.
 Vic 983 Extreme Traffic	2851002517	param is not an object
@@ -425,6 +436,7 @@ XRay 775 Split Python	1056823939	Invalid type passed in from array into waittill
 Yankee 106 Dry Spartan	576843940	type is not an anim
 Yankee 13 United Wombat	84281764	not a field object
 Yankee 220 Divided Intelligence	1895566756	dvar is not a 3d vector, but GetDvarVector3D has been called on it
+Yankee 247 Crystal Cyclone	853064292	pathnode is read-only
 Yankee 444 Nitro Spartan	580674660	Unknown ent type in GScr_GetFieldSetForEntityType.
 Yankee 541 Numbered Boar	104978404	cannot cast type to canon
 Yankee 687 Screech Snake	512306404	caller is not an object

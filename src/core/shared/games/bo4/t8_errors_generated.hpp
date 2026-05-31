@@ -78,6 +78,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1625493526, "Can't find info for script vehicle" }, // June 515 Foolish Convoy
     { 1634348473, "Vehicles only support bullet, bomb, gas, grenade and projectile weapons" }, // Delta 321 Classic Corps
     { 1642120921, "1st param should be a hash or a string" }, // Ocean 116 Confused Corps
+    { 1661960405, "weapon is read-only" }, // Vic 667 Hidden Defense
     { 1666590335, "not an int" }, // Bravo 228 Blind Defense
     { 1668598749, " not an object" }, // Fall 508 Solo Defense
     { 1670707254, "linking error" }, // North 272 Hannibal Defense
@@ -104,6 +105,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1816372513, "invalid session mode" }, // Hotel 422 Fake Helmet
     { 1824757220, "calcWeaponOptions takes at least 2 arguments" }, // Yankee 953 Axiom Helmet
     { 1850691545, "Debug Break" }, // Ocean 270 Grounded Infantry
+    { 1855943177, "parameter doesn't exist" }, // Uniform 210 Atomic Infantry
     { 1895566756, "dvar is not a 3d vector, but GetDvarVector3D has been called on it" }, // Yankee 220 Divided Intelligence
     { 1897931653, "AIType has no characters specified. There should be at least one chatacter associated with an AIType." }, // Summer 213 Good Invasion
     { 1908025062, "parameter isn't a string" }, // Oscar 1009 Emerald Invasion
@@ -124,6 +126,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2055356644, "entity is not a script_brushmodel, script_model, script_origin, probe, or light" }, // Yankee 921 Gothic Navy
     { 2065311777, "Entity is not of guidance type Drone" }, // Hotel 874 Gray Ordnance
     { 2078816051, "not a valid name for a clientfield set." }, // Foxtrot 187 Aggressive Ordnance
+    { 208009819, "Cannot delete a client entity" }, // Lima 115 Sick Cobra
     { 2082640650, "No file descriptor available" }, // Adam 156 Urban Parachute
     { 2083549197, "CScr_FindVolumeDecalIndexArray: unsupported parameter type" }, // Yorker 313 Empty Parachute
     { 209668787, "RandomInt parm must be positive integer." }, // Foxtrot 14 Nuclear Cobra
@@ -211,6 +214,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2655888797, "endon must have at least one valid argument" }, // Fall 344 Camouflaged Cover
     { 2658987327, "Invalid string" }, // Bravo 822 Grizzly Cover
     { 2665902678, "CMD_VEH_SetPlaneGoalPos called with a non vector param" }, // June 104 Late Cover
+    { 2666843255, "duplicated field name" }, // Negative 806 Armored Cover
     { 2667191558, "Unknown ent type in GScr_GetFieldSetForEntityType." }, // Edward 807 Revolutionary Cover
     { 2674310011, "invalid session mode" }, // Zebra 868 Metallic Escort
     { 2681972741, "bad clientfield for name" }, // Summer 534 Winning Escort
@@ -223,6 +227,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2734491973, "Error need at least one argument for LUINotifyEvent." }, // Summer 620 Split Legend
     { 2737681163, "assert fail (with message)" }, // David 658 Battle Mole
     { 2738206304, "SOUND: sound bank globals overwritten" }, // Roger 97 Deadly Mole
+    { 2741070999, "not a xhash" }, // Tango 834 Dry Mole
     { 2742072756, "Can't register more dvar" }, // Quebec 405 Major Mole
     { 2751867714, "self isn't a field object" }, // Zed 737 United Parole
     { 2769479381, "Invalid threat bias group" }, // Vic 335 Small Pattern
@@ -277,6 +282,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3145219970, "Objective not found in bgcache. Add an objective asset and add that asset to a loaded objectivelist asset." }, // Zed 696 Clean Mauler
     { 3159820546, "invalid session mode" }, // Zed 41 Chief Rodeo
     { 317100267, "unmatching types" }, // Whiskey 110 Late Tiger
+    { 3179607896, "ScrVar_AddFields: Can't find file" }, // Union 851 Taz Centaur
     { 3189465155, "Invalid bgCache type" }, // XRay 353 Earth Abyss
     { 3199439626, "Can't register dvar" }, // Adam 156 Sub-zero Abyss
     { 3205256249, "Kill failed" }, // Delta 29 Desert Bandit
@@ -318,8 +324,10 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3524483616, "Ammo count must not be negative" }, // Roger 850 Grey Whisper
     { 3524990949, "not an array key" }, // Sail 543 Earth Whisper
     { 3527043258, "Com_EventLoop: bad event type" }, // May 267 Tragic Whisper
+    { 3541731542, "readonly field" }, // June 150 Gray Noise
     { 354335369, "Unable to find HierarchicalTaskNetwork asset" }, // Uniform 205 Air Gorilla
     { 3559732046, "script stack overflow (too many embedded function calls)" }, // Prep 941 Battle Gravedigger
+    { 3577992151, "weapon is read-only" }, // Tango 758 Fake Dynamite
     { 3592841213, "cannot directly set the origin on AI.  Use the teleport command instead." }, // Tommy 439 Tin Highway
     { 3596277323, "endoncallback must have at least one valid argument" }, // David 368 Fast Highway
     { 359760836, "G_Spawn: no free entities" }, // Charlie 285 Military Gorilla
@@ -344,6 +352,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3699844858, "model not precached" }, // May 1009 Torched Sunrise
     { 3706227705, "Invalid threat bias group" }, // Delta 884 Aggressive Sunrise
     { 3714655621, "Invalid mission name" }, // Summer 347 Boiling Fox
+    { 3718026602, "unknown radiant type" }, // Option 599 Nitro Fox
     { 3723589344, "not a function pointer" }, // Roger 440 Unlimited Fox
     { 3734527949, "no character customization table for this mode" }, // Yorker 159 Nightshade Karma
     { 375374976, "Can't use wait with profiler" }, // Spring 756 Right Lizard
@@ -361,6 +370,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3874454418, "negative wait is not allowed" }, // South 108 Determined Yeti
     { 3875481145, "First argument of a match call must be a pointer to a struct" }, // Delta 233 Desolate Yeti
     { 3881402958, "not an entity" }, // Prep 161 Nova Discovery
+    { 388183077, "missing field name" }, // Sail 327 Iron Coyote
     { 3894031202, "Can't find gamedata/playeranim/playeranimtypes.txt" }, // Ida 941 Gray Mustang
     { 3913663257, "Failed to create database thread" }, // Ocean 281 Conflicted Outlander
     { 3922439973, "ArraySort: array can only contain entities or structs or vectors" }, // Sail 946 Due Outlander
@@ -415,6 +425,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 48546501, "not a function pointer" }, // Summer 490 Defiant Eel
     { 487917415, "Invalid mission name" }, // King 537 Ghost Hound
     { 489261299, "Invalid gunner index set in FireWeapon" }, // Foxtrot 150 Bayou Hound
+    { 493677524, "Cannot delete entity during its think" }, // Echo 819 Ballistic Hound
     { 512306404, "caller is not an object" }, // Yankee 687 Screech Snake
     { 521321850, "invalid session mode" }, // May 950 Small Thunder
     { 525308842, "GetBaseWeaponItemIndex: invalid weapon named passed." }, // Option 102 Grounded Thunder
@@ -454,6 +465,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 829015102, "var isn't a field object" }, // November 670 Boiling Avalanche
     { 833940261, "divide by 0" }, // Sail 692 Sapphire Avalanche
     { 84281764, "not a field object" }, // Yankee 13 United Wombat
+    { 853064292, "pathnode is read-only" }, // Yankee 247 Crystal Cyclone
     { 876169112, "key value provided for struct is not valid" }, // Union 908 Evil Giant
     { 878538048, "invalid const string ref" }, // Spring 89 Pale Giant
     { 887228744, "origin being set to NAN." }, // Frank 620 Proper Giant

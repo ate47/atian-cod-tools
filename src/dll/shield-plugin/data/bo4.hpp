@@ -144,6 +144,80 @@ namespace bo4 {
 		TYPE_COUNT
 	};
 
+	enum fieldtype_t : int32_t {
+		F_INT = 0x0,
+		F_SHORT = 0x1,
+		F_BYTE = 0x2,
+		F_FLOAT = 0x3,
+		F_LSTRING = 0x4,
+		F_STRING = 0x5,
+		F_HASH = 0x6,
+		F_VECTOR = 0x7,
+		F_ENTITY = 0x8,
+		F_ENTHANDLE = 0x9,
+		F_ACTOR = 0xA,
+		F_SENTIENT = 0xB,
+		F_SENTIENTHANDLE = 0xC,
+		F_CLIENT = 0xD,
+		F_PATHNODE = 0xE,
+		F_ACTORGROUP = 0xF,
+		F_OBJECT = 0x10,
+		F_XMODEL_INDEX = 0x11,
+		F_XMODEL = 0x12,
+		F_BITFLAG = 0x13,
+		F_BITFLAG64 = 0x14,
+		F_FX = 0x15,
+		F_WEAPON = 0x16,
+		F_RUMBLE = 0x17,
+		F_SCRIPTBUNDLE = 0x18,
+		F_COUNT = 0x19,
+	};
+	template<typename T>
+	constexpr fieldtype_t GetFieldType() {
+		if constexpr (std::is_same_v<T, int32_t>) return F_INT;
+		else if constexpr (std::is_same_v<T, int16_t>) return F_SHORT;
+		else if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, char> || std::is_same_v<T, bool>) return F_BYTE;
+		else if constexpr (std::is_same_v<T, float>) return F_FLOAT;
+		else if constexpr (std::is_same_v<T, XHash>) return F_HASH;
+		else if constexpr (std::is_same_v<T, vec3_t>) return F_VECTOR;
+		else static_assert(false, "Invalid field type");
+	}
+
+
+	enum LocalClientNum_t : int32_t {
+		INVALID_LOCAL_CLIENT = -1,
+		LOCAL_CLIENT_0 = 0x0,
+		LOCAL_CLIENT_FIRST = 0x0,
+		LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
+		LOCAL_CLIENT_1 = 0x1,
+		LOCAL_CLIENT_COUNT = 0x2, // bo4 pc is 2 for the count
+	};
+
+	enum ClassNum : uint16_t {
+		CLASS_NUM_ENTITY = 0x0,
+		CLASS_NUM_HUDELEM = 0x1,
+		CLASS_NUM_PATHNODE = 0x2,
+		CLASS_NUM_VEHICLENODE = 0x3,
+		CLASS_NUM_TACPOINT = 0x4,
+		CLASS_NUM_DYNENTITY = 0x5,
+		CLASS_NUM_WEAPON = 0x6,
+		CLASS_NUM_COUNT = 0x7,
+	};
+	union EntRefUnion {
+		int32_t entnum;
+		uint32_t hudElemIndex;
+		uint64_t val;
+	};
+
+
+	struct scr_entref_t {
+		EntRefUnion u;
+		ClassNum classnum;
+		LocalClientNum_t client;
+	};
+	static_assert(sizeof(scr_entref_t) == 0x10);
+
+
 	struct BO4_scrVarPub {
 		const char* fieldBuffer;
 		const char* error_message;
@@ -645,15 +719,5 @@ namespace bo4 {
 		float hudSplitscreenScale;
 	};
 	static_assert(sizeof(ScreenPlacement) == 0x74);
-
-
-	enum LocalClientNum_t : int32_t {
-		INVALID_LOCAL_CLIENT = -1,
-		LOCAL_CLIENT_0 = 0x0,
-		LOCAL_CLIENT_FIRST = 0x0,
-		LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
-		LOCAL_CLIENT_1 = 0x1,
-		LOCAL_CLIENT_COUNT = 0x2, // bo4 pc is 2 for the count
-	};
 
 }
