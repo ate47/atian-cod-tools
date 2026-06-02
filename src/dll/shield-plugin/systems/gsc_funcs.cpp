@@ -8,30 +8,28 @@
 #include <systems/errors.hpp>
 #include <systems/gsc_link.hpp>
 #include <systems/gsc_funcs.hpp>
+#include <systems/gsc_debug.hpp>
 #include <utils/decrypt.hpp>
+#include <magic_enum/magic_enum.hpp>
 
 namespace systems::gsc::funcs {
 	namespace {
 
-		void Scr_ActsLog(bo4::scriptInstance_t inst) {
-			constexpr const char* LOG_PREFIX = "[ActsLog] ";
-			const char* prefix{ inst ? "[ActsLog][CSC]" : "[ActsLog][GSC]" };
-			bo4::ScrVarType_t type{ bo4::ScrVm_GetType(inst, 0) };
+		const char* Scr_Render(bo4::scriptInstance_t inst, size_t index) {
+			bo4::ScrVarType_t type{ bo4::ScrVm_GetType(inst, index) };
 			switch (type) {
 			case bo4::TYPE_UNDEFINED:
-				LOG_INFO("{} undefined", prefix);
+				return "undefined";
 				break;
 			case bo4::TYPE_STRING:
-				LOG_INFO("{} \"{}\"", prefix, bo4::ScrVm_GetString(inst, 0));
-				break;
+				return utils::va("\"%s\"", bo4::ScrVm_GetString(inst, index));
 			case bo4::TYPE_VECTOR: {
 				bo4::vec3_t vec{};
-				bo4::ScrVm_GetVector(inst, 0, &vec);
-				LOG_INFO("{} ({}, {}, {})", prefix, vec[0], vec[1], vec[2]);
-				break;
+				bo4::ScrVm_GetVector(inst, index, &vec);
+				return utils::va("(%f, %f, %f)", vec[0], vec[1], vec[2]);
 			}
 			case bo4::TYPE_HASH: {
-				XHash out{ *bo4::ScrVm_GetHash(&out, inst, 0) };
+				XHash out{ *bo4::ScrVm_GetHash(&out, inst, index) };
 				const char* post{ "" };
 				if (bo4::DB_DoesXAssetExist(bo4::XAssetType::ASSET_TYPE_LOCALIZE_ENTRY, &out)) {
 					bo4::LocalizeEntry* loc{ bo4::DB_FindXAssetHeader(bo4::XAssetType::ASSET_TYPE_LOCALIZE_ENTRY, &out, false, 0).localize };
@@ -39,17 +37,14 @@ namespace systems::gsc::funcs {
 						post = utils::va(" ('%s')", decrypt::DecryptString((char*)loc->value));
 					}
 				}
-				LOG_INFO("{} #\"{}\"{}", prefix, core::hashes::ExtractTmp("hash", out), post);
-				break;
+				return utils::va("#\"%s\"%s", core::hashes::ExtractTmp("hash", out), post);
 			}
 			case bo4::TYPE_FLOAT:
-				LOG_INFO("{} {}", prefix, bo4::ScrVm_GetFloat(inst, 0));
-				break;
+				return utils::va("%f", bo4::ScrVm_GetFloat(inst, index));
 			case bo4::TYPE_INTEGER:
-				LOG_INFO("{} {}", prefix, bo4::ScrVm_GetInt(inst, 0));
-				break;
+				return utils::va("%lld", bo4::ScrVm_GetInt(inst, index));
 			case bo4::TYPE_API_FUNCTION: {
-				byte* codePos{ bo4::ScrVm_GetValue(inst, 0)->u.codePosValue };
+				byte* codePos{ bo4::ScrVm_GetValue(inst, index)->u.codePosValue };
 				bool func{};
 				uint32_t name{};
 				bool found;
@@ -60,26 +55,45 @@ namespace systems::gsc::funcs {
 					found = bo4::Scr_GetFunctionReverseLookup(codePos, &name, &func);
 				}
 				if (!found) {
-					LOG_INFO("{} unk api[{}]", prefix, (void*)codePos);
+					return utils::va("api[unk:%p]", (void*)codePos);
 				}
-				else {
-					const char* apitype{ func ? "function" : "method", };
-					LOG_INFO("{} api{}[{}]", prefix, apitype, core::hashes::ExtractTmp(apitype, name));
-				}
-				break;
+
+				const char* apitype{ func ? "function" : "method", };
+				return utils::va("api%s[%s]", apitype, core::hashes::ExtractTmp(apitype, name));
 			}
 			case bo4::TYPE_SCRIPT_FUNCTION: {
-				byte* codePos{ bo4::ScrVm_GetValue(inst, 0)->u.codePosValue };
+				byte* codePos{ bo4::ScrVm_GetValue(inst, index)->u.codePosValue };
 				const char* scriptname{ "<error>" };
 				bo4::Scr_GetGscExportInfo(inst, codePos, &scriptname, nullptr, nullptr, nullptr);
-
-				LOG_INFO("{} script[{}]", prefix, scriptname);
-				break;
+				return utils::va("script[%s]", scriptname);
+			}
+			case bo4::TYPE_POINTER: {
+				bo4::ScrVarType_t ptrType{ bo4::ScrVm_GetPointerType(inst, index) };
+				if (ptrType == bo4::TYPE_ENTITY) {
+					bo4::scr_entref_t entref{ *bo4::ScrVm_GetEntityRef(&entref, inst, index) };
+					std::string name{ magic_enum::enum_name(entref.classnum) };
+					if (entref.classnum == bo4::CLASS_NUM_HUDELEM) {
+						return systems::gsc::debug::RenderHudElemField(entref.u.hudElemIndex);
+					}
+					return utils::va("entity[%s,num=%d,val=%lld]", name.data(), (int)entref.client, entref.u.val);
+				}
+				return utils::va("ptr[%s]", bo4::scrVarTypeNames[ptrType]);
 			}
 			default:
-				LOG_INFO("{} \"unk:{}\"", prefix, bo4::scrVarTypeNames[type]);
-				break;
+				return utils::va("unk[%s]", bo4::scrVarTypeNames[type]);
 			}
+		}
+
+		void Scr_ActsLog(bo4::scriptInstance_t inst) {
+			const char* prefix{ inst ? "[ActsLog][CSC]" : "[ActsLog][GSC]" };
+			std::stringstream ss{};
+			for (size_t i = 0; i < bo4::ScrVm_GetNumParam(inst); i++) {
+				if (i) {
+					ss << " ";
+				}
+				ss << Scr_Render(inst, i);
+			}
+			LOG_INFO("{} {}", prefix, ss.str());
 		}
 
 		void Scr_ActsHashLookup(bo4::scriptInstance_t inst) {
@@ -202,7 +216,7 @@ namespace systems::gsc::funcs {
 			bo4::BuiltinFunctionDef{ // ActsLog(message)
 				.canonId = hash::HashT89Scr("ActsLog"),
 				.min_args = 1,
-				.max_args = 1,
+				.max_args = INT_MAX,
 				.actionFunc = Scr_ActsLog,
 				.type = bo4::BUILTIN_DEFAULT,
 			},

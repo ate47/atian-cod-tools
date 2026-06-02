@@ -53,6 +53,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1374289393, "invalid session mode" }, // Vice 925 Silent Conflict
     { 1377489376, "Gesture key can't have the higher bit set" }, // Roger 356 Gray Pig
     { 1385570291, "assert fail (with message)" }, // Foxtrot 345 Strange Pig
+    { 1398031169, "ACTS CUSTOM ERROR ID" }, // Juliett 569 Wild Storm
     { 1402557361, "bad opcode" }, // Vice 70 Grim Storm
     { 1403832952, "Attempt to register ClientField failed.  Client Field set either already contains a field, or a hash collision has occurred." }, // Rush 280 Extinct Storm
     { 1412130119, "parameter can't be cast to a hash" }, // Nora 261 Marsh Blizzard

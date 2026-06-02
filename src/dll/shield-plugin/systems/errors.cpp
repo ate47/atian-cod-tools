@@ -100,7 +100,7 @@ namespace systems::errors {
 				buffer[e - 1] = 0; // remove end new line
 			}
 
-			LOG_ERROR("[LogCompilerError] {}", buffer);
+			LOG_ERROR("[LogCompilerError] {} {}", hook::library::CodePointer{ _ReturnAddress() }, buffer);
 		}
 
 		void ReadErrorFile(const std::filesystem::path& path) {
@@ -147,7 +147,7 @@ namespace systems::errors {
 		void PostInit(uint64_t uid) {
 			Sys_ErrorDetour.Create(0x3D36CC0_a, Sys_ErrorStub);
 			Com_ErrorDetour.Create(0x288B110_a, Com_ErrorStub);
-			ScrVm_Error_Detour.Create(0x2770330_a, ScrVm_Error_Stub);
+			ScrVm_Error_Detour.Create(bo4::ScrVm_Error.ptr, ScrVm_Error_Stub);
 			ScrVm_LogCompilerError_Detour.Create(0x2890470_a, ScrVm_LogCompilerError_Stub);
 		}
 
@@ -162,6 +162,7 @@ namespace systems::errors {
 		vsprintf_s(buffer[inst], msg, va);
 		va_end(va);
 
+		LOG_ERROR("ScrVm_Error({}, {}, {})", inst ? "csc" : "gsc", buffer[inst], terminal ? "true" : "false");
 		bo4::ScrVm_Error(CUSTOM_ERROR_ID, inst, buffer[inst], terminal);
 	}
 }

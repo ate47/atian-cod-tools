@@ -46,10 +46,11 @@ namespace bo4 {
 	S_ANY Ref<bool(byte* func, uint32_t* name, bool* isFunction)> Scr_GetFunctionReverseLookup{ 0x33AF8A0_a };
 	S_ANY Ref<bool(byte* func, uint32_t* name, bool* isFunction)> CScr_GetFunctionReverseLookup{ 0x1F132A0_a };
 	S_ANY Ref<void(scriptInstance_t inst, EntRefUnion value, ClassNum classNum, LocalClientNum_t num)> ScrVm_AddEntityNum{ 0x276E8D0_a };
-	S_ANY Ref<void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)> ScrEvent_FireCallbackEventEnt{ 0x2759C50_a };
-	S_ANY Ref<void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)> ScrVar_AddClassFields{ 0x27454B0_a };
+	S_ANY Ref<void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)> ScrEvent_FireCallbackEventEnt{ 0x27454B0_a };
+	S_ANY Ref<void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)> ScrVar_AddClassFields{ 0x2759C50_a };
 	S_ANY Ref<void(scriptInstance_t inst, const byte* b, fieldtype_t type, int ofs)> Scr_GetGenericField{ 0x2745BE0_a };
 	S_ANY Ref<void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)> Scr_SetGenericField{ 0x2745E40_a };
+	S_ANY Ref<scr_entref_t*(scr_entref_t* ent, scriptInstance_t inst, unsigned int index)> ScrVm_GetEntityRef{ 0x2773170_a };
 
 	S_ANY Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo{ 0x2748550_a };
 	S_ANY Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error{ 0x2770330_a };

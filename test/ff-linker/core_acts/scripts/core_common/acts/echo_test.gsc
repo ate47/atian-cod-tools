@@ -46,14 +46,14 @@ function private __pre_init__()
 
     // print test
     [[ &ActsLog ]]( "test func ptr" );
-    ActsLog( &ActsLog );
+    ActsLog( "ActsLog =", &ActsLog );
 
     // test detour
-    ActsLog( "safehouse: " + util::is_safehouse() );
-    ActsLog( @util<scripts\core_common\util_shared.gsc>::is_safehouse );
-    ActsLog( &util::is_safehouse );
-    ActsLog( @system<scripts\core_common\system_shared.gsc>::register );
-    ActsLog( &system::register );
+    ActsLog( "safehouse =", util::is_safehouse() );
+    ActsLog( "is_safehouse(lz) =", @util<scripts\core_common\util_shared.gsc>::is_safehouse );
+    ActsLog( "is_safehouse(it) =", &util::is_safehouse );
+    ActsLog( "register(lz) =", @system<scripts\core_common\system_shared.gsc>::register );
+    ActsLog( "register(it) =", &system::register );
 
     // test xhashscr operations
     ActsLog( ActsGetDetour( #"scripts/core_common/util_shared.gsc", #util, #is_safehouse ) );
@@ -73,6 +73,28 @@ function private __pre_init__()
         ActsLog( "[" + i + "] " + sv + "/" + iv + "/" + hv );
     }
     ActsLog( "-----------------" );
+
+    
+    ActsLog( "test hud element" );
+
+    hud = NewDebugHudElem();
+    hud2 = NewDebugHudElem();
+    hud3 = NewDebugHudElem();
+    ActsLog( "hud", hud );
+    ActsLog( "hud", hud2 );
+    ActsLog( "hud", hud3 );
+    hud.x = 42;
+    hud.y = 15;
+    hud.fontScale = 1;
+    hud.color = ( 1, 0.2, 1 );
+    hud.alpha = 0.8;
+    hud2.x = 65;
+    hud2.y = 25;
+    ActsLog( "hud", hud );
+    ActsLog( "hud", hud2 );
+    ActsLog( "info", hud2.x, hud2.y, hud.fontScale, hud.color, hud.alpha );
+    //hud destroy();
+    ActsLog( "post hud destroy" );
 }
 
 function private on_player_connect()

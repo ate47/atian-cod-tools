@@ -8,6 +8,7 @@
 #include <hook/memory.hpp>
 #include <hook/library.hpp>
 #include <systems/gsc_funcs.hpp>
+#include <systems/gsc_debug.hpp>
 #include <systems/events.hpp>
 #include <systems/errors.hpp>
 
@@ -67,15 +68,16 @@ namespace systems::gsc::debug {
 		};
 
 		struct ScrHudElem {
-			float x;
-			float y;
-			float z;
-			float fontScale;
-			float fromFontScale;
-			HudVAlign valign;
-			HudHAlign halign;
-			bo4::vec4_t color;
-			HudElemType type;
+			float x{};
+			float y{};
+			float z{};
+			float fontScale{ 1 };
+			float fromFontScale{};
+			bo4::vec3_t color{ 1, 1, 1 };
+			float alpha{ 1 };
+			HudVAlign valign{};
+			HudHAlign halign{};
+			HudElemType type{};
 		};
 		constexpr uint32_t numMaxHudElements = 0x100;
 
@@ -118,14 +120,14 @@ namespace systems::gsc::debug {
 			__CREATE_GENERIC_HUDELEM_FIELD(y),
 			__CREATE_GENERIC_HUDELEM_FIELD(z),
 			__CREATE_GENERIC_HUDELEM_FIELD(fontScale),
+			__CREATE_GENERIC_HUDELEM_FIELD(color),
+			__CREATE_GENERIC_HUDELEM_FIELD(alpha),
 
 			__CREATE_INVALID_HUDELEM_FIELD(font),
 			__CREATE_INVALID_HUDELEM_FIELD(alignx),
 			__CREATE_INVALID_HUDELEM_FIELD(aligny),
 			__CREATE_INVALID_HUDELEM_FIELD(horzalign),
 			__CREATE_INVALID_HUDELEM_FIELD(vertalign),
-			__CREATE_INVALID_HUDELEM_FIELD(color),
-			__CREATE_INVALID_HUDELEM_FIELD(alpha),
 			__CREATE_INVALID_HUDELEM_FIELD(label),
 			__CREATE_INVALID_HUDELEM_FIELD(sort),
 			__CREATE_INVALID_HUDELEM_FIELD(foreground),
@@ -153,15 +155,14 @@ namespace systems::gsc::debug {
 		ScrHudElem* AllocHudElem() {
 			for (ScrHudElem& elem : dbgData.huds) {
 				if (!elem.type) {
-					std::memset(&elem, 0, sizeof(elem));
-					elem.type = HET_ALLOC;
+					elem = { .type = HET_ALLOC };
 					return &elem;
 				}
 			}
 			return nullptr; // no empty slot
 		}
 
-		ScrHudElem* GetHudElem(size_t idx) {
+		ScrHudElem* GetHudElem(uint32_t idx) {
 			if (idx >= numMaxHudElements || dbgData.huds[idx].type == HET_FREE) {
 				return nullptr; // invalid / free id
 			}
@@ -182,11 +183,11 @@ namespace systems::gsc::debug {
 			return he;
 		}
 
-		int32_t GetHudElemId(ScrHudElem* hud) {
+		uint32_t GetHudElemId(ScrHudElem* hud) {
 			if (!hud) {
 				return numMaxHudElements;
 			}
-			return (int32_t)(hud - dbgData.huds);
+			return (uint32_t)(hud - dbgData.huds);
 		}
 
 		
@@ -200,7 +201,7 @@ namespace systems::gsc::debug {
 				return;
 			}
 
-			bo4::EntRefUnion v{ .entnum = GetHudElemId(hud) };
+			bo4::EntRefUnion v{ .hudElemIndex = GetHudElemId(hud) };
 			bo4::ScrVm_AddEntityNum(inst, v, bo4::CLASS_NUM_HUDELEM, bo4::LOCAL_CLIENT_0);
 		}
 
@@ -438,6 +439,16 @@ namespace systems::gsc::debug {
 			if (!R_IsInit()) {
 				return;
 			}
+			/*
+			for (ScrHudElem& elem : dbgData.huds) {
+				if (!elem.type) {
+					continue;
+				}
+
+				// TODO: render hud elem
+
+			}
+			*/
 
 			/*
 			const bo4::ScreenPlacement& screen{ *bo4::ScrPlace_GetView(bo4::LOCAL_CLIENT_0) };
@@ -465,6 +476,7 @@ namespace systems::gsc::debug {
 
 		bool Scr_SetObjectField_Stub(bo4::ClassNum classnum, bo4::EntRefUnion entRefUnion, uint32_t offset) {
 			if (classnum == bo4::CLASS_NUM_HUDELEM) {
+				// LOG_TRACE("Scr_SetObjectField({}, {}, {})", magic_enum::enum_name(classnum), entRefUnion.val, offset);
 				if (offset >= hudFields.size()) {
 					systems::errors::ScrVm_Error(bo4::scriptInstance_t::SI_SERVER, "Invalid Hud Elem offset: %d", false, offset);
 					return true;
@@ -486,7 +498,7 @@ namespace systems::gsc::debug {
 					field->setter(hud, field);
 				}
 				else {
-					bo4::Scr_SetGenericField(bo4::scriptInstance_t::SI_SERVER, (byte*)field, field->type, field->ofs);
+					bo4::Scr_SetGenericField(bo4::scriptInstance_t::SI_SERVER, (byte*)hud, field->type, field->ofs);
 				}
 
 				return true;
@@ -497,6 +509,7 @@ namespace systems::gsc::debug {
 
 		void Scr_GetObjectField_Stub(bo4::ClassNum classnum, bo4::EntRefUnion entRefUnion, uint32_t offset) {
 			if (classnum == bo4::CLASS_NUM_HUDELEM) {
+				// LOG_TRACE("Scr_GetObjectField({}, {}, {})", magic_enum::enum_name(classnum), entRefUnion.val, offset);
 				if (offset >= hudFields.size()) {
 					systems::errors::ScrVm_Error(bo4::scriptInstance_t::SI_SERVER, "Invalid Hud Elem offset: %d", false, offset);
 					return;
@@ -514,7 +527,7 @@ namespace systems::gsc::debug {
 					field->getter(hud, field);
 				}
 				else {
-					bo4::Scr_GetGenericField(bo4::scriptInstance_t::SI_SERVER, (byte*)field, field->type, field->ofs);
+					bo4::Scr_GetGenericField(bo4::scriptInstance_t::SI_SERVER, (byte*)hud, field->type, field->ofs);
 				}
 
 				return;
@@ -528,6 +541,7 @@ namespace systems::gsc::debug {
 			ScrVar_InitClassMap_Detour.Call(inst, classnum);
 
 			if (inst == bo4::scriptInstance_t::SI_SERVER && classnum == bo4::CLASS_NUM_HUDELEM) {
+				LOG_TRACE("ScrVar_InitClassMap({}, {}) {} -> add {} fields", inst ? "client" : "server", (int)classnum, hook::library::CodePointer{ _ReturnAddress() }, hudFields.size());
 				for (size_t i = 0; i < hudFields.size(); i++) {
 					bo4::ScrVar_AddClassFields(inst, classnum, hudFields[i].canonId, (int32_t)i);
 				}
@@ -547,5 +561,13 @@ namespace systems::gsc::debug {
 		}
 
 		REGISTER_SYSTEM(gsc_debug, nullptr, PostInit);
+	}
+
+	const char* RenderHudElemField(uint32_t element) {
+		ScrHudElem* he{ GetHudElem(element) };
+		if (!he) {
+			return "HudElem[invalid]";
+		}
+		return utils::va("HudElem%u[x=%f y=%f z=%f fs=%f rgba=(%f, %f, %f, %f)]", GetHudElemId(he), he->x, he->y, he->z, he->fontScale, he->color[0], he->color[1], he->color[2], he->alpha);
 	}
 }
