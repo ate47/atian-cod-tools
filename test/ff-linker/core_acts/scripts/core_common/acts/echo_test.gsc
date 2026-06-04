@@ -78,9 +78,18 @@ function private __pre_init__()
     ActsLog( "test hud element" );
 
     hud = NewDebugHudElem();
+
+    hud.x = 0;
+    hud.y = 20;
+    hud.fontscale = 1;
+    hud.alignx = "left";
+    hud.horzalign = "left";
+    hud.color = ( 0, 0, 1 );
+    hud setText( "echo_test.gsc text" );
+    ActsLog( "hud", hud );
+    /*
     hud2 = NewDebugHudElem();
     hud3 = NewDebugHudElem();
-    ActsLog( "hud", hud );
     ActsLog( "hud", hud2 );
     ActsLog( "hud", hud3 );
     hud.x = 42;
@@ -93,6 +102,7 @@ function private __pre_init__()
     ActsLog( "hud", hud );
     ActsLog( "hud", hud2 );
     ActsLog( "info", hud2.x, hud2.y, hud.fontScale, hud.color, hud.alpha );
+    */
     //hud destroy();
     ActsLog( "post hud destroy" );
 }

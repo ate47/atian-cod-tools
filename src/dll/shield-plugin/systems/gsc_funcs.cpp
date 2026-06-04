@@ -22,7 +22,7 @@ namespace systems::gsc::funcs {
 				return "undefined";
 				break;
 			case bo4::TYPE_STRING:
-				return utils::va("\"%s\"", bo4::ScrVm_GetString(inst, index));
+				return utils::va("%s", bo4::ScrVm_GetString(inst, index));
 			case bo4::TYPE_VECTOR: {
 				bo4::vec3_t vec{};
 				bo4::ScrVm_GetVector(inst, index, &vec);

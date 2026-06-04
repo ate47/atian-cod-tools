@@ -51,6 +51,7 @@ namespace bo4 {
 	S_ANY Ref<void(scriptInstance_t inst, const byte* b, fieldtype_t type, int ofs)> Scr_GetGenericField{ 0x2745BE0_a };
 	S_ANY Ref<void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)> Scr_SetGenericField{ 0x2745E40_a };
 	S_ANY Ref<scr_entref_t*(scr_entref_t* ent, scriptInstance_t inst, unsigned int index)> ScrVm_GetEntityRef{ 0x2773170_a };
+	S_ANY Ref<void(scriptInstance_t inst, MessageString* string, signed int startIndex, int endIndex)> Scr_ConstructMessageString{ 0x3F09D0_a };
 
 	S_ANY Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo{ 0x2748550_a };
 	S_ANY Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error{ 0x2770330_a };
@@ -90,7 +91,15 @@ namespace bo4 {
 	// common
 	S_ANY Ref<const char* (int32_t lang)> SEH_GetLanguageNameAbbr{ 0x3CB1340_a };
 	S_ANY Ref<const dvar_t*> dvar_loc_language{ 0xF92B348_a };
+	S_ANY Ref<const dvar_t*[0x400]> s_dvarHashTable{0xFA18DB0_a};
+	S_ANY Ref<const dvar_t[0x1000]> s_dvarPool{ 0xFA0EFB0_a};
 	S_ANY Ref<bool()> DB_Is4KEnabled{0x35D6EC0_a};
+	S_ANY Ref<void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)> Cmd_AddCommandInternal{ 0x3CDEE80_a };
+#define Cmd_AddCommand(name, func) do { \
+			static bo4::cmd_function_t func##_VAR; \
+			XHash cmdName{ hash::Hash64(name) };\
+			bo4::Cmd_AddCommandInternal(&cmdName, func, &func##_VAR); \
+		} while (0)
 
 	// renderer
 	S_ANY Ref<sharedUiInfo_t> sharedUiInfo{ 0xF956850_a };
@@ -115,6 +124,8 @@ namespace bo4 {
 
 	S_ANY Ref<uint32_t(Font* font)> R_TextHeight{ 0x35B2350_a };
 	S_ANY Ref<uint32_t(Font* font, float scale)> UI_TextHeight{ 0x3CD6560_a };
+	S_ANY Ref<float(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font) > R_TextWidth{ 0x35B2530_a };
+	S_ANY Ref<uint32_t(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font, float scale) > UI_TextWidth{ 0x3CD65B0_a };
 	S_ANY Ref<const ScreenPlacement*(const LocalClientNum_t localClientNum)> ScrPlace_GetView{ 0x2876E70_a };
 
 	inline void R_AddCmdDrawText(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style) {

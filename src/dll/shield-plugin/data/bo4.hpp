@@ -301,6 +301,7 @@ namespace bo4 {
 		ScrVarValue_t* lastGoodTop;
 	};
 
+
 	typedef void (*VM_OP_FUNC)(scriptInstance_t, function_stack_t*, ScrVmContext_t*, bool*);
 	typedef void (*VM_OP_ERR_FUNC)(scriptInstance_t, function_stack_t*, ScrVmContext_t*);
 	
@@ -651,6 +652,22 @@ namespace bo4 {
 		uint64_t unk38;
 	};
 	static_assert(sizeof(dvar_t) == 0x40);
+
+	typedef void (*xcommand_t)();
+
+	struct cmd_function_t {
+		cmd_function_t* next;
+		XHash name;
+		const char* autoCompleteDir;
+		const char* autoCompleteExt;
+		xcommand_t function;
+	};
+	static_assert(sizeof(cmd_function_t) == 0x30);
+
+	struct MessageString {
+		uint32_t len;
+		char string[1024];
+	};
 
 	struct AssetLink {
 		AssetLink* next;
