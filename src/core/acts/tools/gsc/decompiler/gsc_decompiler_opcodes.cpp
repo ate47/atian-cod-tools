@@ -2749,15 +2749,15 @@ namespace tool::gsc::opcode {
 		}
 	};
 
-	class OPCodeInfoIWNotify : public OPCodeInfo {
+	class OPCodeInfoIWEvent : public OPCodeInfo {
+		const char* type;
 	public:
-		OPCodeInfoIWNotify(OPCode id, const char* name) : OPCodeInfo(id, name) {
+		OPCodeInfoIWEvent(OPCode id, const char* name, const char* type) : OPCodeInfo(id, name), type(type) {
 		}
-		using OPCodeInfo::OPCodeInfo;
 
 		int Dump(std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
 			if (context.m_runDecompiler) {
-				ASMContextNodeMultOp* node = new ASMContextNodeMultOp("notify", true);
+				ASMContextNodeMultOp* node = new ASMContextNodeMultOp(type, true);
 				// self
 				node->AddParam(context.PopASMCNode());
 
@@ -4687,7 +4687,8 @@ namespace tool::gsc::opcode {
 			const OPCodeInfoTry opTry{  };
 			const OPCodeInfoGetPositionRef opGetPositionRef{  };
 
-			const OPCodeInfoIWNotify opIW_Notify{ OPCODE_IW_Notify, "IW_Notify" };
+			const OPCodeInfoIWEvent opIW_Notify{ OPCODE_IW_Notify, "IW_Notify", "notify" };
+			const OPCodeInfoIWEvent opSAT_Endon{ OPCODE_SAT_Endon, "SAT_Endon", "endon" };
 
 			// T7
 			const OPCodeInfoGetHash opGetHash32{ OPCODE_GetHash32, "GetHash32", "#", false };
@@ -5029,6 +5030,7 @@ namespace tool::gsc::opcode {
 				RegisterOpCodeHandler(&opTry);
 				RegisterOpCodeHandler(&opGetPositionRef);
 				RegisterOpCodeHandler(&opIW_Notify);
+				RegisterOpCodeHandler(&opSAT_Endon);
 				RegisterOpCodeHandler(&opGetHash32);
 				RegisterOpCodeHandler(&opT8CGetLazyFunction);
 			}

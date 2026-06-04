@@ -95,7 +95,7 @@ namespace tool::gsc::opcode {
 			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_ProfileStop, 0x6e);
 			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_NotEqual, 0x32);
 			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_CallBuiltinMethod, 0x2b);
-			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_IW_SingleEndon, 0x84);
+			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_SAT_Endon, 0x84);
 			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_IW_WaitFrame, 0x75);
 			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_IW_GetDVarHash, 0x53);
 			t1019->RegisterOpCode(PLATFORM_PC, OPCODE_GetSelfObject, 0x7e);

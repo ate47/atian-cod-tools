@@ -478,6 +478,7 @@ namespace tool::gsc::opcode {
 		OPCODE_IW_AppendToArray,
 
 		OPCODE_SAT_GetOmnVarHash,
+		OPCODE_SAT_Endon,
 
 		OPCODE_COUNT,
 	};
