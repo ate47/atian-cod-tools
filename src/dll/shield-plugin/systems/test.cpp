@@ -4,7 +4,9 @@
 #include <core/config.hpp>
 #include <core/system.hpp>
 #include <hook/memory.hpp>
+#include <hook/library.hpp>
 #include <systems/mods.hpp>
+#include <deps/idc_builder.hpp>
 
 namespace systems::test {
 	namespace {
@@ -76,6 +78,44 @@ namespace systems::test {
 			}
 		}
 
+		
+		void DumpDVarRefs_f() {
+			utils::OutFileCE os{ "dvar.csv" };
+
+			if (!os) {
+				LOG_ERROR("Can't open dvar.csv");
+				return;
+			}
+
+			hook::library::Library base{};
+			const bo4::dvar_t** dbase{ *bo4::s_dvarHashTable.ptr };
+			const bo4::dvar_t** dend{ &dbase[ACTS_ARRAYSIZE(*bo4::s_dvarHashTable.ptr)] };
+			const bo4::dvar_t* dpbase{ *bo4::s_dvarPool.ptr };
+			const bo4::dvar_t* dpend{ &dpbase[ACTS_ARRAYSIZE(*bo4::s_dvarPool.ptr)] };
+
+			for (const bo4::dvar_t* node : *bo4::s_dvarHashTable.ptr) {
+				while (node) {
+					for (hook::library::ScanResult r : base.ScanNumber(node)) {
+						if (dbase <= r.GetPtr() && dend > r.GetPtr()) {
+							continue; // in pool (buckets)
+						}
+						if (dpbase <= r.GetPtr() && dpend > r.GetPtr()) {
+							continue; // in pool (refs)
+						}
+						os
+							<< hook::library::CodePointer{ r.GetPtr() } << ","
+							<< core::hashes::ExtractTmp("dvar", node->name) << "\n"
+							;
+
+					}
+
+					node = node->hashnext;
+				}
+			}
+			LOG_ERROR("Dump dvar.csv");
+
+		}
+
 		void TestPostInit(uint64_t uid) {
 			if (core::config::GetBool("test.4k", false)) {
 				hook::memory::ReturnVal(bo4::DB_Is4KEnabled.ptr, true);
@@ -88,6 +128,8 @@ namespace systems::test {
 				// enable all the playerroles -> (none + infected zombies in wz/mp)
 				systems::mods::GetModAssetLinkHooks().emplace_back(ModAssetLinkHookStoreCategory);
 			}
+
+			Cmd_AddCommand("dumpdvars", DumpDVarRefs_f);
 		}
 
 
