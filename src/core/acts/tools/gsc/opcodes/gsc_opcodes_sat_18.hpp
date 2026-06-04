@@ -4,8 +4,8 @@ namespace tool::gsc::opcode {
 	class OpCodeSat18Registry {
 	public:
 		static void OpCode() {
-			VmInfo* t1018 = RegisterVM(VMI_SAT_18, "Call of Duty: Black Ops 7", "t11", "bo7", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_NO_PLATFORM
-			t1018->RegisterVmName("sat", "blackops7", "bo7");
+			VmInfo* t1018 = RegisterVM(VMI_SAT_18, "Call of Duty: Black Ops 7 (18)", "t11", "bo7_18", VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 | VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS | VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS | VmFlags::VMF_NO_PLATFORM
+			t1018->RegisterVmName("sat18", "blackops7_18", "bo7_18");
 			t1018->AddPlatform(PLATFORM_PC);
 			t1018->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
 			t1018->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
