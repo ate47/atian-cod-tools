@@ -323,15 +323,19 @@ namespace acts::game_data {
 			if (data.name.empty() || data.name[0] == '$') {
 				continue; // unused
 			}
+			try {
+				std::vector<void*> array{ GetPointerArray<void*>(data.name.data(), parent) };
 
-			std::vector<void*> array{ GetPointerArray<void*>(data.name.data(), parent) };
+				if (array.empty()) {
+					LOG_ERROR("Missing {}", data.name);
+					continue; // no found
+				}
 
-			if (array.empty()) {
-				LOG_ERROR("Missing {}", data.name);
-				continue; // no found
+				builder.AddAddressEx(array[0], data.name.data(), "SN_CHECK | SN_NOWARN", data.ctype.empty() ? nullptr : data.ctype.data());
 			}
-
-			builder.AddAddressEx(array[0], data.name.data(), "SN_CHECK | SN_NOWARN", data.ctype.empty() ? nullptr : data.ctype.data());
+			catch (std::runtime_error& err) {
+				LOG_ERROR("error with {}: {}", data.name, err.what());
+			}
 		}
 	}
 
