@@ -4213,6 +4213,19 @@ namespace tool::gsc::opcode {
 		}
 	};
 
+	class OPCodeInfoClearParams : public OPCodeInfo {
+	public:
+		OPCodeInfoClearParams() : OPCodeInfo(OPCODE_ClearParams, "ClearParams") {}
+
+		int Dump(std::ostream& out, uint16_t v, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx) const override {
+			if (!objctx.m_vmInfo->HasFlag(VmFlags::VMF_WAITTILL_RETURN)) {
+				context.CompleteStatement();
+			}
+			out << std::endl;
+			return 0;
+		}
+	};
+
 	// T8-Compiler custom opcode
 	class OPCodeInfoT8CGetLazyFunction : public OPCodeInfo {
 	public:
@@ -4530,7 +4543,7 @@ namespace tool::gsc::opcode {
 			const OPCodeInfoFunctionOperator opIsDefined{ OPCODE_IsDefined, "IsDefined", "isdefined", false, false, false, true, false, TYPE_FUNC_IS_DEFINED_OP };
 
 			// PRECODEPOS/CODEPOS on stack
-			const OPCodeInfoNopStmt opClearParams{ OPCODE_ClearParams, "ClearParams" };
+			const OPCodeInfoClearParams opClearParams{};
 			const OPCodeInfoPreScriptCall opPreScriptCall{ OPCODE_PreScriptCall, "PreScriptCall" };
 			const OPCodeInfoPreScriptCall opIW_VoidCodePos{ OPCODE_IW_VoidCodePos, "IW_VoidCodePos" };
 

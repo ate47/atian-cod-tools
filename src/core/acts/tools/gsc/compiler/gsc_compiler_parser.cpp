@@ -1405,10 +1405,6 @@ namespace tool::gsc::compiler {
                             fobj.AddNode(rule, node);
                         }
 
-                        if (!expressVal && f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
-                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
-                        }
-
                         if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
                             for (size_t i = 1; i < paramCount; i++) {
                                 ParseTree* pnode = paramsList->children[i * 2];
@@ -1423,6 +1419,10 @@ namespace tool::gsc::compiler {
                             }
 
                             fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_ClearParams));
+                        }
+
+                        if (!expressVal && f.HasFlag(tool::gsc::opcode::VPFD_RETURN_VALUE)) {
+                            fobj.AddNode(rule, new AscmNodeOpCode(OPCODE_DecTop));
                         }
 
                         return true;
