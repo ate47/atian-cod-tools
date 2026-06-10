@@ -215,6 +215,7 @@ namespace tool::bo7 {
         SATH_ASSET_OPERATOR = hash::HashX32("operator"),
         SATH_ASSET_OPERATORLIST = hash::HashX32("operatorlist"),
         SATH_ASSET_OPERATORSKIN = hash::HashX32("operatorskin"),
+        SATH_ASSET_OPERATORVOICEPACKAGE = hash::HashX32("operatorvoicepackage"),
         SATH_ASSET_PARACHUTEDATA = hash::HashX32("parachutedata"),
         SATH_ASSET_PARTICLESIMANIMATION = hash::HashX32("particlesimanimation"),
         SATH_ASSET_PARTICLESYSTEM = hash::HashX32("particlesystem"),

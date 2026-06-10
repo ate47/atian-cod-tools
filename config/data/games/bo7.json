@@ -139,7 +139,7 @@
             "ctype": "void DB_ReadXFile(DBLoadCtx *ctx, void* ptr, int64_t len)"
         },
         "DB_SkipXFile": {
-            "scan": "E8 ?? ?? ?? ?? 48 8B 55 48 85 F6",
+            "scan": "E8 ?? ?? ?? ?? 48 8B 55 D0 45 85 F6",
             "type": "Relative",
             "offset": 1,
             "single": true,
@@ -158,19 +158,19 @@
             "ctype": "void DB_RewindSetData(DBLoadCtx *ctx, DBRewind *rewind, void *data)"
         },
         "DB_LoadRewindRef": {
-            "scan": "E8 ?? ?? ?? ?? 48 8B 55 48 0F B6 4D 68",
+            "scan": "E8 ?? ?? ?? ?? 48 8B 55 D0 0F B6 4D 58",
             "type": "Relative",
             "offset": 1,
             "single": true
         },
         "DB_AllocRewindRef": {
-            "scan": "E8 ?? ?? ?? ?? 4D 8B 0F 4C 8B E8",
+            "scan": "E8 ?? ?? ?? ?? 49 89 07 44 88 B6 F0 05 00 00",
             "type": "Relative",
             "offset": 1,
             "single": true
         },
         "DB_SaveRewindRef": {
-            "scan": "E8 ?? ?? ?? ?? 49 8B 0F 48 8B C1",
+            "scan": "E8 ?? ?? ?? ?? 48 8B 45 50 48 89 45 E8",
             "type": "Relative",
             "offset": 1,
             "single": true
@@ -236,7 +236,7 @@
             "single": true
         },
         "Load_CustomScriptString": {
-            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8",
+            "scan": "48 89 5C 24 ?? 57 48 83 EC ?? 48 8B FA 41 B8 04",
             "ctype": "void Load_CustomScriptString(DBLoadCtx* context, uint32_t* pstr)",
             "type": "Absolute",
             "single": true
@@ -310,7 +310,7 @@
                 "multiple": true
             },
             "$u4": {
-                "scan": "40 53 48 83 EC ?? 8B 42 ?? 49",
+                "scan": "40 53 48 83 EC 20 45 0F B6 48 18 49",
                 "type": "Absolute",
                 "single": true
             },

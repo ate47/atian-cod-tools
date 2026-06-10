@@ -34,30 +34,48 @@ namespace {
 	};
 	static_assert(sizeof(OperatorSkin) == 0xc8);
 
+	struct DismembermentType;
+	struct OperatorVoicePackage;
+
+	struct OperatorDismemberment {
+		DismembermentType* u0;
+		DismembermentType* u8;
+	};
+	static_assert(sizeof(OperatorDismemberment) == 0x10);
+
+
 	struct Operator {
 		XHash64 name;
 		XHash64 defaultSkin;
 		XHash64 unk_2166b3eb7bbab0c9;
 		XBoneSet* xboneSet;
 		uint64_t unk20;
-		uint64_t unk28;
+		uint32_t unk28;
+		uint32_t dismembermentsCount;
+		OperatorDismemberment* dismemberments;
 		uint64_t operatorSkinsCount;
 		OperatorSkin** operatorSkins;
 		GfxImage* portraitImage;
 		GfxImage* iconMinimap;
 		const char* dialog;
-		XHash64 unkHash;
+		const char* unk60;
+		XHash64 unk68;
+		XHash64 unk70;
 		const char* gender;
 		XHash64 unk_5e798df9018086fd;
 		XHash64 gasMask;
 		scriptbundle::ScriptBundleObjectData bundleData;
 		uint32_t lootid;
-		byte unk94;
-		bool unk95;
-		bool unk96;
-		bool unk97;
+		byte uf1;
+		bool uf2;
+		bool uf3;
+		bool uf4;
+		uint64_t unkb8;
+		uint64_t unkc0;
+		uint64_t operatorVoicePackagesCount;
+		OperatorVoicePackage** operatorVoicePackages;
 	};
-	static_assert(sizeof(Operator) == 0xa0);
+	static_assert(sizeof(Operator) == 0xd8);
 
 	struct ReactiveOperator {
 		XHash64 name;
@@ -98,21 +116,27 @@ namespace {
 			json.WriteFieldValueXHash(0x2166b3eb7bbab0c9, asset->unk_2166b3eb7bbab0c9);
 			json.WriteFieldValueXHash("gasMask", asset->gasMask);
 			json.WriteFieldValueXHash(0x5e798df9018086fd, asset->unk_5e798df9018086fd);
-			json.WriteFieldValueXHash("unkHash", asset->unkHash);
+			json.WriteFieldValueXHash("unk68", asset->unk68);
+			json.WriteFieldValueXHash("unk70", asset->unk70);
 			json.WriteFieldValueXAsset("xboneSet", SATH_ASSET_XBONESET, asset->xboneSet);
 			json.WriteFieldValueXAsset("portraitImage", SATH_ASSET_IMAGE, asset->portraitImage);
 			json.WriteFieldValueXAsset("iconMinimap", SATH_ASSET_IMAGE, asset->iconMinimap);
+			json.WriteFieldValueXAssetArray("operatorVoicePackages", SATH_ASSET_OPERATORVOICEPACKAGE, asset->operatorVoicePackagesCount, asset->operatorVoicePackages);
 			json.WriteFieldValueNumber("lootid", asset->lootid);
-			if (asset->dialog) json.WriteFieldValueString("dialog", asset->dialog);
-			if (asset->gender) json.WriteFieldValueString("gender", asset->gender);
+			json.WriteFieldValueXString("dialog", asset->dialog);
+			json.WriteFieldValueXString("gender", asset->gender);
+			json.WriteFieldValueXString("unk60", asset->unk60);
+
 
 
 			//json.WriteFieldValueUnknown("unk20", asset->unk20); //-1?
 			json.WriteFieldValueUnknown("unk28", asset->unk28); // unused?
-			if (asset->unk94) json.WriteFieldValueBool("unk94", asset->unk94);
-			if (asset->unk95) json.WriteFieldValueBool("unk95", asset->unk95);
-			if (asset->unk96) json.WriteFieldValueBool("unk96", asset->unk96);
-			if (asset->unk97) json.WriteFieldValueBool("unk97", asset->unk97);
+			if (asset->uf1) json.WriteFieldValueBool("uf1", asset->uf1);
+			if (asset->uf2) json.WriteFieldValueBool("uf2", asset->uf2);
+			if (asset->uf3) json.WriteFieldValueBool("uf3", asset->uf3);
+			if (asset->uf4) json.WriteFieldValueBool("uf4", asset->uf4);
+			json.WriteFieldValueUnknown("unkb8", asset->unkb8);
+			json.WriteFieldValueUnknown("unkc0", asset->unkc0);
 
 			if (asset->operatorSkins) {
 				json.WriteFieldNameString("operatorSkins");
@@ -125,6 +149,18 @@ namespace {
 					else {
 						json.WriteValueNull();
 					}
+				}
+				json.EndArray();
+			}
+			if (asset->dismemberments) {
+				json.WriteFieldNameString("dismemberments");
+				json.BeginArray();
+				for (size_t i = 0; i < asset->dismembermentsCount; i++) {
+					OperatorDismemberment& dismemberment{ asset->dismemberments[i] };
+					json.BeginObject();
+					json.WriteFieldValueXAsset("u0", SATH_ASSET_DISMEMBERMENTTYPE, dismemberment.u0);
+					json.WriteFieldValueXAsset("u8", SATH_ASSET_DISMEMBERMENTTYPE, dismemberment.u8);
+					json.EndObject();
 				}
 				json.EndArray();
 			}

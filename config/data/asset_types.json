@@ -1171,5 +1171,44 @@
     },
     "zivart": {
         "name": "Zivart"
+    },
+    "rgbmicrosoftprofile": {
+        "name": "RGBMicrosoftProfile"
+    },
+    "gamemodefeatureflags": {
+        "name": "GameModeFeatureFlags"
+    },
+    "indexedlisttypedev": {
+        "name": "IndexedListTypeDev"
+    },
+    "notifgroup": {
+        "name": "NotifGroup"
+    },
+    "gpudatabuffer": {
+        "name": "GPUDataBuffer"
+    },
+    "emotetransient": {
+        "name": "EmoteTransient"
+    },
+    "flowgraphdef": {
+        "name": "FlowgraphDef"
+    },
+    "flowgraphnodedefset": {
+        "name": "FlowgraphNodeDefSet"
+    },
+    "gamemodescenario": {
+        "name": "GameModeScenario"
+    },
+    "weaponarchetype": {
+        "name": "WeaponArchetype"
+    },
+    "operatorvoicepackage": {
+        "name": "OperatorVoicePackage"
+    },
+    "virtualcutoutmap": {
+        "name": "VirtualCutOutMap"
+    },
+    "weathersettings": {
+        "name": "WeatherSettings"
     }
 }
