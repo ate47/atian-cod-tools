@@ -40,6 +40,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1246470805, "mission index out of range" }, // Vic 227 Recovered Goat
     { 1246623636, "not an entity" }, // Echo 428 Camouflaged Goat
     { 1252503459, "caller is not an entity" }, // West 728 Rocky Goat
+    { 126603414, "Expected type XHash as an argument for GetLocalizedStringIndex()" }, // June 229 Bolt Rattlesnake
     { 1267091843, "GScr_UseBuildKitWeaponModel: when specifying that the weapon is upgraded, a valid camoIndex MUST be specified" }, // XRay 373 Firebrand Mamba
     { 1273214009, "CScr_PlayFX: invalid effect" }, // Delta 18 Foolish Mamba
     { 1292858725, "Invalid mission name" }, // Sail 962 Hidden Buffalo
@@ -72,6 +73,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1517473035, "Value out of range.  Allowed values: 0 to 2" }, // David 888 Patient Bayonet
     { 1524410875, "Execution Queue out of memory" }, // Zebra 84 World Bayonet
     { 1544804945, "script stack overflow (too many embedded function calls)" }, // Papa 209 Grey Cadet
+    { 1576636440, "DoubleXPTimerFired: entity must be a player entity" }, // Union 254 Reloaded Camo
     { 1593720126, "Can't register dvar" }, // November 588 Barren Carrier
     { 1601358697, "param is not an object" }, // Young 598 Patient Command
     { 1609894461, "bad entity" }, // Tommy 443 Destructive Command
@@ -83,6 +85,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1666590335, "not an int" }, // Bravo 228 Blind Defense
     { 1668598749, " not an object" }, // Fall 508 Solo Defense
     { 1670707254, "linking error" }, // North 272 Hannibal Defense
+    { 1691103888, "ReportLootConsume: entity must be a player entity" }, // Kilo 561 Aurora Division
     { 1697447028, "Can't use wait with profiler" }, // Quebec 794 Bog Fleet
     { 1703931129, "Trying to read corrupted file" }, // Delta 357 Divebomb Fleet
     { 1708109640, "try to send format param with unknown type" }, // Frank 995 General Fleet
@@ -109,6 +112,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1855943177, "parameter doesn't exist" }, // Uniform 210 Atomic Infantry
     { 1895566756, "dvar is not a 3d vector, but GetDvarVector3D has been called on it" }, // Yankee 220 Divided Intelligence
     { 1897931653, "AIType has no characters specified. There should be at least one chatacter associated with an AIType." }, // Summer 213 Good Invasion
+    { 1898523690, "setblur() called on an invalid client entity." }, // Option 383 Bayou Invasion
     { 1908025062, "parameter isn't a string" }, // Oscar 1009 Emerald Invasion
     { 1909233687, "Optional argument must be a vector type" }, // Tango 882 Aurora Invasion
     { 1915758537, "RegisterClientField can only accept bit ranges between 1 and 32." }, // Uniform 31 Empty Jet
@@ -140,6 +144,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2147942414, "DirectX Not enough storage is available to complete this operation." }, // Prep 43 Arctic Ship
     { 2147942487, "DirectX Invalid Call." }, // Tango 648 Arctic Ship
     { 2162131755, "Can't find prng algorithm" }, // Whiskey 938 Dazed Ship
+    { 2183416258, "uploadLeaderboards: entity must be a player entity" }, // Zed 380 Nickel Rank
     { 2183812485, "getent used with more than one entity" }, // Summer 332 River Rank
     { 2185211445, "Can't register dvar" }, // Queen 964 Shellshocked Rank
     { 219569925, "hasperk() can only be called on local players" }, // Summer 164 Brass Dove
@@ -147,6 +152,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2202233143, "waittill_timeout must have at least one valid argument" }, // Negative 184 Fake Locker
     { 2214262642, "mission index out of range" }, // Boy 851 Revolutionary Locker
     { 222443377, "Pointer types passed into waittill_timeout expressions must evaluate as arrays" }, // Vice 400 Tall Dove
+    { 2226838967, "Blur value must be greater than 0" }, // Negative 1017 Emerald Recruit
     { 2235303131, "not a player entity" }, // Lima 510 Bogus Rescue
     { 2240566762, "entity is not a player" }, // Option 129 Knockout Rescue
     { 2250249765, "Corrupt or invalid string reference (not a valid string)" }, // Sail 899 Good Retreat
@@ -174,6 +180,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2371852248, "No tag_barrel for" }, // Union 753 Right Shell
     { 2378228303, "invalid session mode" }, // Collar 772 Flying Shell
     { 2379198149, "waittill must have at least one valid argument" }, // Summer 494 General Shell
+    { 2385937518, "localized istring not precached" }, // India 448 Lost Siege
     { 2386350598, "index is an illegal objective index." }, // Edward 943 Bogus Siege
     { 2387120645, "exceeded string argument limit" }, // Summer 552 Soaring Siege
     { 240121690, "waittill_timeout must have at least one valid argument" }, // Victor 851 Grounded Lion
@@ -194,6 +201,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2498210007, "-- can only be used with integer type" }, // Tango 516 Advanced Tactics
     { 2504938884, "outfit id out of bound" }, // Charlie 332 Apocalyptic Theater
     { 2512843688, "GetVehicleNode used with more than one node" }, // Mike 465 Great Theater
+    { 2515363687, "invalid message type" }, // King 338 Swift Theater
     { 2517242050, "parameter does not exist" }, // Zed 105 Riptide Volley
     { 2532286589, "error message" }, // Tommy 478 Determined Volley
     { 2538360978, "caller is not an object" }, // South 1020 Calm Potato
@@ -244,8 +252,10 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2851002517, "param is not an object" }, // Vic 983 Extreme Traffic
     { 285416523, "not an object" }, // David 246 Violet Axe
     { 2855209542, "Cannot call IncrementClientField on a non-'counter' type clientfield." }, // Edward 388 Embattled Ultra
+    { 2855747045, "Blur value must be greater than 0" }, // Sail 451 Rare Ultra
     { 2863351045, "bad vm instance" }, // Summer 146 Satellite Ultra
     { 2873910834, "Corrupt or invalid string reference (not a valid string)" }, // Boy 533 Calm Uncle
+    { 2875860301, "setblur() called on an invalid client entity." }, // Yorker 695 Classic Uncle
     { 2894056997, "DEV: CL_SetCGameTime: !cl->snap.valid" }, // Sail 630 Nuclear Bug
     { 2899913735, "Loading took too long (>60s)" }, // Nora 383 Goliath Bug
     { 2903034222, "Invalid mode id" }, // India 36 Skyline Overlord
@@ -258,7 +268,9 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2942156629, "not an array" }, // Vic 504 Pale Fury
     { 2945837835, "not an object" }, // David 692 Clockwork Fury
     { 2955023929, "not an object" }, // Delta 899 Urban Claw
+    { 2958072552, "slot too high" }, // Mike 628 Screaming Claw
     { 2974839555, "invalid session mode" }, // XRay 470 Screaming Justice
+    { 3004202005, "entity id too high" }, // Vic 681 Found Cause
     { 3015158315, "getperks() can only be called on local players" }, // Whiskey 456 Blazing Cause
     { 3016026156, "Can't find asset" }, // Zulu 53 Heavy Cause
     { 3020745427, "DirectX Error" }, // Golf 1002 Desert Beastmaster
@@ -379,6 +391,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3964856290, "kill called on an entity with magic bullet shield (FL_DISABLE_DEATH)" }, // Ida 736 Quick Lamprey
     { 3967909977, "Trying to get version of a demo when the demo system is idle." }, // Ocean 529 Broken Lamprey
     { 3971544690, "time cannot be negative" }, // Boy 44 Blood Lamprey
+    { 3977444065, "ReportLootReward: entity must be a player entity" }, // Hotel 447 Small Absolution
     { 3990130335, "player getperks(<localClientNum>): localClientNum out of range" }, // Baker 223 Meridian Absolution
     { 4032788023, "param is not an object" }, // Negative 274 Right Activity
     { 4039057166, "LUINotifyEvent: entity must be a player entity" }, // Prep 367 Solar Activity
@@ -407,6 +420,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 4220857104, "Cannot call IncrementClientField on a 'counter' type clientfield on the frame it is spawned, since newEnts on the clientside will not process 'counter' type clientfields." }, // Kilo 717 Clockwork Refuge
     { 4221135532, "Optional argument must be a string type" }, // Zulu 540 Grim Refuge
     { 4223282976, "Error loading fastfile patch header" }, // Roger 391 Emerald Refuge
+    { 4228099247, "Time must be positive" }, // Dog 199 Violet Management
     { 4229118753, "Invalid threat bias group" }, // Hotel 418 Grey Management
     { 4232965560, "divide by 0" }, // Rush 114 Camouflaged Management
     { 4242478637, "Trying to read corrupted file" }, // Cast 899 Dazed Management
@@ -443,6 +457,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 619241173, "Failed to allocate from element pool" }, // Vic 415 Aggressive Pisces
     { 647662103, "parameter can't be cast to a string" }, // Tango 8 Knight Taurus
     { 648498056, "Can't use wait with profiler" }, // Frank 581 Rocky Taurus
+    { 654494860, "Profile Variable has an invalid name" }, // East 511 Blue Gemini
     { 655503056, "script stack overflow (too many embedded function calls)" }, // Kilo 56 Small Gemini
     { 657813230, "Error registering client field.  bCallbacksFor0WhenNew (CF_CALLBACK_ZERO_ON_NEW_ENT) is disallowed for counter type clientfields. Due to it's treatment of the old and new val as a ring buffer, the counter type is not valid on a new snapshot, new ent, or demojump" }, // India 579 Deadly Gemini
     { 665902298, "Parameter must be an array" }, // Victor 629 Frozen Gemini
@@ -463,6 +478,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 785010092, "Can't use wait with profiler" }, // Zulu 402 December Capricorn
     { 8016798, "not an object" }, // Winter 70 Sleeper Wolf
     { 812063243, "Array index not a valid type, expecting an int, string, or entity type" }, // David 625 Metal Fog
+    { 822874097, "network id too high" }, // Vice 499 Desert Avalanche
     { 829015102, "var isn't a field object" }, // November 670 Boiling Avalanche
     { 833940261, "divide by 0" }, // Sail 692 Sapphire Avalanche
     { 84281764, "not a field object" }, // Yankee 13 United Wombat
@@ -474,6 +490,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 897625509, "Can't find xasset (name,type)" }, // Sail 780 Risky Zombie
     { 899599904, "first arg to waittill_timeout must evaluate to an integer or float value" }, // Roger 630 Shadow Zombie
     { 904544970, "Attempt to register Client Field post finalization of Client Field registration period failed." }, // Adam 564 Stealth Zombie
+    { 924957661, "Time must be positive" }, // Fall 372 Dangerous Puma
     { 941828720, "exitlevel already called" }, // Romeo 671 Iron Stallion
     { 946363963, "Invalid opcode" }, // Zebra 112 Vicious Stallion
     { 949934674, "Invalid Version Handling. Grab Bat !!!" }, // South 209 Shadow Stallion

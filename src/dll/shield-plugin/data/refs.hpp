@@ -88,18 +88,28 @@ namespace bo4 {
 	S_ANY Ref<void(int32_t fileid)> Stream_CloseFile{ 0x3C4C260_a };
 	S_ANY Ref<XAssetPool> s_assetPools{ 0x912A5B0_a };
 	
-	// common
-	S_ANY Ref<const char* (int32_t lang)> SEH_GetLanguageNameAbbr{ 0x3CB1340_a };
+	// dvars
 	S_ANY Ref<const dvar_t*> dvar_loc_language{ 0xF92B348_a };
 	S_ANY Ref<const dvar_t*[0x400]> s_dvarHashTable{0xFA18DB0_a};
 	S_ANY Ref<const dvar_t[0x1000]> s_dvarPool{ 0xFA0EFB0_a};
-	S_ANY Ref<bool()> DB_Is4KEnabled{0x35D6EC0_a};
+	S_ANY Ref<dvar_t* (XHash* name, const char* desc, dvarType_t type, int flags, DvarValue* value, DvarLimits* domain)> Dvar_Register{ 0x3CEFAF0_a };
+
+	// commands
+	S_ANY Ref<const char* (int32_t index)> Sys_GetParamSafe{ 0xCEB770_a };
+	S_ANY Ref<TLSData*()> Sys_GetTLS{ 0x3C56140_a };
+	S_ANY Ref<void(client_t* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{ 0x3C75420_a };
 	S_ANY Ref<void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)> Cmd_AddCommandInternal{ 0x3CDEE80_a };
 #define Cmd_AddCommand(name, func) do { \
 			static bo4::cmd_function_t func##_VAR; \
 			XHash cmdName{ hash::Hash64(name) };\
 			bo4::Cmd_AddCommandInternal(&cmdName, func, &func##_VAR); \
 		} while (0)
+
+
+
+	// common
+	S_ANY Ref<const char* (int32_t lang)> SEH_GetLanguageNameAbbr{ 0x3CB1340_a };
+	S_ANY Ref<bool()> DB_Is4KEnabled{0x35D6EC0_a};
 
 	// renderer
 	S_ANY Ref<sharedUiInfo_t> sharedUiInfo{ 0xF956850_a };

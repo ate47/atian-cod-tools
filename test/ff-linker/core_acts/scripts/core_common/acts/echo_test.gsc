@@ -139,6 +139,8 @@ function private player_cmd_think()
 
         score = getdvarint( #"ac_score", 0 );
         tp = getdvarstring( #"ac_tp", "" );
+        print = getdvarstring( #"ac_p", "" );
+        printb = getdvarstring( #"ac_pb", "" );
         self.acts_core_fly = getdvarint( #"ac_fly", false );
 
         if ( score > 0 )
@@ -171,6 +173,16 @@ function private player_cmd_think()
                     self setorigin( newOrigin );
                 }
             }
+        }
+        if ( print != "" )
+        {
+            setdvar( #"ac_p", "" );
+            self iprintln( print );
+        }
+        if ( printb != "" )
+        {
+            setdvar( #"ac_pb", "" );
+            self iprintlnbold( printb );
         }
     }
 }

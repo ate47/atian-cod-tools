@@ -193,6 +193,16 @@ namespace bo4 {
 		LOCAL_CLIENT_COUNT = 0x2, // bo4 pc is 2 for the count
 	};
 
+	enum ControllerIndex_t : int32_t {
+		INVALID_CONTROLLER_PORT = -1,
+		CONTROLLER_INDEX_0 = 0x0,
+		CONTROLLER_INDEX_FIRST = 0x0,
+		CONTROLLER_INDEX_1 = 0x1,
+		CONTROLLER_INDEX_2 = 0x2,
+		CONTROLLER_INDEX_3 = 0x3,
+		CONTROLLER_INDEX_COUNT = 0x4,
+	};
+
 	enum ClassNum : uint16_t {
 		CLASS_NUM_ENTITY = 0x0,
 		CLASS_NUM_HUDELEM = 0x1,
@@ -736,5 +746,70 @@ namespace bo4 {
 		float hudSplitscreenScale;
 	};
 	static_assert(sizeof(ScreenPlacement) == 0x74);
+
+	struct va_info_t;
+	struct TraceThreadInfo;
+	struct ErrorThreadLocal;
+
+	struct CmdArgs {
+		int nesting;
+		LocalClientNum_t localClientNum[8];
+		ControllerIndex_t controllerIndex[8];
+		int argshift[8];
+		int argc[8];
+		const char** argv[8];
+		char textPool[8192];
+		const char* argvPool[512];
+		int usedTextPool[8];
+		int totalUsedArgvPool;
+		int totalUsedTextPool;
+	};
+
+	struct TLSData {
+		va_info_t* vaInfo;
+		jmp_buf* errorJmpBuf;
+		TraceThreadInfo* traceInfo;
+		CmdArgs* cmdArgs;
+		ErrorThreadLocal* errorData;
+	};
+
+	enum SVSCMD_e : byte {
+		SVSCMD_BASE = 0x22,
+		SVSCMD_AWARDACHIEVEMENT = 0x23,
+		SVSCMD_AWARDGAMERPIC = 0x24,
+		SVSCMD_BIG_CONFIG_0 = 0x25,
+		SVSCMD_BIG_CONFIG_1 = 0x26,
+		SVSCMD_BIG_CONFIG_2 = 0x27,
+		SVSCMD_BLUR = 0x28,
+		SVSCMD_TELEPORT_VEHICLE = 0x2B,
+		SVSCMD_CONFIG_STRING = 0x2E,
+		SVSCMD_DISCONNECT = 0x2F,
+		SVSCMD_EXPLODER = 0x31,
+		SVSCMD_GAME_MESSAGE = 0x32,
+		SVSCMD_GAME_MESSAGE_BOLD = 0x33,
+		SVSCMD_UI_NOTIFY = 0x39,
+		SVSCMD_PRINT = 0x3F,
+		SVSCMD_SCR_CAMERA = 0x45,
+		SVSCMD_SELECT_OFFHAND = 0x47,
+		SVSCMD_SET_DVAR = 0x48,
+		SVSCMD_SET_PROFILEVAR = 0x49,
+		SVSCMD_START_FADING_BLUR = 0x4C,
+		SVSCMD_UPLOAD_LEADERBOARDS = 0x52,
+		SVSCMD_RESET_FOV = 0x57,
+		SVSCMD_DOUBLEXP_VALUES = 0x5A,
+		SVSCMD_LOOT_CONSUME = 0x5B,
+		SVCCMD_CSC_EV_BFC28859 = 0x5C,
+		SVCCMD_UNK5F = 0x5F,
+
+
+		SVCCMD_ACTS_CUSTOM_CMD = 0x9a,
+	};
+
+	enum svscmd_type : int32_t {
+		SV_CMD_CAN_IGNORE = 0x0,
+		SV_CMD_RELIABLE = 0x1,
+	};
+
+	struct client_t;
 
 }

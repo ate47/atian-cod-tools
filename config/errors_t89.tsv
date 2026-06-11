@@ -71,6 +71,7 @@ Delta 694 Fierce Fort	1752379961	param is not an object
 Delta 796 Nightshade Artillery	2274889209	Invalid type passed in from array into waittill parameter list
 Delta 884 Aggressive Sunrise	3706227705	Invalid threat bias group
 Delta 899 Urban Claw	2955023929	not an object
+Dog 199 Violet Management	4228099247	Time must be positive
 Dog 415 Dry Owl	409067247	No clientfield named found in set.
 Dog 557 Mythic Werewolf	969013743	The server sent us a config checksum but we have don't have one
 Dog 620 Barricaded Rage	3042707823	Corrupt or invalid string reference (not a string)
@@ -78,6 +79,7 @@ Dog 805 Due Alligator	1170973103	checksum/mapcrc mismatch
 East 1005 Found Badger	269518924	Ammo count must not be negative
 East 211 Dual Munition	2019033740	mission index out of range
 East 481 Knockout Crossbones	3482075788	caller is not an object
+East 511 Blue Gemini	654494860	Profile Variable has an invalid name
 Echo 428 Camouflaged Goat	1246623636	not an entity
 Echo 507 Bigfoot Security	2040697556	Read error of file
 Echo 51 Emerald Section	2344222932	assert fail
@@ -100,6 +102,7 @@ Fall 242 Resolute Force	1721606685	script stack overflow (too many embedded func
 Fall 29 Tall Undertow	3410121757	cannot cast to bool
 Fall 313 Nickel Operator	1478783005	Pointer types passed into waittill_timeout expressions must evaluate as arrays
 Fall 344 Camouflaged Cover	2655888797	endon must have at least one valid argument
+Fall 372 Dangerous Puma	924957661	Time must be positive
 Fall 388 Quick Conflict	1364331101	Object must be an array
 Fall 508 Solo Defense	1668598749	 not an object
 Fall 52 Air Spear	2921226909	Can't register dvar
@@ -132,6 +135,7 @@ Hotel 173 Tragic Goblin	3459949409	Failed to alloc client field - MAX_CLIENTFIEL
 Hotel 39 Weak Outlaw	4048135393	Can't find variable
 Hotel 418 Grey Management	4229118753	Invalid threat bias group
 Hotel 422 Fake Helmet	1816372513	invalid session mode
+Hotel 447 Small Absolution	3977444065	ReportLootReward: entity must be a player entity
 Hotel 460 United Goblin	3456527393	script stack overflow (too many embedded function calls)
 Hotel 511 Meridian Boar	114609313	USAGE: GetInfluencerPreset could not find influencer with name
 Hotel 621 Dry Greyhound	476151073	invalid session mode
@@ -143,6 +147,7 @@ Ida 941 Gray Mustang	3894031202	Can't find gamedata/playeranim/playeranimtypes.t
 India 185 Operation Crocodile	1147874990	start time must be between 0 and 1
 India 36 Skyline Overlord	2903034222	Invalid mode id
 India 441 Stealth Star	3857374126	caller is not an object
+India 448 Lost Siege	2385937518	localized istring not precached
 India 579 Deadly Gemini	657813230	Error registering client field.  bCallbacksFor0WhenNew (CF_CALLBACK_ZERO_ON_NEW_ENT) is disallowed for counter type clientfields. Due to it's treatment of the old and new val as a ring buffer, the counter type is not valid on a new snapshot, new ent, or demojump
 India 811 Max Thunder	530300974	divide by 0
 Juliett 283 Apocalyptic Vulture	424587329	not a pathnode
@@ -156,6 +161,7 @@ Juliett 859 Small Rookie	554833601	Can only do this call for node_turret
 June 104 Late Cover	2665902678	CMD_VEH_SetPlaneGoalPos called with a non vector param
 June 104 Skyline Boat	2131259990	Can't set read only field
 June 150 Gray Noise	3541731542	readonly field
+June 229 Bolt Rattlesnake	126603414	Expected type XHash as an argument for GetLocalizedStringIndex()
 June 301 Strange Leo	697732694	entity is not a missile
 June 426 Hurt Tactics	2489324310	cannot switch on type
 June 503 Swamp Lizard	369972438	First argument of a match call must be a struct
@@ -165,11 +171,13 @@ June 951 Prepared Cover	2655465686	not a script function pointer
 Kilo 45 Gold Dove	219686544	object is not an array index
 Kilo 538 Patient Sagittarius	762454160	not a pointer
 Kilo 56 Small Gemini	655503056	script stack overflow (too many embedded function calls)
+Kilo 561 Aurora Division	1691103888	ReportLootConsume: entity must be a player entity
 Kilo 717 Clockwork Refuge	4220857104	Cannot call IncrementClientField on a 'counter' type clientfield on the frame it is spawned, since newEnts on the clientside will not process 'counter' type clientfields.
 King 1002 Fast Linebacker	3059411687	Argument and parameter count mismatch for LUINotifyEvent
 King 114 Quick Conflict	1364389287	Our config string checksum doesn't match the server's checksum
 King 220 Wartorn Fury	2940210599	Invalid Version Handling. Grab Bat !!!
 King 30 Tough Asset	2577695271	SetModel can only be called on a script mover
+King 338 Swift Theater	2515363687	invalid message type
 King 404 Sapphire Ice	3635717863	end time must be between 0 and 1
 King 412 Brimstone Agent	2558883623	SetNearGoalNotifyDist set too small. May not get notify.
 King 537 Ghost Hound	487917415	Invalid mission name
@@ -192,8 +200,10 @@ Mike 331 Marsh Rain	3509276200	Invalid mission name
 Mike 419 Violet Tank	3288551912	expected array type to add value pair
 Mike 434 Discovered Garrison	1777362536	Could not allocate memory for zone
 Mike 465 Great Theater	2512843688	GetVehicleNode used with more than one node
+Mike 628 Screaming Claw	2958072552	slot too high
 Mike 664 Steel Lion	245612264	foreach should be used with an array
 Mike 988 Gold Lion	236473384	invalid session mode
+Negative 1017 Emerald Recruit	2226838967	Blur value must be greater than 0
 Negative 140 Goliath Goodnight	4107893047	radiant exploder not cached
 Negative 184 Fake Locker	2202233143	waittill_timeout must have at least one valid argument
 Negative 274 Right Activity	4032788023	param is not an object
@@ -233,6 +243,7 @@ Option 102 Grounded Thunder	525308842	GetBaseWeaponItemIndex: invalid weapon nam
 Option 129 Knockout Rescue	2240566762	entity is not a player
 Option 173 Camouflaged Mauler	3142427498	not an object
 Option 365 Old Ghoul	2687742442	Forced script exception.
+Option 383 Bayou Invasion	1898523690	setblur() called on an invalid client entity.
 Option 599 Nitro Fox	3718026602	unknown radiant type
 Option 961 Blue Whisper	3523382186	ScrEvent map is full, unable to register new event
 Oscar 1009 Emerald Invasion	1908025062	parameter isn't a string
@@ -311,6 +322,7 @@ Sail 312 Extreme Boa	1072585573	Raw file is not a file of the right type
 Sail 323 Stealth Firestarter	3437940389	unable to find animation in tree
 Sail 327 Iron Coyote	388183077	missing field name
 Sail 397 Skyline Firestarter	3423138661	not a script function pointer
+Sail 451 Rare Ultra	2855747045	Blur value must be greater than 0
 Sail 506 Blink Alligator	1167129573	key does not internally belong to generic entities
 Sail 543 Earth Whisper	3524990949	not an array key
 Sail 630 Nuclear Bug	2894056997	DEV: CL_SetCGameTime: !cl->snap.valid
@@ -376,6 +388,7 @@ Uniform 854 Positive Jaguar	1088349385	Corrupt or invalid string reference (not 
 Uniform 956 Ace Aquarius	597121289	invalid platoon name (not possible)
 Union 138 Shade Tornado	174350744	PMem: failed to free memory (name,stack)
 Union 152 Midas Werewolf	969461336	The setHintStringForPlayer command only works on trigger or script mover entities.
+Union 254 Reloaded Camo	1576636440	DoubleXPTimerFired: entity must be a player entity
 Union 296 Poison Luck	3837625752	abort
 Union 326 Boiling Ice	3630798232	caller is not an object
 Union 344 Blue Headquarters	1795335576	not an object
@@ -392,6 +405,7 @@ Vic 415 Aggressive Pisces	619241173	Failed to allocate from element pool
 Vic 504 Pale Fury	2942156629	not an array
 Vic 520 Barren Scorpio	754846421	invalid vehicle spawn origin
 Vic 667 Hidden Defense	1661960405	weapon is read-only
+Vic 681 Found Cause	3004202005	entity id too high
 Vic 803 Chief Drop	2824316565	parameter does not exist
 Vic 820 Nitro Goodnight	4103906837	Entity is not an item.
 Vic 983 Extreme Traffic	2851002517	param is not an object
@@ -399,6 +413,7 @@ Vice 164 Vengeful Raven	451698481	Unk fastfile load error
 Vice 206 Victorious Plane	2111174833	Array index not a valid type, expecting an int, string, or entity type
 Vice 344 Spotted Doppelganger	4252738993	script stack overflow (too many embedded function calls)
 Vice 400 Tall Dove	222443377	Pointer types passed into waittill_timeout expressions must evaluate as arrays
+Vice 499 Desert Avalanche	822874097	network id too high
 Vice 535 TD Rookie	562750257	ArraySort can only be called on an Entity which is of type Entity, Path Node, Vehicle Node, or Tacpoint.
 Vice 644 Old Formation	1731431985	DirectX Error
 Vice 697 Metal Service	2355618801	Gesture table key can't have the higher bit set
@@ -449,6 +464,7 @@ Yorker 159 Nightshade Karma	3734527949	no character customization table for this
 Yorker 313 Empty Parachute	2083549197	CScr_FindVolumeDecalIndexArray: unsupported parameter type
 Yorker 54 Violet Zombie	889403597	SpawnCollision: Collision model name is not valid
 Yorker 553 Broken Lion	243367053	The setHintStringForPlayer command can only change prompts for players.
+Yorker 695 Classic Uncle	2875860301	setblur() called on an invalid client entity.
 Yorker 721 Nickel Platoon	2116335949	function called with too many parameters
 Yorker 902 Small Doppelganger	4245873293	not a path node
 Young 100 Skyline Pavement	3607664937	first arg to endon_callback must evaluate to a function value
@@ -465,6 +481,7 @@ Zed 105 Riptide Volley	2517242050	parameter does not exist
 Zed 135 Titanium Ant	1193670850	parameter is not a valid weapon index
 Zed 170 Extreme Gorilla	367932162	ArraySort: array contains more than 4096 entities
 Zed 251 Silent Scorpio	753495682	RandomIntRange's second parameter must be greater than the first.
+Zed 380 Nickel Rank	2183416258	uploadLeaderboards: entity must be a player entity
 Zed 41 Chief Rodeo	3159820546	invalid session mode
 Zed 453 Kinetic Devil	1211376898	DEV: Could not load level fastfile for level
 Zed 606 Tin Refuge	4213634562	precacheLeaderboards must be called before any wait statements in the gametype or level script

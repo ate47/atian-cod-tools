@@ -71,10 +71,12 @@ namespace systems::gsc::funcs {
 				bo4::ScrVarType_t ptrType{ bo4::ScrVm_GetPointerType(inst, index) };
 				if (ptrType == bo4::TYPE_ENTITY) {
 					bo4::scr_entref_t entref{ *bo4::ScrVm_GetEntityRef(&entref, inst, index) };
-					std::string name{ magic_enum::enum_name(entref.classnum) };
 					if (entref.classnum == bo4::CLASS_NUM_HUDELEM) {
 						return systems::gsc::debug::RenderHudElemField(entref.u.hudElemIndex);
 					}
+
+
+					std::string name{ magic_enum::enum_name(entref.classnum) };
 					return utils::va("entity[%s,num=%d,val=%lld]", name.data(), (int)entref.client, entref.u.val);
 				}
 				return utils::va("ptr[%s]", bo4::scrVarTypeNames[ptrType]);
