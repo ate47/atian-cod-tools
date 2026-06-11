@@ -20,7 +20,10 @@ namespace {
 	}
 
 	void HashPostInit(uint64_t uid) {
-		hook::memory::RedirectJmp(0x2265960_a, Com_ExtractHashTmp);
+#ifndef CI_BUILD
+		// if the clients aren't synced, it can cause some trouble
+		//hook::memory::RedirectJmp(0x2265960_a, Com_ExtractHashTmp);
+#endif // CI_BUILD
 	}
 
 	REGISTER_SYSTEM(hashes, HashLoad, HashPostInit);
