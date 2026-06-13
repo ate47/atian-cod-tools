@@ -1091,7 +1091,7 @@ namespace fastfile {
 
 			bool anyLoaded{};
 			for (std::string& filename : opt.GetFileRecurse(f)) {
-				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone")) {
+				if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone") && !filename.ends_with(".ffd")) {
 					LOG_TRACE("Ignore {}", filename);
 					continue;
 				}

@@ -55,6 +55,7 @@
 
 // gdb
 #include <tools/gsc/gdb/gdb_acts.hpp>
+#include <tools/gsc/gdb/gdb_acts_addon.hpp>
 #include <tools/gsc/gdb/gdb_t78.hpp>
 
 
@@ -114,6 +115,7 @@ namespace tool::gsc::vm {
 
                 // register GBD data
                 RegisterGDBOBJHandler<GscGdbActs>();
+                RegisterGDBOBJHandler<GscGdbActsAddon>();
                 RegisterGDBOBJHandler<GscGdbT78<VMI_DBG_T7_12>>();
                 RegisterGDBOBJHandler<GscGdbT78<VMI_DBG_T7_13>>();
                 RegisterGDBOBJHandler<GscGdbT78<VMI_DBG_T8_21>>();

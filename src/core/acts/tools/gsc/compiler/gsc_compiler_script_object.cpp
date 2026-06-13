@@ -2,6 +2,7 @@
 #include <tools/gsc/compiler/gsc_compiler_parser.hpp>
 #include <tools/gsc/compiler/gsc_compiler_script_object.hpp>
 #include <gsc/gsc_acts_debug.hpp>
+#include <gsc/gsc_acts_addons.hpp>
 #include <core/actsinfo.hpp>
 #include <utils/crc.hpp>
 
@@ -624,7 +625,36 @@ namespace tool::gsc::compiler {
 
         }
 
+        std::vector<FunctionObject*> detourObjs{};
+        std::vector<FunctionObject*> autoexecs{};
+        std::vector<FunctionObject*> othersfuncs{};
+
+        for (auto& [name, exp] : exports) {
+            if (exp.m_flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
+                autoexecs.push_back(&exp);
+            }
+            else {
+                othersfuncs.push_back(&exp);
+            }
+        }
+
+        // sort the autoexecs by ids and write them first
+
+        std::sort(autoexecs.begin(), autoexecs.end(), [](auto& f1, auto& f2) -> bool { return f1->autoexecOrder < f2->autoexecOrder; });
+
+        if (config.obfuscate) {
+            std::shuffle(othersfuncs.begin(), othersfuncs.end(), std::mt19937{ std::random_device{}() });
+        }
+
+
         size_t headerLoc{ utils::Allocate(data, gscHandler->GetHeaderSize()) };
+
+        size_t actsHeaderLoc{};
+        if (config.detourType == DETOUR_ACTS) {
+            // need acts header, TODO: find a better way than that
+            actsHeaderLoc = utils::Allocate(data, sizeof(shared::gsc::acts_addons::GSC_ACTS_ADDONS));
+        }
+
 
         if (includes.size()) LOG_TRACE("Compile {} include(s)...", includes.size());
         size_t incTable{};
@@ -662,8 +692,6 @@ namespace tool::gsc::compiler {
         if (exports.size()) LOG_TRACE("Compile {} export(s)...", exports.size());
 
         size_t exportIndex{};
-
-        std::vector<FunctionObject*> detourObjs{};
 
         CompileObject& that = *this;
         auto writeExport = [&data, &that, &expTable, &exportIndex, &detourObjs](FunctionObject& exp) -> bool {
@@ -718,25 +746,6 @@ namespace tool::gsc::compiler {
             return true;
             };
 
-        std::vector<FunctionObject*> autoexecs{};
-        std::vector<FunctionObject*> othersfuncs{};
-
-        for (auto& [name, exp] : exports) {
-            if (exp.m_flags & tool::gsc::T8GSCExportFlags::AUTOEXEC) {
-                autoexecs.push_back(&exp);
-            }
-            else {
-                othersfuncs.push_back(&exp);
-            }
-        }
-
-        // sort the autoexecs by ids and write them first
-
-        std::sort(autoexecs.begin(), autoexecs.end(), [](auto& f1, auto& f2) -> bool { return f1->autoexecOrder < f2->autoexecOrder; });
-
-        if (config.obfuscate) {
-            std::shuffle(othersfuncs.begin(), othersfuncs.end(), std::mt19937{ std::random_device{}() });
-        }
 
         bool exportsOk{ true };
         for (FunctionObject* exp : autoexecs) {
@@ -956,6 +965,48 @@ namespace tool::gsc::compiler {
             }
         }
 
+        if (actsHeaderLoc) {
+            uint32_t detoursLoc{};
+            uint32_t detoursCount{};
+            if (!detourObjs.empty() && config.detourType == DETOUR_ACTS) {
+                LOG_TRACE("Compile {} detour(s)...", detourObjs.size());
+                detoursCount = (uint32_t)detourObjs.size();
+                detoursLoc = (uint32_t)utils::Allocate(data, sizeof(shared::gsc::acts_addons::GSC_ACTS_DETOUR) * detourObjs.size());
+                shared::gsc::acts_addons::GSC_ACTS_DETOUR* detours = reinterpret_cast<shared::gsc::acts_addons::GSC_ACTS_DETOUR*>(&data[detoursLoc]);
+
+                for (FunctionObject* objexp : detourObjs) {
+                    detours->location = (uint32_t)objexp->location;
+                    detours->size = (uint32_t)objexp->size;
+
+                    detours->name = objexp->detour.func;
+                    detours->name_space = objexp->detour.nsp;
+                    detours->script = objexp->detour.script;
+                    detours++;
+                }
+            }
+
+            LOG_TRACE("compiled addon object at 0x{:x}", actsHeaderLoc);
+
+            shared::gsc::acts_addons::GSC_ACTS_ADDONS* actsHeader = reinterpret_cast<shared::gsc::acts_addons::GSC_ACTS_ADDONS*>(&data[actsHeaderLoc]);
+
+            *reinterpret_cast<uint64_t*>(actsHeader->magic) = shared::gsc::acts_addons::MAGIC;
+            actsHeader->version = shared::gsc::acts_addons::CURRENT_VERSION;
+            actsHeader->flags = 0;
+            actsHeader->detour_offset = detoursLoc;
+            actsHeader->detour_count = detoursCount;
+
+            if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC)) {
+                assert(crcData.opcode);
+                actsHeader->crc_offset = (uint32_t)crcData.opcode->floc;
+            }
+            else if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
+                actsHeader->crc_offset = (uint32_t)crcData.strlistener;
+            }
+            else {
+                actsHeader->crc_offset = 0;
+            }
+        }
+
 
         int32_t checksum = config.checksum;
         if (!checksum) {
@@ -1014,8 +1065,7 @@ namespace tool::gsc::compiler {
             }
         }
 
-
-        if (config.computeDevOption || (config.detourType == DETOUR_ACTS && !detourObjs.empty())) {
+        if (config.computeDevOption) {
             if (!pdbgdata) {
                 LOG_WARNING("Trying to compile debug file, but no buffer was defined");
             }
@@ -1158,25 +1208,6 @@ namespace tool::gsc::compiler {
                     }
                 }
 
-                uint32_t detoursLoc{};
-                uint32_t detoursCount{};
-                if (!detourObjs.empty() && config.detourType == DETOUR_ACTS) {
-                    LOG_TRACE("Compile {} detour(s)...", detourObjs.size());
-                    detoursCount = (uint32_t)detourObjs.size();
-                    detoursLoc = (uint32_t)utils::Allocate(dbgdata, sizeof(shared::gsc::acts_debug::GSC_ACTS_DETOUR) * detourObjs.size());
-                    shared::gsc::acts_debug::GSC_ACTS_DETOUR* detours = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_DETOUR*>(&dbgdata[detoursLoc]);
-
-                    for (FunctionObject* objexp : detourObjs) {
-                        detours->location = (uint32_t)objexp->location;
-                        detours->size = (uint32_t)objexp->size;
-
-                        detours->name = objexp->detour.func;
-                        detours->name_space = objexp->detour.nsp;
-                        detours->script = objexp->detour.script;
-                        detours++;
-                    }
-                }
-
                 shared::gsc::acts_debug::GSC_ACTS_DEBUG* debug_obj = reinterpret_cast<shared::gsc::acts_debug::GSC_ACTS_DEBUG*>(dbgdata.data());
 
                 *reinterpret_cast<uint64_t*>(debug_obj->magic) = shared::gsc::acts_debug::MAGIC;
@@ -1195,8 +1226,6 @@ namespace tool::gsc::compiler {
                 debug_obj->actsVersion = (uint64_t)core::actsinfo::VERSION_ID;
                 debug_obj->strings_count = (uint32_t)hashesIdx;
                 debug_obj->strings_offset = (uint32_t)hashesLoc;
-                debug_obj->detour_count = (uint32_t)detoursCount;
-                debug_obj->detour_offset = (uint32_t)detoursLoc;
                 debug_obj->devblock_offset = (uint32_t)devBlocksLoc;
                 debug_obj->devblock_count = (uint32_t)devBlocksIdx;
                 debug_obj->lazylink_offset = (uint32_t)lazyLinksLoc;

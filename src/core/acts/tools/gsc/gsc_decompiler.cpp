@@ -247,33 +247,47 @@ namespace tool::gsc {
 
         std::stringstream dbgHeader{};
 
-        bool inFileDBG{ !dbgData || !dbgSize };
-        if (inFileDBG) {
-            // search the debug data inside the script
-            dbgData = scriptfile->Ptr(scriptfile->GetHeaderSize());
-            dbgSize = scriptfile->GetFileSize() - scriptfile->GetHeaderSize();
-        }
+        {
+            // read possible addon data from file after the header (old gdb format / addon format)
+            // we duplicate the buffer because the data are relative to the script base, not the gdb base
+            core::bytebuffer::ByteBuffer addonReader{ scriptfile->Ptr(), scriptfile->GetFileSize(), scriptfile->GetHeaderSize() };
+            if (addonReader.CanRead(8)) {
+                uint64_t magic{ *addonReader.Ptr<uint64_t>() };
 
-        core::bytebuffer::ByteBuffer dbgReader{ dbgData, dbgSize };
-
-        if (dbgReader.CanRead(8)) {
-            uint64_t magic{ *dbgReader.Ptr<uint64_t>() };
-
-            tool::gsc::vm::GscGdb* dbgreader{ gsc::vm::GetGdbReader(magic) };
-
-            if (!dbgreader) {
-                if (!inFileDBG) {
-                    LOG_WARNING("No debug handler for magic 0x{:x}", magic);
+                tool::gsc::vm::GscGdb* gdb{ gsc::vm::GetGdbReader(magic) };
+                if (gdb) {
+                    try {
+                        gdb->DbgLoad(ctx, addonReader, dbgHeader);
+                    }
+                    catch (std::runtime_error& err) {
+                        LOG_WARNING("Can't parse gdb data {}", err.what());
+                    }
                 }
             }
-            else {
-                dbgReader.Goto(0);
+        }
 
-                try {
-                    dbgreader->DbgLoad(ctx, dbgReader, dbgHeader);
+        if (dbgData && dbgSize) {
+            // read gdb data from file
+
+            core::bytebuffer::ByteBuffer dbgReader{ dbgData, dbgSize };
+
+            if (dbgReader.CanRead(8)) {
+                uint64_t magic{ *dbgReader.Ptr<uint64_t>() };
+
+                tool::gsc::vm::GscGdb* dbgreader{ gsc::vm::GetGdbReader(magic) };
+
+                if (dbgreader) {
+                    dbgReader.Goto(0);
+
+                    try {
+                        dbgreader->DbgLoad(ctx, dbgReader, dbgHeader);
+                    }
+                    catch (std::runtime_error& err) {
+                        LOG_WARNING("Can't parse gdb data {}", err.what());
+                    }
                 }
-                catch (std::runtime_error& err) {
-                    LOG_WARNING("Can't parse gdb data {}", err.what());
+                else {
+                    LOG_WARNING("No debug handler for magic 0x{:x}", magic);
                 }
             }
         }

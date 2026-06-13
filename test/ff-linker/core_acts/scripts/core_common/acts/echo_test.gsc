@@ -56,8 +56,8 @@ function private __pre_init__()
     ActsLog( "register(it) =", &system::register );
 
     // test xhashscr operations
-    ActsLog( ActsGetDetour( #"scripts/core_common/util_shared.gsc", #util, #is_safehouse ) );
-    ActsLog( ActsGetDetour( "scripts/core_common/util_shared.gsc", "util", "is_safehouse" ) );
+    ActsLog( "getdetour(h32) =", ActsGetDetour( #"scripts/core_common/util_shared.gsc", #util, #is_safehouse ) );
+    ActsLog( "getdetour(str) =", ActsGetDetour( "scripts/core_common/util_shared.gsc", "util", "is_safehouse" ) );
 
     // test string tables
 

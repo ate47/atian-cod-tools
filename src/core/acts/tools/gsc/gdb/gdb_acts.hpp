@@ -90,92 +90,76 @@ namespace tool::gsc::vm {
                 }
             }
             if (dbg->HasFeature(ADF_STRING)) {
-                uint32_t* strOffsets = dbgReader.Ptr<uint32_t>(dbg->strings_offset);
-                if (dbg->strings_count * sizeof(*strOffsets) > ctx.dbgSize) {
-                    LOG_ERROR("Bad ACTS debug strings, too far");
-                }
-                else {
-                    asmout << "// hashes ... " << std::dec << dbg->strings_count << " (offset: 0x" << std::hex << dbg->strings_offset << ")\n";
-                    for (size_t i = 0; i < dbg->strings_count; i++) {
-                        uint32_t off = strOffsets[i];
-                        if (off >= ctx.dbgSize) {
-                            LOG_ERROR("Bad ACTS debug string, too far");
-                            break;
-                        }
-                        const char* str = dbgReader.Ptr<const char>(off);
+                dbgReader.Goto(dbg->strings_offset);
+                uint32_t* strOffsets = dbgReader.ReadPtr<uint32_t>(dbg->strings_count);
+                asmout << "// hashes ... " << std::dec << dbg->strings_count << " (offset: 0x" << std::hex << dbg->strings_offset << ")\n";
+                for (size_t i = 0; i < dbg->strings_count; i++) {
+                    dbgReader.Goto(strOffsets[i]);
+                    const char* str{ dbgReader.ReadString() };
 
-                        uint64_t hashField{ ctx.m_vmInfo->HashField(str) };
-                        uint64_t hashFilePath{ ctx.m_vmInfo->HashFilePath(str) };
-                        uint64_t hashPath{ ctx.m_vmInfo->HashPath(str) };
-                        {
-                            core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
-                            hashutils::AddPrecomputed(hashField, str, true);
-                            hashutils::AddPrecomputed(hashFilePath, str, true);
-                            hashutils::AddPrecomputed(hashPath, str, true);
+                    uint64_t hashField{ ctx.m_vmInfo->HashField(str) };
+                    uint64_t hashFilePath{ ctx.m_vmInfo->HashFilePath(str) };
+                    uint64_t hashPath{ ctx.m_vmInfo->HashPath(str) };
+                    {
+                        core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
+                        hashutils::AddPrecomputed(hashField, str, true);
+                        hashutils::AddPrecomputed(hashFilePath, str, true);
+                        hashutils::AddPrecomputed(hashPath, str, true);
 
-                            if (ctx.opt.m_header) {
-                                utils::PrintFormattedString(asmout << "// - #\"", str)
-                                    << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
-                            }
-                            // use all the known hashes for this VM
-                            for (auto& [k, func] : ctx.m_vmInfo->hashesFunc) {
-                                try {
-                                    int64_t hash = func.hashFunc(str);
-
-                                    if (hash) {
-                                        if (ctx.opt.m_header) {
-                                            asmout << "/" << k << '=' << std::hex << hash;
-                                        }
-                                        hashutils::AddPrecomputed(hash, str, true);
-                                    }
-                                }
-                                catch (std::exception&) {
-                                    // ignore
-                                }
-                            }
-                        }
                         if (ctx.opt.m_header) {
-                            asmout << ")\n";
+                            utils::PrintFormattedString(asmout << "// - #\"", str)
+                                << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
+                        }
+                        // use all the known hashes for this VM
+                        for (auto& [k, func] : ctx.m_vmInfo->hashesFunc) {
+                            try {
+                                int64_t hash = func.hashFunc(str);
+
+                                if (hash) {
+                                    if (ctx.opt.m_header) {
+                                        asmout << "/" << k << '=' << std::hex << hash;
+                                    }
+                                    hashutils::AddPrecomputed(hash, str, true);
+                                }
+                            }
+                            catch (std::exception&) {
+                                // ignore
+                            }
                         }
                     }
-                    LOG_TRACE("{} hash(es) added", dbg->strings_count);
+                    if (ctx.opt.m_header) {
+                        asmout << ")\n";
+                    }
                 }
+                LOG_TRACE("{} hash(es) added", dbg->strings_count);
             }
 
             if (dbg->HasFeature(ADF_DETOUR)) {
-                const GSC_ACTS_DETOUR* detours = dbgReader.Ptr<GSC_ACTS_DETOUR>(dbg->detour_offset);
+                dbgReader.Goto(dbg->detour_offset);
 
-                if (dbg->detour_count * sizeof(*detours) > ctx.dbgSize) {
-                    LOG_ERROR("Bad ACTS debug detour, too far");
-                }
-                else {
-                    for (size_t i = 0; i < dbg->detour_count; i++) {
-                        const GSC_ACTS_DETOUR& detour = detours[i];
+                const GSC_ACTS_DETOUR* detours{ dbgReader.ReadPtr<GSC_ACTS_DETOUR>(dbg->detour_count) };
 
-                        GscDetourInfo& det = ctx.m_gsicInfo.detours[detour.location];
-                        det.name = detour.name;
-                        det.fixupOffset = detour.location;
-                        det.fixupSize = detour.size;
-                        det.replaceFunction = detour.name;
-                        det.replaceNamespace = detour.name_space;
-                        det.replaceScript = detour.script;
-                    }
+                for (size_t i = 0; i < dbg->detour_count; i++) {
+                    const GSC_ACTS_DETOUR& detour = detours[i];
+
+                    GscDetourInfo& det = ctx.m_gsicInfo.detours[detour.location];
+                    det.name = detour.name;
+                    det.fixupOffset = detour.location;
+                    det.fixupSize = detour.size;
+                    det.replaceFunction = detour.name;
+                    det.replaceNamespace = detour.name_space;
+                    det.replaceScript = detour.script;
                 }
             }
             if (dbg->HasFeature(ADF_DEVBLOCK_BEGIN)) {
                 // not used by acts decompiler, but can be useful for a vm
                 if (ctx.opt.m_header) {
-                    uint32_t* dvOffsets = dbgReader.Ptr<uint32_t>(dbg->devblock_offset);
-
-                    if (dbg->devblock_count * sizeof(*dvOffsets) > ctx.dbgSize) {
-                        LOG_ERROR("Bad ACTS debug dev blocks, too far");
-                    }
-                    else {
-                        asmout << "// devblock . " << std::dec << dbg->devblock_count << " (offset: 0x" << std::hex << dbg->devblock_offset << ")\n";
-                        for (size_t i = 0; i < dbg->devblock_count; i++) {
-                            uint32_t off = dvOffsets[i];
-                            asmout << "// - " << ctx.GetFLocName(off) << "\n";
-                        }
+                    dbgReader.Goto(dbg->devblock_offset);
+                    uint32_t* dvOffsets = dbgReader.ReadPtr<uint32_t>(dbg->devblock_count);
+                    asmout << "// devblock . " << std::dec << dbg->devblock_count << " (offset: 0x" << std::hex << dbg->devblock_offset << ")\n";
+                    for (size_t i = 0; i < dbg->devblock_count; i++) {
+                        uint32_t off = dvOffsets[i];
+                        asmout << "// - " << ctx.GetFLocName(off) << "\n";
                     }
                 }
             }
@@ -184,49 +168,35 @@ namespace tool::gsc::vm {
                 if (ctx.opt.m_header) {
                     asmout << "// lazylink . " << std::dec << dbg->lazylink_count << " (offset: 0x" << std::hex << dbg->lazylink_offset << ")\n";
 
-                    size_t off = dbg->lazylink_offset;
+                    dbgReader.Goto(dbg->lazylink_offset);
                     for (size_t i = 0; i < dbg->lazylink_count; i++) {
-                        if (off + sizeof(GSC_ACTS_LAZYLINK) > ctx.dbgSize) {
-                            LOG_ERROR("Bad ACTS debug lazylink, too far");
-                            break;
-                        }
-                        GSC_ACTS_LAZYLINK* lzOff = dbgReader.Ptr<GSC_ACTS_LAZYLINK>(off);
-
-                        if (off + sizeof(GSC_ACTS_LAZYLINK) + sizeof(uint32_t) * lzOff->num_address > ctx.dbgSize) {
-                            LOG_ERROR("Bad ACTS debug lazylink, too far with {} addresses", lzOff->num_address);
-                            break;
-                        }
+                        GSC_ACTS_LAZYLINK* lzOff = dbgReader.ReadPtr<GSC_ACTS_LAZYLINK>();
                         asmout << "// "
                             << hashutils::ExtractTmp("namespace", lzOff->name_space)
                             << "<" << hashutils::ExtractTmpScript(lzOff->script) << ">::"
                             << hashutils::ExtractTmp("function", lzOff->name) << "\n"
                             << "// locs: ";
-                        off += sizeof(*lzOff);
-                        uint32_t* locs = dbgReader.Ptr<uint32_t>(off);
+
+                        uint32_t* locs = dbgReader.ReadPtr<uint32_t>(lzOff->num_address);
                         for (size_t i = 0; i < lzOff->num_address; i++) {
                             if (i) asmout << ", ";
                             asmout << ctx.GetFLocName(locs[i]);
                         }
                         asmout << "\n";
-                        off += sizeof(uint32_t) * lzOff->num_address;
                     }
                 }
             }
             if (dbg->HasFeature(ADF_FILES)) {
                 if (ctx.opt.m_header) {
                     asmout << "// files .... " << std::dec << dbg->files_count << " (offset: 0x" << std::hex << dbg->files_offset << ")\n";
-                    GSC_ACTS_FILES* linesOff = dbgReader.Ptr<GSC_ACTS_FILES>(dbg->files_offset);
-                    if (dbg->files_offset + sizeof(GSC_ACTS_FILES) * dbg->files_count > ctx.dbgSize) {
-                        LOG_ERROR("Bad ACTS debug files, too far with {} lines", dbg->files_count);
-                    }
-                    else {
-                        for (size_t i = 0; i < dbg->files_count; i++) {
-                            GSC_ACTS_FILES& l = linesOff[i];
-                            if (l.filename >= ctx.dbgSize) {
-                                LOG_ERROR("Bad ACTS debug files name, too far with {}", l.filename);
-                            }
-                            asmout << "// - " << std::dec << dbgReader.Ptr<const char>(l.filename) << " " << l.lineStart << "->" << l.lineEnd << "\n";
-                        }
+                    dbgReader.Goto(dbg->files_offset);
+                    GSC_ACTS_FILES* linesOff = dbgReader.ReadPtr<GSC_ACTS_FILES>(dbg->files_count);
+                    for (size_t i = 0; i < dbg->files_count; i++) {
+                        GSC_ACTS_FILES& l = linesOff[i];
+
+                        dbgReader.Goto(l.filename);
+                        const char* filename{ dbgReader.ReadString() };
+                        asmout << "// - " << std::dec << filename << " " << l.lineStart << "->" << l.lineEnd << "\n";
                     }
 
                 }
@@ -235,15 +205,11 @@ namespace tool::gsc::vm {
                 // not used by acts decompiler, but can be useful for a vm
                 if (ctx.opt.m_header) {
                     asmout << "// lines .... " << std::dec << dbg->lines_count << " (offset: 0x" << std::hex << dbg->lines_offset << ")\n";
-                    GSC_ACTS_LINES* linesOff = dbgReader.Ptr<GSC_ACTS_LINES>(dbg->lines_offset);
-                    if (dbg->lines_offset + sizeof(GSC_ACTS_LINES) * dbg->lines_count > ctx.dbgSize) {
-                        LOG_ERROR("Bad ACTS debug lines, too far with {} lines", dbg->lines_count);
-                    }
-                    else {
-                        for (size_t i = 0; i < dbg->lines_count; i++) {
-                            GSC_ACTS_LINES& l = linesOff[i];
-                            asmout << "// - " << std::dec << l.lineNum << " " << ctx.GetFLocName(l.start) << "->" << ctx.GetFLocName(l.end) << "\n";
-                        }
+                    dbgReader.Goto(dbg->lines_offset);
+                    GSC_ACTS_LINES* linesOff = dbgReader.ReadPtr<GSC_ACTS_LINES>(dbg->lines_count);
+                    for (size_t i = 0; i < dbg->lines_count; i++) {
+                        GSC_ACTS_LINES& l = linesOff[i];
+                        asmout << "// - " << std::dec << l.lineNum << " " << ctx.GetFLocName(l.start) << "->" << ctx.GetFLocName(l.end) << "\n";
                     }
 
                 }
