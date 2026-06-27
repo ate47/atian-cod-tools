@@ -224,12 +224,15 @@ namespace systems::gsc::link {
             bo4::ScriptParseTreeDBG* dbg{
                 bo4::DB_FindXAssetHeader(bo4::XAssetType::ASSET_TYPE_SCRIPTPARSETREEDBG, &name, false, -1).sptdbg
             };
-            if (!dbg || !dbg->gdb) {
+            if (!dbg || !dbg->gdb.raw) {
                 return; // no debug data
             }
 
-            if (dbg->gdbLen >= sizeof(uint64_t) && dbg->gdb->GetMagic() == acts_debug::MAGIC) {
-                acts_debug::GSC_ACTS_DEBUG* gdb{ dbg->gdb };
+            acts_debug::GSC_ACTS_MAPPEDDEVSTRING* mappedDevString{};
+            acts_debug::GSC_ACTS_MAPPEDDEVSTRING* mappedDevStringEnd{};
+
+            if (dbg->gdbLen >= sizeof(uint64_t) && *dbg->gdb.magic == acts_debug::MAGIC) {
+                acts_debug::GSC_ACTS_DEBUG* gdb{ dbg->gdb.acts };
 
                 if (!gdb->HasFeature(acts_debug::ADF_CHECKSUM)) {
                     LOG_WARNING(
@@ -258,13 +261,20 @@ namespace systems::gsc::link {
                     }
                 }
 
-                if (enableDevBlocks && gdb->HasFeature(acts_debug::ADF_DEVBLOCK_BEGIN)) {
-                    // link the dev blocks op
-                    uint32_t* devBlocks{ gdb->GetDevBlocks() };
-                    uint32_t* devBlocksEnd{ gdb->GetDevBlocksEnd() };
-                    while (devBlocks != devBlocksEnd) {
-                        uint16_t* opbase{ (uint16_t*)&prime_obj->magic[*(devBlocks++)] };
-                        *opbase = systems::gsc::op::OPMT_DevblockBeginLinked | systems::gsc::op::MOD_TOOL_FLAG;
+                if (enableDevBlocks) {
+                    if (gdb->HasFeature(acts_debug::ADF_DEVBLOCK_BEGIN)) {
+                        // link the dev blocks op
+                        uint32_t* devBlocks{ gdb->GetDevBlocks() };
+                        uint32_t* devBlocksEnd{ gdb->GetDevBlocksEnd() };
+                        while (devBlocks != devBlocksEnd) {
+                            uint16_t* opbase{ (uint16_t*)&prime_obj->magic[*(devBlocks++)] };
+                            *opbase = systems::gsc::op::OPMT_DevblockBeginLinked | systems::gsc::op::MOD_TOOL_FLAG;
+                        }
+                    }
+                    if (gdb->HasFeature(acts_debug::ADF_MAPPED_DEBUG_STRING) &&
+                        gdb->HasFlag(acts_debug::ADFG_MAP_DEBUG_STRING)) {
+                        mappedDevString = gdb->GetMappedDevStrings();
+                        mappedDevStringEnd = gdb->GetMappedDevStringsEnd();
                     }
                 }
 
@@ -284,10 +294,34 @@ namespace systems::gsc::link {
                 bo4::GSC_STRINGTABLE_ITEM* string{
                     (bo4::GSC_STRINGTABLE_ITEM*)&prime_obj->magic[prime_obj->devblock_string_offset]
                 };
-                const char* gdbBase{ (char*)dbg->gdb };
+                const char* gdbBase{ (char*)dbg->gdb.raw };
 
                 for (size_t i = 0; i < prime_obj->devblock_string_count; i++) {
-                    const char* str{ &gdbBase[string->string] };
+                    const char* str;
+
+                    if (mappedDevString) {
+                        acts_debug::GSC_ACTS_MAPPEDDEVSTRING* map{ std::find_if(
+                            mappedDevString,
+                            mappedDevStringEnd,
+                            [string](const acts_debug::GSC_ACTS_MAPPEDDEVSTRING& str) -> bool {
+                                return str.original == string->string;
+                            }
+                        ) };
+
+                        if (!map) {
+                            systems::errors::ScrVm_Error(
+                                inst,
+                                "Can't load mapped dev string for %s, can't find original key",
+                                true,
+                                core::hashes::ExtractTmp("script", dbg->name)
+                            );
+                            return;
+                        }
+                        str = &gdbBase[map->address];
+                    } else {
+                        str = &gdbBase[string->string];
+                    }
+
                     uint32_t* refs{ (uint32_t*)&string[1] };
 
                     bo4::ScrString_t sstr{ bo4::SL_GetStringOfSize(str, 0, bo4::MT_TYPE_SCRIPT_PARSE, true) };

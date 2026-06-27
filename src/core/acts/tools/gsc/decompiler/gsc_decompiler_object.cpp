@@ -1039,10 +1039,7 @@ namespace tool::gsc {
                 for (size_t i = 0; i < GetDevStringsCount(); i++) {
                     const char* str;
                     if (val->string) {
-                        if (ctx.gdbData) {
-                            // add this location as a dev string
-                            ctx.gdbData->devStringsLocation.insert(val->string);
-                        }
+                        const char* found{};
                         if (ctx.dbgData && ctx.dbgSize) {
                             if (val->string >= ctx.dbgSize) {
                                 LOG_ERROR(
@@ -1052,7 +1049,7 @@ namespace tool::gsc {
                                 );
                                 str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
                             } else {
-                                str = (const char*)&ctx.dbgData[val->string];
+                                found = str = (const char*)&ctx.dbgData[val->string];
                             }
                         } else {
                             // no gdb
@@ -1060,6 +1057,10 @@ namespace tool::gsc {
                                 break; // nothing
                             }
                             str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
+                        }
+                        if (ctx.gdbData) {
+                            // add this location as a dev string
+                            ctx.gdbData->devStringsLocations.emplace_back(val->string, found);
                         }
                     } else {
                         str = "<dev string>";
@@ -1323,11 +1324,8 @@ namespace tool::gsc {
             T8GSCString* val = Ptr<T8GSCString>(GetDevStringsOffset());
             for (size_t i = 0; i < GetDevStringsCount(); i++) {
                 const char* str;
+                const char* found{};
                 if (val->string) {
-                    if (ctx.gdbData) {
-                        // add this location as a dev string
-                        ctx.gdbData->devStringsLocation.insert(val->string);
-                    }
                     // the acts compiler uses empty strings location when they're not compiled in the gdb
                     if (ctx.dbgData && ctx.dbgSize) {
                         if (val->string >= ctx.dbgSize) {
@@ -1338,7 +1336,7 @@ namespace tool::gsc {
                             );
                             str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
                         } else {
-                            str = (const char*)&ctx.dbgData[val->string];
+                            found = str = (const char*)&ctx.dbgData[val->string];
                         }
                     } else {
                         // no gdb
@@ -1346,6 +1344,10 @@ namespace tool::gsc {
                             break; // nothing
                         }
                         str = ctx.CloneString(utils::va("<dev string:x%x>", val->string));
+                    }
+                    if (ctx.gdbData) {
+                        // add this location as a dev string
+                        ctx.gdbData->devStringsLocations.emplace_back(val->string, found);
                     }
                 } else {
                     str = "<dev string>";

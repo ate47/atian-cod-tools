@@ -13,7 +13,7 @@ namespace tool::gsc::vm {
 
     class GscGdbActsAddon : public GscGdb {
       public:
-        GscGdbActsAddon() : GscGdb(shared::gsc::acts_addons::MAGIC) {}
+        GscGdbActsAddon() : GscGdb(shared::gsc::acts_addons::MAGIC, "acts_addon") {}
 
         void DbgLoad(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout) override {
             using namespace shared::gsc::acts_addons;

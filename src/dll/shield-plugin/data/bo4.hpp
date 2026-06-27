@@ -97,6 +97,22 @@ namespace bo4 {
         byte ukn5a;
         byte requires_implements_count;
     };
+    static_assert(sizeof(GSC_OBJ) == 0x60);
+
+    constexpr uint64_t GSC_GDB_MAGIC = 0x21000A0D42444780;
+
+    struct GSC_GDB {
+        byte magic[8];
+        uint32_t version;
+        uint32_t source_crc;
+        uint32_t lineinfo_offset;
+        uint32_t lineinfo_count;
+        uint32_t devblock_stringtable_offset;
+        uint32_t devblock_stringtable_count;
+        uint32_t stringtable_offset;
+        uint32_t stringtable_count;
+    };
+    static_assert(sizeof(GSC_GDB) == 0x28);
 
     typedef float vec_t;
     typedef vec_t vec2_t[2];
@@ -545,11 +561,18 @@ namespace bo4 {
         CRITSECT_VM = 0x36,
     };
 
+    union ScriptParseTreeDBGData {
+        byte* raw;
+        shared::gsc::acts_debug::GSC_ACTS_DEBUG* acts;
+        GSC_GDB* arc{};
+        uint64_t* magic;
+    };
+
     struct ScriptParseTreeDBG {
         XHash name;
         int32_t gdbLen;
         int32_t srcLen;
-        shared::gsc::acts_debug::GSC_ACTS_DEBUG* gdb;
+        ScriptParseTreeDBGData gdb;
         const char* src;
     };
     static_assert(sizeof(ScriptParseTreeDBG) == 0x28);

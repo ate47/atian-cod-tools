@@ -67,6 +67,7 @@ namespace tool::gsc {
         const char* m_copyright{};
         const char* m_dbgInputDir{};
         const char* m_gdbZipOutputFile{};
+        uint64_t m_gdbZipOutputType{};
         bool m_show_internal_blocks{};
         bool m_show_func_vars{};
         bool m_mark_jump_type{};
@@ -124,12 +125,31 @@ namespace tool::gsc {
         bool devFunc{};
     };
 
+    struct GscDecompilerGDBDataDevString {
+        uint32_t rloc{};
+        const char* value{};
+    };
+
+    struct GscDecompilerGDBDataDetour {
+        uint64_t name_space;
+        uint64_t name;
+        uint64_t script;
+        uint32_t location;
+        uint32_t size;
+    };
+
     struct GscDecompilerGDBData {
         uint64_t gdb{};
         uint32_t checksum{};
-        std::set<uint32_t> devStringsLocation{};
-        std::map<size_t, uint32_t> fileOffsets{};
+        uint32_t checksumOffset{};
+        uint64_t filename{};
+        std::vector<GscDecompilerGDBDataDevString> devStringsLocations{};
+        std::vector<GscDecompilerGDBDataDetour> detours{};
+        std::set<uint32_t> devBlocksLocation{};
         std::map<size_t, uint32_t> lineInfos{};
+        std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals> lazyLinks{};
+        Platform encodedPlatform{};
+        bool bigEndian{};
     };
 
     struct GscDecompilerGlobalContext {

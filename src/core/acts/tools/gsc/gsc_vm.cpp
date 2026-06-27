@@ -57,6 +57,7 @@
 #include <tools/gsc/gdb/gdb_acts.hpp>
 #include <tools/gsc/gdb/gdb_acts_addon.hpp>
 #include <tools/gsc/gdb/gdb_t78.hpp>
+#include <tools/gsc/gdb/gdb_raw.hpp>
 
 namespace tool::gsc::vm {
     namespace {
@@ -115,6 +116,7 @@ namespace tool::gsc::vm {
                 // register GBD data
                 RegisterGDBOBJHandler<GscGdbActs>();
                 RegisterGDBOBJHandler<GscGdbActsAddon>();
+                RegisterGDBOBJHandler<GscGdbRaw>();
                 RegisterGDBOBJHandler<GscGdbT78<VMI_DBG_T7_12>>();
                 RegisterGDBOBJHandler<GscGdbT78<VMI_DBG_T7_13>>();
                 RegisterGDBOBJHandler<GscGdbT78<VMI_DBG_T8_21>>();
@@ -160,6 +162,20 @@ namespace tool::gsc::vm {
 
         return it->second.get();
     }
+
+    GscGdb* GetGdbReader(const char* name) {
+        for (auto& [_, reader] : GetGdbReaders()) {
+            if (!_strcmpi(reader->id, name)) {
+                return reader.get();
+            }
+        }
+
+        return nullptr;
+    }
+
+    std::unordered_map<uint64_t, std::shared_ptr<GscVm>>& GetGscReaders() { return VmData().gscReaders; };
+
+    std::unordered_map<uint64_t, std::shared_ptr<GscGdb>>& GetGdbReaders() { return VmData().gdbReaders; }
 
     void RegisterVmOpCodes() {
         using namespace tool::gsc::opcode;

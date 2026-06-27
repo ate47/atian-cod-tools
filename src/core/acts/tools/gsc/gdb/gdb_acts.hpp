@@ -13,9 +13,12 @@ namespace tool::gsc::vm {
 
     class GscGdbActs : public GscGdb {
       public:
-        GscGdbActs() : GscGdb(shared::gsc::acts_debug::MAGIC) {}
+        GscGdbActs() : GscGdb(shared::gsc::acts_debug::MAGIC, "acts") {}
 
-        void DbgLoad(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout) override {
+        void DbgLoad(
+            GscDecompilerGDBData& gdb, vm::VmInfo* vm, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout,
+            bool printInfo
+        ) override {
             using namespace shared::gsc::acts_debug;
             // acts compiled file, read data
             GSC_ACTS_DEBUG* dbg = dbgReader.Ptr<GSC_ACTS_DEBUG>();
@@ -54,12 +57,8 @@ namespace tool::gsc::vm {
                             return std::isspace(c) ? '_' : std::toupper(c);
                         }) << ")";
 
-                        // the script is saying which platform is was compiled, so we follow it
-                        if (!ctx.opt.m_ignoreDebugPlatform && pltFlag < Platform::PLATFORM_COUNT) {
-                            LOG_TRACE("Using debug platform {}", PlatformName(nplt));
-                            ctx.currentPlatform = nplt;
-                            ctx.isBigEndian = ctx.m_vmInfo->IsPlatformBigEndian(ctx.currentPlatform);
-                        }
+                        gdb.encodedPlatform = nplt;
+                        gdb.bigEndian = vm->IsPlatformBigEndian(nplt);
                     }
                 }
 
@@ -68,36 +67,14 @@ namespace tool::gsc::vm {
 
             if (dbg->HasFeature(ADF_CHECKSUM)) {
                 asmout << "// dbg crc .. " << "0x" << std::hex << dbg->checksum << "\n";
-                if (ctx.scriptfile->GetChecksum() && ctx.scriptfile->GetChecksum() != dbg->checksum) {
-                    LOG_WARNING(
-                        "Can't use dbg data: unmatching checksums: 0x{:x} != 0x{:x}",
-                        ctx.scriptfile->GetChecksum(),
-                        dbg->checksum
-                    );
-                    return;
-                }
+                gdb.checksum = dbg->checksum;
             }
 
             if (dbg->HasFeature(ADF_CRC_LOC)) {
                 if (dbg->crc_offset) {
-                    asmout << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << " ";
+                    asmout << "// crc loc .. " << "0x" << std::hex << dbg->crc_offset << "\n";
 
-                    if (ctx.scriptfile->HasFlag(GOHF_NOTIFY_CRC_STRING)) {
-                        if (dbg->crc_offset > ctx.scriptfile->GetFileSize()) {
-                            asmout << "INVALID LOC";
-                        } else {
-                            utils::PrintFormattedString(
-                                asmout << "\"",
-                                ctx.scriptfile->Ptr<const char>(dbg->crc_offset)
-                            ) << "\"";
-                        }
-                    } else if (ctx.scriptfile->HasFlag(GOHF_NOTIFY_CRC)) {
-                        asmout << ctx.GetFLocName(dbg->crc_offset);
-                    } else {
-                        asmout << "USELESS"; // why?
-                    }
-
-                    asmout << "\n";
+                    gdb.checksumOffset = dbg->crc_offset;
                 }
             }
             if (dbg->HasFeature(ADF_STRING)) {
@@ -109,26 +86,26 @@ namespace tool::gsc::vm {
                     dbgReader.Goto(strOffsets[i]);
                     const char* str{ dbgReader.ReadString() };
 
-                    uint64_t hashField{ ctx.m_vmInfo->HashField(str) };
-                    uint64_t hashFilePath{ ctx.m_vmInfo->HashFilePath(str) };
-                    uint64_t hashPath{ ctx.m_vmInfo->HashPath(str) };
+                    uint64_t hashField{ vm->HashField(str) };
+                    uint64_t hashFilePath{ vm->HashFilePath(str) };
+                    uint64_t hashPath{ vm->HashPath(str) };
                     {
                         core::async::opt_lock_guard hlg{ hashutils::GetMutex(false) };
                         hashutils::AddPrecomputed(hashField, str, true);
                         hashutils::AddPrecomputed(hashFilePath, str, true);
                         hashutils::AddPrecomputed(hashPath, str, true);
 
-                        if (ctx.opt.m_header) {
+                        if (printInfo) {
                             utils::PrintFormattedString(asmout << "// - #\"", str)
                                 << "\" (0x" << std::hex << hashField << "/0x" << hashFilePath << "/0x" << hashPath;
                         }
                         // use all the known hashes for this VM
-                        for (auto& [k, func] : ctx.m_vmInfo->hashesFunc) {
+                        for (auto& [k, func] : vm->hashesFunc) {
                             try {
                                 int64_t hash = func.hashFunc(str);
 
                                 if (hash) {
-                                    if (ctx.opt.m_header) {
+                                    if (printInfo) {
                                         asmout << "/" << k << '=' << std::hex << hash;
                                     }
                                     hashutils::AddPrecomputed(hash, str, true);
@@ -138,7 +115,7 @@ namespace tool::gsc::vm {
                             }
                         }
                     }
-                    if (ctx.opt.m_header) {
+                    if (printInfo) {
                         asmout << ")\n";
                     }
                 }
@@ -153,18 +130,20 @@ namespace tool::gsc::vm {
                 for (size_t i = 0; i < dbg->detour_count; i++) {
                     const GSC_ACTS_DETOUR& detour = detours[i];
 
-                    GscDetourInfo& det = ctx.m_gsicInfo.detours[detour.location];
-                    det.name = detour.name;
-                    det.fixupOffset = detour.location;
-                    det.fixupSize = detour.size;
-                    det.replaceFunction = detour.name;
-                    det.replaceNamespace = detour.name_space;
-                    det.replaceScript = detour.script;
+                    gdb.detours.emplace_back(
+                        GscDecompilerGDBDataDetour{
+                            .name_space = detour.name_space,
+                            .name = detour.name,
+                            .script = detour.script,
+                            .location = detour.location,
+                            .size = detour.size,
+                        }
+                    );
                 }
             }
             if (dbg->HasFeature(ADF_DEVBLOCK_BEGIN)) {
                 // not used by acts decompiler, but can be useful for a vm
-                if (ctx.opt.m_header) {
+                if (printInfo) {
                     dbgReader.Goto(dbg->devblock_offset);
                     uint32_t* dvOffsets = dbgReader.ReadPtr<uint32_t>(dbg->devblock_count);
                     asmout << "// devblock . " << std::dec << dbg->devblock_count << " (offset: 0x" << std::hex
@@ -177,7 +156,7 @@ namespace tool::gsc::vm {
             }
             if (dbg->HasFeature(ADF_LAZYLINK)) {
                 // not used by acts decompiler, but can be useful for a vm
-                if (ctx.opt.m_header) {
+                if (printInfo) {
                     asmout << "// lazylink . " << std::dec << dbg->lazylink_count << " (offset: 0x" << std::hex
                            << dbg->lazylink_offset << ")\n";
 
@@ -200,7 +179,7 @@ namespace tool::gsc::vm {
                 }
             }
             if (dbg->HasFeature(ADF_FILES)) {
-                if (ctx.opt.m_header) {
+                if (printInfo) {
                     asmout << "// files .... " << std::dec << dbg->files_count << " (offset: 0x" << std::hex
                            << dbg->files_offset << ")\n";
                     dbgReader.Goto(dbg->files_offset);
@@ -216,7 +195,7 @@ namespace tool::gsc::vm {
             }
             if (dbg->HasFeature(ADF_LINES)) {
                 // not used by acts decompiler, but can be useful for a vm
-                if (ctx.opt.m_header) {
+                if (printInfo) {
                     asmout << "// lines .... " << std::dec << dbg->lines_count << " (offset: 0x" << std::hex
                            << dbg->lines_offset << ")\n";
                     dbgReader.Goto(dbg->lines_offset);
@@ -228,6 +207,56 @@ namespace tool::gsc::vm {
                     }
                 }
             }
+        }
+        bool DbgSave(GscDecompilerGDBData* gdb, std::string& buffer) override {
+            using namespace shared::gsc::acts_debug;
+            std::vector<byte> data{};
+
+            utils::Allocate<GSC_ACTS_DEBUG>(data);
+            uint32_t flags{};
+
+            size_t tableMappedStrings{};
+            size_t tableMappedStringsCount{};
+
+            if (!gdb->devStringsLocations.empty()) {
+                // we remap the string so the user isn't restricted with the existing sizes and us with the size of the
+                // treyarch header.
+                flags |= ADFG_MAP_DEBUG_STRING;
+                tableMappedStrings =
+                    utils::Allocate(data, sizeof(GSC_ACTS_MAPPEDDEVSTRING) * gdb->devStringsLocations.size());
+
+                for (const auto& [floc, string] : gdb->devStringsLocations) {
+                    GSC_ACTS_MAPPEDDEVSTRING& map{
+                        ((GSC_ACTS_MAPPEDDEVSTRING*)&data[tableMappedStrings])[tableMappedStringsCount++]
+                    };
+                    map.original = floc;
+                    map.address = (uint32_t)data.size();
+                    utils::WriteString(data, string ? string : "");
+                }
+            }
+
+            // gdb->devBlocksLocation
+            // gdb->lineInfos
+            // gdb->lazyLinks
+            // gdb->detours
+
+            GSC_ACTS_DEBUG& header{ *(GSC_ACTS_DEBUG*)data.data() };
+            *(uint64_t*)header.magic = shared::gsc::acts_debug::MAGIC;
+            header.version = shared::gsc::acts_debug::CURRENT_VERSION;
+            header.actsVersion = core::actsinfo::VERSION_ID;
+            header.flags = flags;
+            header.checksum = static_cast<int32_t>(gdb->checksum);
+            header.mappeddevstrings_offset = (int32_t)tableMappedStrings;
+            header.mappeddevstrings_count = (int32_t)tableMappedStringsCount;
+            header.crc_offset = 0;
+            header.detour_offset = 0;
+            header.detour_count = 0;
+            header.devstrings_offset = 0;
+            header.devstrings_count = 0;
+
+            buffer.resize(data.size());
+            std::memcpy(buffer.data(), data.data(), data.size());
+            return true;
         }
     };
 } // namespace tool::gsc::vm

@@ -1073,9 +1073,11 @@ namespace tool::gsc::opcode {
 
             if (m_id == OPCODE_DevblockBegin) {
                 context.m_devBlocks.emplace_back(m_jumpLocation, delta);
-                context.m_objctx.m_devblocks.insert(
-                    context.ScriptAbsoluteLocation(context.m_fonctionStart + m_jumpLocation)
-                );
+                uint32_t floc{ context.ScriptAbsoluteLocation(context.m_fonctionStart + m_jumpLocation) };
+                if (context.m_objctx.gdbData) {
+                    context.m_objctx.gdbData->devBlocksLocation.insert(floc);
+                }
+                context.m_objctx.m_devblocks.insert(floc);
             }
 
             out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc
@@ -4554,6 +4556,10 @@ namespace tool::gsc::opcode {
             context.m_objctx.m_lazyLinks[located].push_back(
                 context.ScriptAbsoluteLocation(context.m_fonctionStart + lazylocation)
             );
+
+            if (context.m_objctx.gdbData) {
+                context.m_objctx.gdbData->lazyLinks.insert(located);
+            }
 
             out << "@" << hashutils::ExtractTmpPath("namespace", nsp) << "<" << std::flush
                 << hashutils::ExtractTmpScript(script) << ">::" << std::flush

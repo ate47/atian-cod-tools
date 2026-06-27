@@ -10,10 +10,17 @@ namespace tool::gsc::vm {
     using namespace tool::gsc::opcode;
     using namespace tool::gsc::gdb;
 
+    consteval std::array<char, 7> MakeGscGdbT78Name(uint64_t GDB_MAGIC) {
+        constexpr const char* hex = "0123456789abcdef";
+        return { 't', '7', '8', '_', hex[(GDB_MAGIC >> 60) & 15], hex[(GDB_MAGIC >> 56) & 15], '\0' };
+    }
+
     template<uint64_t GDB_MAGIC>
     class GscGdbT78 : public GscGdb {
+        static constexpr auto name = MakeGscGdbT78Name(GDB_MAGIC);
+
       public:
-        GscGdbT78() : GscGdb(GDB_MAGIC) {}
+        GscGdbT78() : GscGdb(GDB_MAGIC, name.data()) {}
 
         void DbgLoad(T8GSCOBJContext& ctx, core::bytebuffer::ByteBuffer& dbgReader, std::ostream& asmout) override {
             GSC_GDB* dbg{ dbgReader.ReadPtr<GSC_GDB>() };
@@ -94,24 +101,42 @@ namespace tool::gsc::vm {
             utils::Allocate<GSC_GDB>(data);
 
             size_t devStringTable{};
-            size_t devStringsCount{ gdb->devStringsLocation.size() };
+            size_t devStringsCount{ gdb->devStringsLocations.size() };
 
             // know the size for the devstring table
             if (devStringsCount) {
-                auto it{ gdb->devStringsLocation.begin() };
-                devStringTable = *it;
-                for (size_t i = 1; i < devStringsCount; i++)
-                    it++; // goto last
-                size_t maxDevString = *it;
+                // sort the strings to have it easy
+                std::sort(
+                    gdb->devStringsLocations.begin(),
+                    gdb->devStringsLocations.end(),
+                    [](GscDecompilerGDBDataDevString& a, GscDecompilerGDBDataDevString& b) { return a.rloc < b.rloc; }
+                );
+
+                devStringTable = gdb->devStringsLocations[0].rloc;
 
                 if (data.size() > devStringTable) {
                     LOG_ERROR("Dev string in header");
                     return false;
                 }
 
-                // reshape the debug file to have the gsc dev strings
-                data.resize(maxDevString + 1);
+                size_t currentIndex{ devStringTable };
+                for (const auto& [floc, string] : gdb->devStringsLocations) {
+                    if (floc < currentIndex) {
+                        LOG_ERROR("Invalid string ref at 0x{:x}, previous location was 0x{:x}", floc, currentIndex);
+                        return false;
+                    }
+
+                    size_t len{ (string ? std::strlen(string) : 0) + 1 };
+                    currentIndex = floc + len;
+                    data.resize(currentIndex);
+
+                    if (string) {
+                        // write string if we have it
+                        std::memcpy(&data[floc], string, len);
+                    }
+                }
             }
+
             // line info are 8 bytes aligned
             utils::Aligned<uint64_t>(data);
             size_t linesInfo{ data.size() };

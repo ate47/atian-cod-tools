@@ -502,8 +502,9 @@ namespace tool::gsc {
             } else {
                 gdb = gdctx.alloc.New<GscDecompilerGDBData>();
                 ctx.gdbData = gdb;
-                gdb->gdb = ctx.m_vmInfo->gdbMagic;
+                gdb->gdb = ctx.opt.m_gdbZipOutputType ? ctx.opt.m_gdbZipOutputType : ctx.m_vmInfo->gdbMagic;
                 gdb->checksum = scriptfile->GetChecksum();
+                gdb->filename = scriptfile->GetName();
             }
         }
 
@@ -1743,9 +1744,7 @@ namespace tool::gsc {
                         gdbpos << " " << ctx.GetFLocName(floc);
                     }
 
-                    gdbpos << std::endl << "STRING \"";
-
-                    utils::PrintFormattedString(gdbpos, val.c_str()) << "\"" << std::hex;
+                    gdbpos << std::endl << "STRING \"" << utils::FormattedString{ val.c_str() } << "\"" << std::hex;
 
                     for (const uint32_t floc : flocs) {
                         gdbpos << " 0x" << floc;
@@ -2035,6 +2034,18 @@ namespace tool::gsc {
                     return false;
                 }
                 m_gdbZipOutputFile = args[++i];
+            } else if (!_strcmpi("--gdb-dump-type", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                const char* name{ args[++i] };
+                tool::gsc::vm::GscGdb* gdb{ tool::gsc::vm::GetGdbReader(name) };
+                if (!gdb) {
+                    LOG_ERROR("Invalid GDB reader for name: {}!", name);
+                    return false;
+                }
+                m_gdbZipOutputType = gdb->magic;
             } else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
                 if (i + 1 == endIndex) {
                     LOG_ERROR("Missing value for param: {}!", arg);
@@ -2087,6 +2098,20 @@ namespace tool::gsc {
         LOG_INFO("-v --vm            : Only decompile a particular vm");
         LOG_INFO("-H --header        : Write file header");
         LOG_INFO("--gdb-dump [zip]   : Write zip containing gdb data");
+        {
+            std::ostringstream formats;
+
+            for (const auto& [_, r] : tool::gsc::vm::GetGdbReaders()) {
+
+                formats << " '" << r->id << "'";
+            }
+
+            LOG_INFO(
+                "--gdb-dump-type [t]: Force zip gdb data values:{}",
+                formats.str(),
+                formatter::GetDefaultFormatter().name
+            );
+        }
         LOG_INFO("-m --hashmap [f]   : Write hashmap in a file f");
         {
             std::ostringstream formats;

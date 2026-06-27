@@ -2,7 +2,7 @@
 
 namespace shared::gsc::acts_debug {
     constexpr uint64_t MAGIC = 0x0d0a42444124;
-    constexpr byte CURRENT_VERSION = 0x16;
+    constexpr byte CURRENT_VERSION = 0x17;
 
     enum DebugFeatures : byte {
         ADF_STRING = 0x10,
@@ -15,6 +15,7 @@ namespace shared::gsc::acts_debug {
         ADF_FILES = 0x15,
         ADF_FLAGS = 0x15,
         ADF_CHECKSUM = 0x16,
+        ADF_MAPPED_DEBUG_STRING = 0x17,
     };
 
     enum ActsDebugFlags : uint32_t {
@@ -26,6 +27,7 @@ namespace shared::gsc::acts_debug {
         ADFG_PLATFORM_UNK7 = 1 << 7,
         ADFG_PLATFORM_UNK8 = 1 << 8,
         ADFG_PLATFORM_UNK9 = 1 << 9,
+        ADFG_MAP_DEBUG_STRING = 1 << 10,
     };
 
     struct GSC_ACTS_DETOUR {
@@ -60,6 +62,11 @@ namespace shared::gsc::acts_debug {
         uint64_t lineEnd;
     };
 
+    struct GSC_ACTS_MAPPEDDEVSTRING {
+        uint32_t original;
+        uint32_t address;
+    };
+
     struct GSC_ACTS_DEBUG {
         byte magic[sizeof(MAGIC)];
         byte version;
@@ -81,10 +88,12 @@ namespace shared::gsc::acts_debug {
         uint32_t files_offset{};
         uint32_t files_count{};
         int32_t checksum{};
+        uint32_t mappeddevstrings_offset{};
+        uint32_t mappeddevstrings_count{};
 
-        constexpr bool HasFeature(DebugFeatures feature) { return version >= feature; }
+        constexpr bool HasFeature(DebugFeatures feature) const { return version >= feature; }
 
-        constexpr bool HasFlag(uint32_t flag) { return (flags & flag) == flag; }
+        constexpr bool HasFlag(uint32_t flag) const { return (flags & flag) == flag; }
 
         const char* GetString(uint32_t address) const { return (const char*)(magic + address); }
 
@@ -104,6 +113,9 @@ namespace shared::gsc::acts_debug {
         //__ACTS_DEBUG_FUNC1(GSC_ACTS_DEVSTRING, GetDevStrings, devstrings_offset) //unused
         __ACTS_DEBUG_FUNC(uint32_t, GetDevBlocks, devblock_offset, devblock_count)
         __ACTS_DEBUG_FUNC(uint32_t, GetStrings, strings_offset, strings_count)
+        __ACTS_DEBUG_FUNC(
+            GSC_ACTS_MAPPEDDEVSTRING, GetMappedDevStrings, mappeddevstrings_offset, mappeddevstrings_count
+        )
 
 #undef __ACTS_DEBUG_FUNC
 #undef __ACTS_DEBUG_FUNC1
