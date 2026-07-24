@@ -6,19 +6,13 @@
 #include <tools/hashes/text_expand.hpp>
 #include <utils/data_utils.hpp>
 #include <actslib/profiler.hpp>
+#include <game_data.hpp>
 
 namespace tool::hash::scanner {
     namespace {
-        std::filesystem::path GetBaseDir() {
-            std::string scanpath{ core::config::GetString("data.dir", "") };
-            if (scanpath.empty()) {
-                return utils::GetProgDir() / "data" / "opencl";
-            }
-            return std::filesystem::path{ scanpath } / "opencl";
-        }
 
         void ReadData(const char* id, std::string& progData) {
-            std::filesystem::path progFile{ GetBaseDir() / std::format("{}.cl", id) };
+            std::filesystem::path progFile{ acts::game_data::GetDataDir() / "opencl" / std::format("{}.cl", id) };
 
             if (!progData.empty()) {
                 progData.append("\n");

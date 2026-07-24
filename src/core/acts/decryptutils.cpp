@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #include <utils/decrypt.hpp>
+#include <core/config.hpp>
 #include <utils/decrypt_t8old.hpp>
 #include <hook/module_mapper.hpp>
 #include "decryptutils.hpp"
@@ -10,62 +11,69 @@ namespace acts::decryptutils {
         char* (*DecryptStringImpl)(char* str){};
         hook::module_mapper::Module decryptModule{ true };
         T8Decryption t8old{};
+
+        core::config::Config& GetDecryptData() {
+            static core::config::Config data{ [] {
+                std::string scanpath{ core::config::GetString("data.dir", "") };
+                std::filesystem::path file;
+                if (scanpath.empty()) {
+                    file = utils::GetProgDir() / "data" / "decrypt.json";
+                } else {
+                    file = std::filesystem::path{ scanpath } / "decrypt.json";
+                }
+
+                core::config::Config cfg{ file };
+                cfg.SyncConfig(false);
+                return cfg;
+            }() };
+            return data;
+        }
+
+        bool LoadDecryptModule0(
+            std::function<std::vector<hook::library::ScanResult>(const char* path, const char* name)> ScanFunc
+        ) {
+            DecryptStringImpl = nullptr;
+
+            core::config::Config& cfg{ GetDecryptData() };
+
+            core::config::RapidJsonGeneric& scans{ cfg.GetVal("scans") };
+
+            if (!scans.IsObject()) {
+                LOG_ERROR("Invalid decrypt.json file");
+                return false;
+            }
+            
+            for (auto& [vid, vpattern] : scans.GetObj()) {
+                const char* id{ vid.GetString() };
+                const char* pattern{ vpattern.GetString() };
+
+                std::vector<hook::library::ScanResult> res{ ScanFunc(pattern, id) };
+
+                if (res.size() != 1) {
+                    if (res.size() > 1) {
+                        LOG_TRACE("Too many finds for scan {}", id);
+                    }
+                    continue;
+                }
+
+                DecryptStringImpl = res[0].GetPtr<char* (*)(char* str)>();
+                if (res[0].entry) {
+                    // rename it to DecryptString if we want to dump the scans
+                    res[0].entry->name = "DecryptString";
+                }
+                LOG_TRACE("Loaded DecryptStringImpl={} ({})", hook::library::CodePointer{ DecryptStringImpl }, id);
+                return true; // loaded
+            }
+
+            return false;
+        }
     } // namespace
 
     char* DecryptString(char* str) {
         if (!DecryptStringImpl || !str || (*str & 0xC0) != 0x80) {
             return str;
         }
-
         return DecryptStringImpl(str);
-    }
-
-    static bool LoadDecryptModule0(
-        std::function<std::vector<hook::library::ScanResult>(const char* path, const char* name)> ScanFunc
-    ) {
-        DecryptStringImpl = nullptr;
-
-        struct {
-            const char* pattern;
-            const char* id;
-        } knownScans[]{
-            { "40 53 48 83 EC ?? 48 8B D9 0F B6 01 24 ?? 3C ?? 0F 85 88 04 00 00 48 8D 0D ?? ?? ?? ?? 48 89 4C 24 ?? "
-              "E8 ?? ?? ?? ?? 90 0F BE 03 83 E8 80 83 F8",
-              "cod2020" },
-            { "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57 48 83 EC 20 0F B6 01", "iw" },
-            { "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 01 4C 8B F9",
-              "bo6" },
-            { "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6 01 24 ? "
-              "3C",
-              "cw" },
-            { "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 4C 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F",
-              "bo6_2" },
-            { "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 48 89 4C 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6",
-              "bo7" },
-            { "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 01", "mw19" },
-            { "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 0F B6 11", "vg" },
-        };
-
-        for (auto& cfg : knownScans) {
-            std::vector<hook::library::ScanResult> res{ ScanFunc(cfg.pattern, cfg.id) };
-
-            if (res.size() != 1) {
-                if (res.size() > 1) {
-                    LOG_TRACE("Too many finds for scan {}", cfg.id);
-                }
-                continue;
-            }
-
-            DecryptStringImpl = res[0].GetPtr<char* (*)(char* str)>();
-            if (res[0].entry) {
-                // rename it to DecryptString if we want to dump the scans
-                res[0].entry->name = "DecryptString";
-            }
-            LOG_TRACE("Loaded DecryptStringImpl={} ({})", hook::library::CodePointer{ DecryptStringImpl }, cfg.id);
-            return true; // loaded
-        }
-
-        return false;
     }
 
     bool LoadDecryptModule(hook::module_mapper::Module& mod) {
