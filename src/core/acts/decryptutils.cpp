@@ -42,7 +42,7 @@ namespace acts::decryptutils {
                 LOG_ERROR("Invalid decrypt.json file");
                 return false;
             }
-            
+
             for (auto& [vid, vpattern] : scans.GetObj()) {
                 const char* id{ vid.GetString() };
                 const char* pattern{ vpattern.GetString() };
