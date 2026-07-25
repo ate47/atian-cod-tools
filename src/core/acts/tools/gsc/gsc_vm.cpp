@@ -41,6 +41,7 @@
 #include <tools/gsc/opcodes/gsc_opcodes_sat_17.hpp>
 #include <tools/gsc/opcodes/gsc_opcodes_sat_18.hpp>
 #include <tools/gsc/opcodes/gsc_opcodes_sat_19.hpp>
+#include <tools/gsc/opcodes/gsc_opcodes_sat_1a.hpp>
 
 // vm
 #include <tools/gsc/vm/gsc_vm_gscbin.hpp>
@@ -111,6 +112,7 @@ namespace tool::gsc::vm {
                 RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_17>>(VMI_SAT_17);
                 RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_18>>(VMI_SAT_18);
                 RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_19>>(VMI_SAT_19);
+                RegisterGSCOBJHandler<T1116GSCOBJHandler<VMI_SAT_1A>>(VMI_SAT_1A);
 
                 // register GBD data
                 RegisterGDBOBJHandler<GscGdbActs>();
@@ -206,6 +208,7 @@ namespace tool::gsc::vm {
         OpCodeSat17Registry::OpCode();
         OpCodeSat18Registry::OpCode();
         OpCodeSat19Registry::OpCode();
+        OpCodeSat1ARegistry::OpCode();
     }
 } // namespace tool::gsc::vm
 

@@ -6,15 +6,15 @@ namespace tool::gsc::opcode {
         static void OpCode() {
             VmInfo* t1019 = RegisterVM(
                 VMI_SAT_19,
-                "Call of Duty: Black Ops 7",
+                "Call of Duty: Black Ops 7 (19)",
                 "t11",
-                "bo7",
+                "bo7_19",
                 VmFlags::VMF_CRC_DUMP | VmFlags::VMF_FOREACH_IW_KEYS | VmFlags::VMF_EXPORT_CRC32 | VmFlags::VMF_HASH64 |
                     VmFlags::VMF_HASH_CER | VmFlags::VMF_HASH_PATH_IW | VmFlags::VMF_CALL_NO_PARAMS |
                     VmFlags::VMF_IW_LIKE | VmFlags::VMF_ISTRING_HASHED | VmFlags::VMF_WAITTILL_RETURN
             ); // VmFlags::VMF_IW_CALLS | VmFlags::VMF_NO_PARAM_FLAGS |
                // VmFlags::VMF_NO_PLATFORM
-            t1019->RegisterVmName("sat", "blackops7", "bo7");
+            t1019->RegisterVmName("sat19", "blackops7_19", "bo7_19");
             t1019->AddPlatform(PLATFORM_PC);
             t1019->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
             t1019->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);

@@ -61,6 +61,7 @@ namespace tool::gsc::opcode {
         VMI_SAT_17 = 0xa0d43534717,
         VMI_SAT_18 = 0xa0d43534718,
         VMI_SAT_19 = 0xa0d43534719,
+        VMI_SAT_1A = 0xa0d4353471a,
 
         // IW old VMs
         VMI_IW_GSCBIN = 0x00435347, // "GSC\0"
