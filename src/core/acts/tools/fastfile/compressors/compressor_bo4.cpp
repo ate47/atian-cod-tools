@@ -44,7 +44,13 @@ namespace {
 
     class FFCompressorBO4 : public FFCompressor {
       public:
+        static constexpr uint32_t READ_SEGMENT = 0x800000;
+        static constexpr uint32_t ZLIB_STORED_OVERHEAD = 11;
+        static constexpr uint32_t MIN_FILLER_GAP = (uint32_t)sizeof(fastfile::DBStreamHeader) + ZLIB_STORED_OVERHEAD + 4;
+        static constexpr uint32_t SAFE_MARGIN = MIN_FILLER_GAP;
+
         FFCompressorBO4() : FFCompressor("BO4", "Black ops 4 fast file compressor") {}
+
         void Init(FastFileLinkerOption& opt) override {
             constexpr size_t maxSize{ utils::GetMaxSize<int32_t>() };
             if (opt.chunkSize > maxSize) {
@@ -80,7 +86,6 @@ namespace {
             }
 
             for (fastfile::FastFile& ff : ctx.fastfiles) {
-
                 AesKeyLocal* aesKey{};
                 uint8_t aesIV[16]{};
                 uint8_t aesVal[16]{};
@@ -113,12 +118,6 @@ namespace {
                     alg,
                     chunkSize
                 );
-
-                constexpr uint32_t READ_SEGMENT = 0x800000;
-                constexpr uint32_t ZLIB_STORED_OVERHEAD = 11;
-                constexpr uint32_t MIN_FILLER_GAP =
-                    (uint32_t)sizeof(fastfile::DBStreamHeader) + ZLIB_STORED_OVERHEAD + 4;
-                constexpr uint32_t SAFE_MARGIN = MIN_FILLER_GAP;
 
                 while (remainingSize > 0) {
                     uint32_t uncompressedSize{ (uint32_t)std::min<size_t>(chunkSize, remainingSize) };
@@ -178,16 +177,19 @@ namespace {
                             symmetric_CTR ctr{};
                             int r;
                             if ((r = ctr_start(aesCipher, aesVal, aesKey->key, sizeof(aesKey->key), 0, 0, &ctr)) !=
-                                CRYPT_OK)
+                                CRYPT_OK) {
                                 throw std::runtime_error(
                                     std::format("Failed to start ctr {} for ff {}", error_to_string(r), ff.ffname)
                                 );
-                            if ((r = ctr_encrypt(fillerData, fillerData, fh.compressedSize, &ctr)) != CRYPT_OK)
+                            }
+                            if ((r = ctr_encrypt(fillerData, fillerData, fh.compressedSize, &ctr)) != CRYPT_OK) {
                                 throw std::runtime_error(
                                     std::format("Can't encrypt filler block 0x{:x}: {}", idx, error_to_string(r))
                                 );
+                            }
                             *((uint64_t*)&aesVal[0]) += fh.compressedSize;
                         }
+
                         std::memcpy(
                             &out[fillerOffset + sizeof(fastfile::DBStreamHeader)],
                             fillerData,
@@ -208,6 +210,7 @@ namespace {
                         idx++;
                         continue;
                     }
+
                     uint32_t alignedSize{ utils::Aligned<uint32_t>((uint32_t)compressBuffer.size()) };
                     compressedSize += compressBuffer.size();
 
@@ -225,16 +228,13 @@ namespace {
                     byte* compressedData{ compressBuffer.data() };
                     if (aesKey) {
                         symmetric_CTR ctr{};
-
                         int r;
-
                         if ((r = ctr_start(aesCipher, aesVal, aesKey->key, sizeof(aesKey->key), 0, 0, &ctr)) !=
                             CRYPT_OK) {
                             throw std::runtime_error(
                                 std::format("Failed to start ctr {} for ff {}", error_to_string(r), ff.ffname)
                             );
                         }
-
                         if ((r = ctr_encrypt(compressedData, compressedData, h.compressedSize, &ctr)) != CRYPT_OK) {
                             throw std::runtime_error(
                                 std::format("Can't encrypt block 0x{:x}: {}", idx, error_to_string(r))
