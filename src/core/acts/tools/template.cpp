@@ -1,17 +1,10 @@
 #include <includes.hpp>
 #include <core/config.hpp>
 #include <mstch/mstch.hpp>
+#include <game_data.hpp>
 #include <regex>
 
 namespace {
-    std::filesystem::path GetBaseDir() {
-        std::string dir{ core::config::GetString("data.dir", "") };
-        if (dir.empty()) {
-            return utils::GetProgDir() / "data" / "templates";
-        }
-        return std::filesystem::path{ dir } / "templates";
-    }
-
     void PrintTemplateInfo(const std::filesystem::path& base, const char* name) {
         std::filesystem::path path{ base / std::format("{}.json", name) };
         core::config::Config tmpl{ path };
@@ -68,7 +61,7 @@ namespace {
     }
 
     int gen_template(int argc, const char* argv[]) {
-        std::filesystem::path base{ GetBaseDir() };
+        std::filesystem::path base{ acts::game_data::GetDataDir() / "templates" };
         if (tool::NotEnoughParam(argc, 1)) {
             PrintTemplateInfoAll(base);
             return tool::BAD_USAGE;

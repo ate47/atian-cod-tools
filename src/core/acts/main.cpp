@@ -17,6 +17,7 @@
 #include <core/shared_cfg_data.hpp>
 #include <core/plugins.hpp>
 #include <acts_api/version.h>
+#include <game_data.hpp>
 
 namespace {
     inline bool ShouldHandleACTSOptions(int argc, const char* argv[]) {
@@ -469,12 +470,12 @@ int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
 
     // load aes keys
     std::filesystem::path aesKeyFile{ opt.aesKeys ? std::filesystem::path{ opt.aesKeys }
-                                                  : utils::GetProgDir() /
+                                                  : acts::game_data::GetDataDir() / "keys" /
                                                         compatibility::acti::crypto_keys::DEFAULT_AES_KEY_FILE };
     compatibility::acti::crypto_keys::LoadAesKeys(aesKeyFile);
     // load rsa keys
     std::filesystem::path rsaKeyFile{ opt.rsaKeys ? std::filesystem::path{ opt.rsaKeys }
-                                                  : utils::GetProgDir() /
+                                                  : acts::game_data::GetDataDir() / "keys" /
                                                         compatibility::acti::crypto_keys::DEFAULT_RSA_KEY_FILE };
     compatibility::acti::crypto_keys::LoadRsaKeys(rsaKeyFile);
 

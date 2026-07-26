@@ -18,13 +18,15 @@ namespace acts::game_data {
         { "GetOffset32", SCT_GET_OFFSET32 },
     };
 
-    std::filesystem::path GetBaseDir() {
+    std::filesystem::path GetDataDir() {
         std::string scanpath{ core::config::GetString("data.dir", "") };
         if (scanpath.empty()) {
-            return utils::GetProgDir() / "data" / "games";
+            return utils::GetProgDir() / "data";
         }
-        return std::filesystem::path{ scanpath } / "games";
+        return std::filesystem::path{ scanpath };
     }
+
+    std::filesystem::path GetGameDir() { return GetDataDir() / "games"; }
 
     size_t ParseOffsetScan(const std::string& scan) {
         size_t val;
@@ -45,7 +47,7 @@ namespace acts::game_data {
 
     std::vector<std::string> GetAllGameData() {
         std::vector<std::filesystem::path> paths{};
-        utils::GetFileRecurseExt(GetBaseDir(), paths, ".json\0", true);
+        utils::GetFileRecurseExt(GetGameDir(), paths, ".json\0", true);
         std::vector<std::string> r{};
 
         for (std::filesystem::path& path : paths) {
@@ -64,7 +66,7 @@ namespace acts::game_data {
         if (*dirname == ':') {
             cfg.SetConfigPath(utils::GetProgDir() / std::format("{}.json", dirname + 1));
         } else {
-            cfg.SetConfigPath(GetBaseDir() / std::format("{}.json", dirname));
+            cfg.SetConfigPath(GetGameDir() / std::format("{}.json", dirname));
         }
         if (!cfg.SyncConfig(false)) {
             throw std::runtime_error(std::format("Can't find scan dir {}: {}", dirname, cfg.configFile.string()));

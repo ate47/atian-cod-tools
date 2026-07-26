@@ -59,6 +59,7 @@ namespace core::config {
         ConfigGenericRefs(ConfigGenericRefs&& other) noexcept : main(other.main), base(other.base) {}
 
         RapidJsonGeneric& GetVal(const char* path, size_t off, RapidJsonGeneric& loc);
+        inline RapidJsonGeneric& GetVal(const char* path) { return GetVal(path, 0, base); }
         void SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc);
 #endif
 
