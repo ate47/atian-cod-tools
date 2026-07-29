@@ -6,7 +6,8 @@
 
 namespace acts::game_data {
     constexpr const char* BASE_PARENT = "scans";
-    std::filesystem::path GetBaseDir();
+    std::filesystem::path GetGameDir();
+    std::filesystem::path GetDataDir();
     size_t ParseOffsetScan(const std::string& scan);
     std::vector<std::string> GetAllGameData();
 
