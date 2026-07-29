@@ -204,6 +204,8 @@ namespace fastfile::linker::bo4 {
         bool isGrouped;
 
         XAssetLinker(bool isGrouped = false) : isGrouped(isGrouped) {}
+
+        virtual void PreLink(BO4LinkContext& ctx) {}
         virtual void Compute(BO4LinkContext& ctx, const char* id, BO4FFContext& ff) = 0;
         virtual void ComputeFinal(BO4LinkContext& ctx, BO4FFContext& ff) {}
     };

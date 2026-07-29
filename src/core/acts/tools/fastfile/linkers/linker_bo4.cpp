@@ -101,42 +101,8 @@ namespace fastfile::linker::bo4 {
             bo4ctx.mainFF.ffname = ctx.mainFFName;
             bo4ctx.mainFF.ffnameHash = bo4ctx.HashXHash(ctx.mainFFName);
 
-            // auto load images in the directory
-            if (ctx.zone.GetConfigBool("auto_image", false)) {
-                // stbi's extensions
-                static const std::unordered_set<std::string> imageExtensions{
-                    ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".psd", ".gif", ".hdr", ".pic", ".pnm"
-                };
-
-                std::filesystem::path imagesDir{ ctx.input / "images" };
-                std::error_code ec{};
-                if (std::filesystem::is_directory(imagesDir, ec)) {
-                    std::vector<fastfile::zone::AssetData>& imgAssets{ ctx.zone.assets["image"] };
-
-                    std::unordered_set<std::string> existing{};
-                    for (fastfile::zone::AssetData& asset : imgAssets) {
-                        existing.emplace(asset.value);
-                    }
-
-                    for (const std::filesystem::directory_entry& entry :
-                         std::filesystem::directory_iterator{ imagesDir, ec }) {
-                        if (!entry.is_regular_file()) {
-                            continue;
-                        }
-                        std::string ext{ entry.path().extension().string() };
-                        utils::LowerCase(ext.data());
-                        if (!imageExtensions.contains(ext)) {
-                            continue;
-                        }
-                        std::string filename{ entry.path().filename().string() };
-                        if (!existing.emplace(filename).second) {
-                            continue; // already listed manually
-                        }
-                        imgAssets.emplace_back(ctx.strs.CloneStr(filename), false, 0);
-                    }
-                } else {
-                    LOG_WARNING("auto_image enabled but directory '{}' doesn't exist", imagesDir.string());
-                }
+            for (auto& [type, linker] : GetWorkers()) {
+                linker->PreLink(bo4ctx);
             }
 
             for (auto& [t, d] : ctx.zone.assets) {
