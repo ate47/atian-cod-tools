@@ -21,5 +21,6 @@ Please try to create bug reports that are:
 - Fork the repository on GitHub
 - Create a new branch from the branch you want to fix the issue with the name.
 - Make your update to the code with commits with meaningful messages.
+- Pull requests should be formatted using `cmake --build build --target format`, `clang-format` is required to format
 - Squash your commits if necessary
 - Create a pull request to the original branch you created the branch
