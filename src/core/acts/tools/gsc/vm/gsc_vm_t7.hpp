@@ -212,9 +212,9 @@ namespace tool::gsc {
                 nflags |= (flags & 0xF);
                 break; // wtf?
             }
-            if (flags & DEV_CALL)
+            if (flags & T8GSCImportFlags::DEV_CALL)
                 nflags |= 0x10;
-            if (flags & ACTS_USE_FULL_NAMESPACE)
+            if (flags & T8GSCImportFlags::GET_CALL)
                 nflags |= 0x20;
 
             return nflags;
@@ -431,9 +431,7 @@ namespace tool::gsc {
                 nflags |= (flags & 0xF);
                 break; // wtf?
             }
-            if (flags & DEV_CALL)
-                nflags |= 0x10;
-            if (flags & ACTS_USE_FULL_NAMESPACE)
+            if (flags & T8GSCImportFlags::GET_CALL)
                 nflags |= 0x20;
 
             return nflags;
@@ -650,9 +648,9 @@ namespace tool::gsc {
                 nflags |= (flags & 0xF);
                 break; // wtf?
             }
-            if (flags & DEV_CALL)
+            if (flags & T8GSCImportFlags::DEV_CALL)
                 nflags |= 0x10;
-            if (flags & ACTS_USE_FULL_NAMESPACE)
+            if (flags & T8GSCImportFlags::GET_CALL)
                 nflags |= 0x20;
 
             return nflags;

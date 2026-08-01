@@ -245,14 +245,6 @@ namespace tool::gsc::compiler {
                 opt.config.checksum = (int32_t)handler->GetDefaultChecksum(client);
             }
 
-            const char* fn = opt.config.name;
-            // client ? opt.nameClient : opt.nameServer;
-            const char* fileNameStr = fn && *fn ? fn : nullptr;
-
-            if (!fileNameStr) {
-                fileNameStr = handler->GetDefaultName(client);
-            }
-
             if (client) {
                 if (opt.fileNameSpaceClient && *opt.fileNameSpaceClient)
                     opt.config.fileName = opt.fileNameSpaceClient;

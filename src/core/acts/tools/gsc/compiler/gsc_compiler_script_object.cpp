@@ -1366,6 +1366,14 @@ namespace tool::gsc::compiler {
             }
         }
 
+        const char* fn = config.name;
+        // client ? opt.nameClient : opt.nameServer;
+        const char* fileNameStr = fn && *fn ? fn : nullptr;
+
+        if (!fileNameStr) {
+            fileNameStr = gscHandler->GetDefaultName(type == FILE_CSC);
+        }
+
         uint32_t nameOffSet{};
         if (gscHandler->HasFlag(tool::gsc::GOHF_STRING_NAMES)) {
             nameOffSet = (uint32_t)data.size();
