@@ -2,6 +2,10 @@
 #include <tools/gsc/compiler/gsc_compiler_function_object.hpp>
 #include <tools/gsc/compiler/gsc_compiler_parser.hpp>
 #include <tools/gsc/compiler/gsc_compiler_script_object.hpp>
+#if __has_include(<tools/gsc/compiler/_private_gsc_compiler.hpp>)
+#define __ACTS_PRIVATE_GSC_COMPILER
+#include <tools/gsc/compiler/_private_gsc_compiler.hpp>
+#endif
 
 namespace tool::gsc::compiler {
 
@@ -144,7 +148,12 @@ namespace tool::gsc::compiler {
     }
 
     void FunctionObject::OptimizeNodes() {
-        // todo: find something to do?
+#ifdef __ACTS_PRIVATE_GSC_COMPILER
+        // this code is here to mess up my own decompiler, so not public
+        if (obj.config.obfuscate) {
+            ObfuscateFunctionObject(*this);
+        }
+#endif
     }
 
 } // namespace tool::gsc::compiler

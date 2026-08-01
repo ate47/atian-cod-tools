@@ -38,6 +38,7 @@ scripts/antlr4.jar
 # Private stuff
 src/acts/tools/gsc/vm/gsc_vm_private_*.cpp
 src/**/_private_*.cpp
+src/**/_private_*.hpp
 # VS
 /.vs/
 /.vscode/
