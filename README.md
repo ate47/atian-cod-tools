@@ -96,6 +96,7 @@ The GSC file format contains the scripts used by the different games.
 | Black Ops 7 (SAT)        | 16  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 | Black Ops 7 (SAT)        | 18  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 | Black Ops 7 (SAT)        | 19  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
+| Black Ops 7 (SAT)        | 1a  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 
 - \* : Some source repositories might not be public yet.
 - **Dc**: With pre-decode, see the [Using encrypted page](https://github.com/ate47/atian-cod-tools/wiki/GSC-Decompiler#using-encrypted-scripts).
