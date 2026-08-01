@@ -163,7 +163,8 @@ namespace {
         if (!ignoreDB) {
             LOG_INFO("Loading db assets load");
 
-            if (!hook::library::ScanMatch(Load_AssetHeader, "41 8b 01 85 c0 0f 84 ?? ?? ?? ??")) {
+            // mov eax, [r9]
+            if (!hook::library::ScanMatch(Load_AssetHeader, "41 8b 01")) {
                 throw std::runtime_error("Load_AssetHeader has an invalid structure for code data generation");
             }
             std::unordered_map<size_t, byte*> loadPtrFuncs{};

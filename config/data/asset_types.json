@@ -249,6 +249,9 @@
     "emote": {
         "name": "Emote"
     },
+    "emotetransient": {
+        "name": "EmoteTransient"
+    },
     "enemyselector": {
         "name": "EnemySelector"
     },
@@ -260,6 +263,12 @@
     },
     "fastfilemodule": {
         "name": "FastFileModule"
+    },
+    "flowgraphdef": {
+        "name": "FlowgraphDef"
+    },
+    "flowgraphnodedefset": {
+        "name": "FlowgraphNodeDefSet"
     },
     "fogspline": {
         "name": "FogSpline"
@@ -303,8 +312,14 @@
     "gamemode": {
         "name": "GameMode"
     },
+    "gamemodefeatureflags": {
+        "name": "GameModeFeatureFlags"
+    },
     "gamemodeinit": {
         "name": "GameModeInit"
+    },
+    "gamemodescenario": {
+        "name": "GameModeScenario"
     },
     "gameprops": {
         "name": "GameProps"
@@ -341,6 +356,9 @@
     },
     "gobo": {
         "name": "Gobo"
+    },
+    "gpudatabuffer": {
+        "name": "GPUDataBuffer"
     },
     "gradingclut": {
         "name": "GradingClut"
@@ -379,6 +397,9 @@
     },
     "hwconfiggroup": {
         "name": "HWConfigGroup"
+    },
+    "hwconfigregistry": {
+        "name": "HWConfigRegistry"
     },
     "hwconfigtieredgroup": {
         "name": "HWConfigTieredGroup"
@@ -430,6 +451,9 @@
     },
     "indexedlisttype": {
         "name": "IndexedListType"
+    },
+    "indexedlisttypedev": {
+        "name": "IndexedListTypeDev"
     },
     "indoorexclusiontile": {
         "name": "IndoorExclusionTile"
@@ -545,6 +569,9 @@
     "mayhem": {
         "name": "Mayhem"
     },
+    "metabonelist": {
+        "name": "MetaboneList"
+    },
     "mldeformer": {
         "name": "MLDeformer"
     },
@@ -574,6 +601,9 @@
     },
     "netconststrings": {
         "name": "NetConstStrings"
+    },
+    "notifgroup": {
+        "name": "NotifGroup"
     },
     "objective": {
         "name": "Objective"
@@ -606,11 +636,17 @@
     "operator": {
         "name": "Operator"
     },
+    "operatorbonesync": {
+        "name": "OperatorBoneSync"
+    },
     "operatorlist": {
         "name": "OperatorList"
     },
     "operatorskin": {
         "name": "OperatorSkin"
+    },
+    "operatorvoicepackage": {
+        "name": "OperatorVoicePackage"
     },
     "parachutedata": {
         "name": "ParachuteData"
@@ -745,6 +781,12 @@
     "reverbpreset": {
         "name": "ReverbPreset"
     },
+    "rgblogitechprofile": {
+        "name": "RGBLogitechProfile"
+    },
+    "rgbmicrosoftprofile": {
+        "name": "RGBMicrosoftProfile"
+    },
     "rumble": {
         "name": "Rumble"
     },
@@ -805,6 +847,9 @@
     "sndbreathstate": {
         "name": "SndBreathState"
     },
+    "sndbreathsettings": {
+        "name": "SNDBreathSettings"
+    },
     "sndchannels": {
         "name": "SndChannels"
     },
@@ -822,6 +867,12 @@
     },
     "sndfutz": {
         "name": "SndFutz"
+    },
+    "sndhdrloudness": {
+        "name": "SndHDRLoudness"
+    },
+    "sndhdrsettings": {
+        "name": "SNDHDRSettings"
     },
     "sndmasterpreset": {
         "name": "SndMasterPreset"
@@ -843,6 +894,9 @@
     },
     "sndtable": {
         "name": "SndTable"
+    },
+    "sndtagmanager": {
+        "name": "SNDTagManager"
     },
     "sndtimescale": {
         "name": "SndTimeScale"
@@ -1025,8 +1079,14 @@
     "vhmdata": {
         "name": "VHMData"
     },
+    "virtualcutoutmap": {
+        "name": "VirtualCutOutMap"
+    },
     "visionset": {
         "name": "VisionSet"
+    },
+    "visualscript": {
+        "name": "VisualScript"
     },
     "volumetriccloud": {
         "name": "VolumetricCloud"
@@ -1058,6 +1118,9 @@
     "weaponaccuracy": {
         "name": "WeaponAccuracy"
     },
+    "weaponarchetype": {
+        "name": "WeaponArchetype"
+    },
     "weaponblueprint": {
         "name": "WeaponBlueprint"
     },
@@ -1072,6 +1135,9 @@
     },
     "weapontunables": {
         "name": "WeaponTunables"
+    },
+    "weaponwearable": {
+        "name": "WeaponWearable"
     },
     "weather": {
         "name": "Weather"
@@ -1096,6 +1162,9 @@
     },
     "weatherprecipitationsfxpackage": {
         "name": "WeatherPrecipitationSfxPackage"
+    },
+    "weathersettings": {
+        "name": "WeatherSettings"
     },
     "weathersoundthresholds": {
         "name": "WeatherSoundThresholds"
@@ -1160,8 +1229,14 @@
     "xcompositemodel": {
         "name": "XCompositeModel"
     },
+    "xlens": {
+        "name": "XLens"
+    },
     "xmodel": {
         "name": "XModel"
+    },
+    "xmodelalias": {
+        "name": "XModelAlias"
     },
     "xmodeldetailcollision": {
         "name": "XModelDetailCollision"
@@ -1171,44 +1246,5 @@
     },
     "zivart": {
         "name": "Zivart"
-    },
-    "rgbmicrosoftprofile": {
-        "name": "RGBMicrosoftProfile"
-    },
-    "gamemodefeatureflags": {
-        "name": "GameModeFeatureFlags"
-    },
-    "indexedlisttypedev": {
-        "name": "IndexedListTypeDev"
-    },
-    "notifgroup": {
-        "name": "NotifGroup"
-    },
-    "gpudatabuffer": {
-        "name": "GPUDataBuffer"
-    },
-    "emotetransient": {
-        "name": "EmoteTransient"
-    },
-    "flowgraphdef": {
-        "name": "FlowgraphDef"
-    },
-    "flowgraphnodedefset": {
-        "name": "FlowgraphNodeDefSet"
-    },
-    "gamemodescenario": {
-        "name": "GameModeScenario"
-    },
-    "weaponarchetype": {
-        "name": "WeaponArchetype"
-    },
-    "operatorvoicepackage": {
-        "name": "OperatorVoicePackage"
-    },
-    "virtualcutoutmap": {
-        "name": "VirtualCutOutMap"
-    },
-    "weathersettings": {
-        "name": "WeatherSettings"
     }
 }

@@ -210,14 +210,8 @@
             "ctype": "void DB_RewindEnd(DBLoadCtx *ctx, DBRewind *rewind)"
         },
         "Load_String": {
-            "scan": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 2A 48 8B F2",
-            "ctype": "void Load_String(DBLoadCtx* context, char** pstr)",
-            "type": "Absolute",
-            "single": true
-        },
-        "Load_StringName": {
             "scan": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B 32 41",
-            "ctype": "void Load_StringName(DBLoadCtx* context, char** pstr)",
+            "ctype": "void Load_String(DBLoadCtx* context, char** pstr)",
             "type": "Absolute",
             "single": true
         },
@@ -276,6 +270,12 @@
             }
         },
         "fastfile": {
+            "DB_RegisterScrString": {
+                "scan": "48 89 5C 24 08 48 89 74 24 18 57 48 83 EC 20 48 8B FA 48",
+                "ctype": "void DB_RegisterScrString(DBLoadCtx* context, const char** pstr)",
+                "type": "Absolute",
+                "single": true
+            },
             "$StreamDelta1": {
                 "scan": "4C 8B DC 56 48 83 EC ?? 4C",
                 "type": "Absolute",
@@ -333,7 +333,7 @@
                 "single": true
             },
             "$LoadStreamingInfo": {
-                "scan": "48 89 5C 24 08 48 89 6C 24 18 48 89 74 24 20 57 41 56 41 57 48 83 EC 20 0F",
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC 20 0F B6 EA",
                 "type": "Absolute",
                 "single": true
             },
@@ -355,12 +355,6 @@
             "$LoadDlogSchema": {
                 "scan": "48 89 5C 24 20 48 89 4C 24 08 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 20 45",
                 "type": "Absolute",
-                "single": true
-            },
-            "$unkSnd": {
-                "scan": "E8 ?? ?? ?? ?? 4C 8B C0 49 C1 E8 3F 45 84 C0 75 58 48 B9 FF FF FF FF FF FF FF 7F 48 23 C1 48 B9 68 91 22 30 37 D0 5A 1B",
-                "offset": 1,
-                "type": "Relative",
                 "single": true
             }
         }

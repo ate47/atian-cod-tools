@@ -306,6 +306,7 @@ namespace fastfile::handlers::bo7 {
         }
 
         void Load_String(DBLoadCtx* context, char** pstr) {
+            LOG_TRACE("Load_String({}) {}", (void*)pstr, hook::library::CodePointer{ _ReturnAddress() });
             char* str{ *pstr };
             do {
                 gcx.reader->Read(str, 1);
@@ -551,7 +552,6 @@ namespace fastfile::handlers::bo7 {
                 game.Redirect("GetMappedTypeStub", GetMappedTypeStub);
                 game.Redirect("LoadStreamTA", LoadStreamTA);
                 game.Redirect("Load_String", Load_String);
-                game.Redirect("Load_StringName", Load_String);
                 game.Redirect("DB_AddAsset", DB_AddAsset);
                 game.Redirect("DB_AddAssetRef", DB_AddAssetRef);
                 game.Redirect("DB_ReadXFile", DB_ReadXFile);

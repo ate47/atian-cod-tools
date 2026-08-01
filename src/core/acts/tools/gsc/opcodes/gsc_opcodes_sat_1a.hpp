@@ -250,7 +250,6 @@ namespace tool::gsc::opcode {
             t101a->RegisterOpCode(PLATFORM_PC, OPCODE_ScriptMethodThreadCallPointerEndOn, 0x3d);
             t101a->RegisterOpCode(PLATFORM_PC, OPCODE_GetLongInteger, 0x35);
             t101a->RegisterOpCode(PLATFORM_PC, OPCODE_SAT_GetOmnVarHash, 0x56);
-
         }
     };
 } // namespace tool::gsc::opcode
