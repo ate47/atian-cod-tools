@@ -4,7 +4,9 @@
 #include <gsc/gsc_acts_debug.hpp>
 #include <gsc/gsc_acts_addons.hpp>
 #include <core/actsinfo.hpp>
-#include <utils/crc.hpp>
+// crc_cpp stuff
+#undef small
+#include <crc_cpp.h>
 
 namespace tool::gsc::compiler {
     static NumberOpCodesS NumberOpCodes[]{
@@ -20,6 +22,17 @@ namespace tool::gsc::compiler {
         { OPCODE_GetUnsignedInteger, 0, 0xFFFFFFFF, 4, false, true },
         { OPCODE_GetLongInteger, (-0x7FFFFFFFFFFFFFFFLL - 1LL), 0x7FFFFFFFFFFFFFFF, 8, false, false },
     };
+
+    static uint32_t ComputeCRC32(void* data, size_t len) {
+        byte* b{ (byte*)data };
+
+        crc_cpp::crc32 crc{};
+
+        for (size_t i = 0; i < len; i++) {
+            crc.update(b[i]);
+        }
+        return crc.final();
+    }
 
     CompileObject::CompileObject(
         CompilerConfig& config, GscFileType file, InputInfo& nfo, std::shared_ptr<tool::gsc::GSCOBJHandler> gscHandler
@@ -820,10 +833,8 @@ namespace tool::gsc::compiler {
             exp.size = data.size() - exp.location;
 
             // compute function crc
-            utils::crc::CRC32 crc{};
-            // function crc
-            crc.Update(&data[exp.location], exp.size);
-            e.checksum = crc;
+            // that.config.obfuscate=1 makes Cerberus stop without decompiling the script
+            e.checksum = ComputeCRC32(&data[exp.location], that.config.obfuscate ? 1 : exp.size);
 
             that.gscHandler->WriteExport(&data[expTable + that.gscHandler->GetExportSize() * exportIndex++], e);
 
@@ -1110,9 +1121,7 @@ namespace tool::gsc::compiler {
 
         int32_t checksum = config.checksum;
         if (!checksum) {
-            utils::crc::CRC32 fileCRC{};
-            fileCRC.Update(data.data(), data.size());
-            checksum = fileCRC;
+            checksum = ComputeCRC32(data.data(), data.size());
 
             if (gscHandler->HasFlag(tool::gsc::GOHF_NOTIFY_CRC_STRING)) {
                 // write the end crc string into the padding
