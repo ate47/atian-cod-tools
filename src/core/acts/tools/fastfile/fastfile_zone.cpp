@@ -153,7 +153,7 @@ namespace fastfile::zone {
         if (utils::EqualIgnoreCase("true", v))
             return true;
         if (utils::EqualIgnoreCase("false", v))
-            return true;
+            return false;
         LOG_WARNING("Invalid bool value for {}: {}", name, v);
         return defaultVal;
     }
