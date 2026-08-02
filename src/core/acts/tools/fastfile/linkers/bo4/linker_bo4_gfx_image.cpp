@@ -1,17 +1,26 @@
 #include <includes.hpp>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_DXT_IMPLEMENTATION
 #define STB_IMAGE_STATIC
+#define STB_DXT_STATIC
 #include <stb_image.h>
+#include <stb_dxt.h>
 
 namespace {
     using namespace fastfile::linker::bo4;
     enum GfxPixelFormat : int32_t {
         GFX_PF_INVALID = 0x0,
+
+        // for normal non-compressed images
         GFX_PF_R8G8B8A8_T1 = 28,
         GFX_PF_R8G8B8A8_T2 = 29,
         GFX_PF_R8G8B8A8_T3 = 31,
         GFX_PF_R8G8B8A8_T4 = 87,
+
+        // for compressed images
+        GFX_PF_BC1 = 72,
+        GFX_PF_BC3 = 78,
     };
     enum MapType : byte {
         MAPTYPE_NONE = 0x0,
@@ -93,14 +102,14 @@ namespace {
 
             gfx.unk0 = 0;
             gfx.totalSize = x * y * channels;
-            gfx.width = x;
-            gfx.height = y;
             gfx.mapType = MAPTYPE_2D;
             gfx.levelCount = 1;
             gfx.depth = 1;
             gfx.pixels = (byte*)fastfile::linker::memory::POINTER_NEXT;
 
             LOG_TRACE("Image: {}x{}x{}", x, y, channels);
+
+            /*
             switch (channels) {
             case 4:
                 gfx.imageFormat = GFX_PF_R8G8B8A8_T2;
@@ -110,11 +119,58 @@ namespace {
                 ctx.error = true;
                 return;
             }
+            */
+
+            uint32_t blockW{ (uint32_t)((x + 3) / 4) };
+            uint32_t blockH{ (uint32_t)((y + 3) / 4) };
+
+            gfx.width = (uint16_t)(blockW * 4);
+            gfx.height = (uint16_t)(blockH * 4);
+
+            bool hasAlpha{ false };
+            for (int i = 0; i < x * y && !hasAlpha; i++) {
+                if (img[i * 4 + 3] != 255)
+                    hasAlpha = true;
+            }
+
+            size_t blockSize{ hasAlpha ? (size_t)16 : (size_t)8 };
+            std::vector<byte> compressed(blockW * blockH * blockSize);
+            if (channels == 4) {
+                for (uint32_t by = 0; by < blockH; by++) {
+                    for (uint32_t bx = 0; bx < blockW; bx++) {
+                        byte block[4 * 4 * 4]{}; // 4x4 RGBA, zero-padded for edge blocks
+                        for (uint32_t py = 0; py < 4; py++) {
+                            uint32_t sy{ by * 4 + py };
+                            if (sy >= (uint32_t)y)
+                                break;
+                            for (uint32_t px = 0; px < 4; px++) {
+                                uint32_t sx{ bx * 4 + px };
+                                if (sx >= (uint32_t)x)
+                                    break;
+                                std::memcpy(&block[(py * 4 + px) * 4], &img[(sy * x + sx) * 4], 4);
+                            }
+                        }
+                        stb_compress_dxt_block(
+                            &compressed[(by * blockW + bx) * blockSize],
+                            block,
+                            hasAlpha ? 1 : 0,
+                            STB_DXT_HIGHQUAL
+                        );
+                    }
+                }
+            } else {
+                LOG_ERROR("Can't compile {} channels image", channels);
+                ctx.error = true;
+                return;
+            }
+
+            gfx.totalSize = (uint32_t)compressed.size();
+            gfx.imageFormat = (GfxPixelFormat)(hasAlpha ? GFX_PF_BC3 : GFX_PF_BC1);
 
             ff.data.PushStream(XFILE_BLOCK_PHYSICAL);
             // pixels
             ff.data.Align(0xFF);
-            ff.data.WriteStream(img, gfx.totalSize);
+            ff.data.WriteStream(compressed.data(), gfx.totalSize);
 
             ff.data.PopStream();
 
