@@ -200,7 +200,9 @@ namespace utils::compress {
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
         case COMP_ZLIB: {
             uLongf destSizef = (uLongf)*destSize;
-            int level{ alg & COMP_HIGH_COMPRESSION ? Z_BEST_COMPRESSION : Z_BEST_SPEED };
+            int level{ (alg & COMP_STORED)             ? Z_NO_COMPRESSION
+                       : (alg & COMP_HIGH_COMPRESSION) ? Z_BEST_COMPRESSION
+                                                       : Z_BEST_SPEED };
             if (compress2((Bytef*)dest, &destSizef, (const Bytef*)src, (uLongf)srcSize, level) != Z_OK)
                 return false;
             *destSize = destSizef;
