@@ -84,7 +84,13 @@ namespace tool::gsc::opcode {
         int Dump(
             std::ostream& out, uint16_t value, ASMContext& context, tool::gsc::T8GSCOBJContext& objctx
         ) const override {
-            out << "Unknown operator: " << std::hex << value << std::endl;
+            bool isValid{ value <= objctx.m_vmInfo->maxOpCode };
+
+            if (isValid) {
+                out << "Unknown operator: " << std::hex << value << std::endl;
+            } else {
+                out << "Invalid operator: " << std::hex << value << " (Something went wrong)" << std::endl;
+            }
 
             byte* oldBcl = context.m_bcl;
             for (size_t j = 0; j < 0x4; j++) {
@@ -181,7 +187,8 @@ namespace tool::gsc::opcode {
                 context.PushASMCNode(op);
                 context.CompleteStatement(false);
 
-                ASMContextNodeMultOp* op2 = new ASMContextNodeMultOp("Unknown operator ", false, TYPE_COMMENT);
+                ASMContextNodeMultOp* op2 =
+                    new ASMContextNodeMultOp(isValid ? "Unknown operator " : "Invalid operator ", false, TYPE_COMMENT);
                 op2->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_VALUE, true, false, true));
                 op2->AddParam(new ASMContextNodeValue<const char*>(context.m_objctx.m_vmInfo->codeName, TYPE_VALUE));
                 op2->AddParam(new ASMContextNodeValue<const char*>(PlatformName(context.m_platform), TYPE_VALUE));

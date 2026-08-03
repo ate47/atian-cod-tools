@@ -207,7 +207,7 @@ namespace tool::gsc {
                 //     // modtool
                 // }
 
-                const auto* handler = ctx.LookupOpCode(opCode);
+                const tool::gsc::opcode::OPCodeInfo* handler{ ctx.LookupOpCode(opCode) };
 
                 if (ctx.m_opt.m_func_floc) {
                     out << "." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
@@ -227,14 +227,6 @@ namespace tool::gsc {
                 }
                 if (!opcodeName) {
                     opcodeName = utils::va("NO_NAME_%d", handler->m_id);
-                }
-
-                if (opCode > objctx.m_vmInfo->maxOpCode) {
-                    throw std::runtime_error(
-                        std::format("FIND errec {} (0x{:x} > 0x{:x})", opcodeName, opCode, objctx.m_vmInfo->maxOpCode)
-                    );
-                    opCode &= objctx.m_vmInfo->maxOpCode;
-                    break;
                 }
 
                 if (ctx.m_opt.m_show_opcode_values) {
