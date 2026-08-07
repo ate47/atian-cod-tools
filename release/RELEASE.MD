@@ -1,49 +1,10 @@
 - acts
 	- fastfile
 		- bo4
-			- link debug data in debug fastfiles
-			- arena seasons, unlockable item, maptable, cpu_occlusion_data, entitlement, hierarchicaltasknetwork, customizationtable, customizationtable_feimages, playerrolecategory, playerrolecategorytable, playerroletemplate, rank, prestige, store and zbarrier unlinkers
-			- ranktable, prestigetable, prestige, rankinfo and zbarrier linkers
-			- use ff name in playlists unlinker
-			- better asset linker to allow default entries
-			- better memory structure
-			- unhash keyvaluepairs keys
-		- bo7
-			- fix handler
-			- some test unlinkers
-			- unhash keyvaluepairs keys
-		- -D option to add defines in linker options
-		- sort hashed asset names in code output
-		- fix some issues related with the pool mode
+			- fix zone compression crash/freeze (#35)
+			- add a better gfx image linker (#34)
+		- fix error with zone bool configurations (#36)
 	- gsc
-		- add support for iw19 and iw1a
-		- fix waittill decompiler/compiler for iw18
-		- split gsc debug data into debug and addon data
-		- fix bo3 imports compilation
-		- fix export checksum to make the files decompilable by Cerberus
-		- disable the previous point in obfuscate compilation mode
-	- hashbrutedictgpu and hashbrutegpu GPU hash brute force tools
-	- add omnvar, t7 and djb2 hash algorithms to hash scanners
-	- test ljec for cw
-	- ignore empty delta for exe_rva
-	- fix error with adding scan to IDC in bo7_ida
-	- bo3moviedecrypt tool to decrypt bo3 movies
-	- move rsa and aes keys to data dir
-- acts ui
-	- open and drag & drop files
-	- djb2 reverse lookup ui tool
-	- gsc decompiler and injector ui tools
-	- settings menu
-	- hash files tool
-- acts shield 
-	- remove hash lookup (fix failing sync)
-	- mock debug hud element functions
-	- test debug hud elements
-	- load debug fastfiles
-	- test option to enable all player roles
-	- pack error messages
-	- add support for gsc acts addon data format
-	- custom gsc import linker and dev strings loader
-	- fix zone mods using same hook (#30)
-- acts api
-	- gsc decompiler
+		- do not stop the gsc disassembler when finding invalid opcode
+
+@NotNierPea
