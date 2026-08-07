@@ -44,7 +44,14 @@ namespace {
 
     class FFCompressorBO4 : public FFCompressor {
       public:
+        static constexpr uint32_t READ_SEGMENT = 0x800000;
+        static constexpr uint32_t ZLIB_STORED_OVERHEAD = 11;
+        static constexpr uint32_t MIN_FILLER_GAP =
+            (uint32_t)sizeof(fastfile::DBStreamHeader) + ZLIB_STORED_OVERHEAD + 4;
+        static constexpr uint32_t SAFE_MARGIN = MIN_FILLER_GAP;
+
         FFCompressorBO4() : FFCompressor("BO4", "Black ops 4 fast file compressor") {}
+
         void Init(FastFileLinkerOption& opt) override {
             constexpr size_t maxSize{ utils::GetMaxSize<int32_t>() };
             if (opt.chunkSize > maxSize) {
@@ -80,7 +87,6 @@ namespace {
             }
 
             for (fastfile::FastFile& ff : ctx.fastfiles) {
-
                 AesKeyLocal* aesKey{};
                 uint8_t aesIV[16]{};
                 uint8_t aesVal[16]{};
@@ -113,15 +119,105 @@ namespace {
                     alg,
                     chunkSize
                 );
+
                 while (remainingSize > 0) {
                     uint32_t uncompressedSize{ (uint32_t)std::min<size_t>(chunkSize, remainingSize) };
+                    uint32_t chunkStart{ (uint32_t)out.size() };
+                    uint32_t boundary{ ((chunkStart / READ_SEGMENT) + 1) * READ_SEGMENT };
 
-                    compressBuffer.clear();
-                    if (!utils::compress::CompressBuffer(alg, toCompress, uncompressedSize, compressBuffer)) {
-                        throw std::runtime_error(
-                            std::format("Can't compress chunk 0x{:x} of size 0x{:x}", idx - 1, uncompressedSize)
-                        );
+                    bool fits{ false };
+                    for (;;) {
+                        compressBuffer.clear();
+                        if (!utils::compress::CompressBuffer(alg, toCompress, uncompressedSize, compressBuffer)) {
+                            throw std::runtime_error(
+                                std::format("Can't compress chunk 0x{:x} of size 0x{:x}", idx, uncompressedSize)
+                            );
+                        }
+                        uint32_t alignedSize{ utils::Aligned<uint32_t>((uint32_t)compressBuffer.size()) };
+                        uint32_t chunkEnd{ chunkStart + (uint32_t)sizeof(fastfile::DBStreamHeader) + alignedSize };
+                        uint32_t gapAfter{ chunkEnd <= boundary ? boundary - chunkEnd : 0 };
+
+                        if (chunkEnd <= boundary && (gapAfter == 0 || gapAfter >= SAFE_MARGIN)) {
+                            fits = true;
+                            break;
+                        }
+                        if (uncompressedSize <= 1) {
+                            fits = false; // give up shrinking and don't write this attempt at all
+                            break;
+                        }
+                        uncompressedSize = (uncompressedSize + 1) / 2;
                     }
+
+                    if (!fits) {
+                        // close the entire remaining gap
+                        uint32_t gap{ boundary - chunkStart };
+                        if (gap < MIN_FILLER_GAP) {
+                            throw std::runtime_error(
+                                std::format("Dead-zone gap 0x{:x} too small to close at 0x{:x}", gap, chunkStart)
+                            );
+                        }
+                        uint32_t targetAligned{ gap - (uint32_t)sizeof(fastfile::DBStreamHeader) };
+                        uint32_t fillerInput{ targetAligned - ZLIB_STORED_OVERHEAD };
+
+                        size_t fillerCompressedSize{};
+                        std::unique_ptr<byte[]> fillerCompressed{ utils::compress::Compress(
+                            utils::compress::COMP_ZLIB | utils::compress::COMP_STORED,
+                            toCompress,
+                            fillerInput,
+                            &fillerCompressedSize
+                        ) };
+                        if (!fillerCompressed) {
+                            throw std::runtime_error("Can't build boundary filler chunk");
+                        }
+
+                        uint32_t fillerOffset{
+                            (uint32_t)utils::Allocate(out, sizeof(fastfile::DBStreamHeader) + targetAligned)
+                        };
+                        fastfile::DBStreamHeader& fh{ *(fastfile::DBStreamHeader*)&out[fillerOffset] };
+                        fh.offset = fillerOffset;
+                        fh.uncompressedSize = fillerInput;
+                        fh.compressedSize = (uint32_t)fillerCompressedSize;
+                        fh.alignedSize = targetAligned;
+
+                        byte* fillerData{ fillerCompressed.get() };
+                        if (aesKey) {
+                            symmetric_CTR ctr{};
+                            int r;
+                            if ((r = ctr_start(aesCipher, aesVal, aesKey->key, sizeof(aesKey->key), 0, 0, &ctr)) !=
+                                CRYPT_OK) {
+                                throw std::runtime_error(
+                                    std::format("Failed to start ctr {} for ff {}", error_to_string(r), ff.ffname)
+                                );
+                            }
+                            if ((r = ctr_encrypt(fillerData, fillerData, fh.compressedSize, &ctr)) != CRYPT_OK) {
+                                throw std::runtime_error(
+                                    std::format("Can't encrypt filler block 0x{:x}: {}", idx, error_to_string(r))
+                                );
+                            }
+                            *((uint64_t*)&aesVal[0]) += fh.compressedSize;
+                        }
+
+                        std::memcpy(
+                            &out[fillerOffset + sizeof(fastfile::DBStreamHeader)],
+                            fillerData,
+                            fh.compressedSize
+                        );
+
+                        toCompress += fillerInput;
+                        remainingSize -= fillerInput;
+
+                        LOG_TRACE(
+                            "filler chunk {} @ offset 0x{:x}: exact-fit stored zlib, {} src bytes, closes boundary "
+                            "0x{:x} exactly",
+                            idx,
+                            fillerOffset,
+                            fillerInput,
+                            boundary
+                        );
+                        idx++;
+                        continue;
+                    }
+
                     uint32_t alignedSize{ utils::Aligned<uint32_t>((uint32_t)compressBuffer.size()) };
                     compressedSize += compressBuffer.size();
 
@@ -139,16 +235,13 @@ namespace {
                     byte* compressedData{ compressBuffer.data() };
                     if (aesKey) {
                         symmetric_CTR ctr{};
-
                         int r;
-
                         if ((r = ctr_start(aesCipher, aesVal, aesKey->key, sizeof(aesKey->key), 0, 0, &ctr)) !=
                             CRYPT_OK) {
                             throw std::runtime_error(
                                 std::format("Failed to start ctr {} for ff {}", error_to_string(r), ff.ffname)
                             );
                         }
-
                         if ((r = ctr_encrypt(compressedData, compressedData, h.compressedSize, &ctr)) != CRYPT_OK) {
                             throw std::runtime_error(
                                 std::format("Can't encrypt block 0x{:x}: {}", idx, error_to_string(r))
@@ -165,10 +258,11 @@ namespace {
                     remainingSize -= uncompressedSize;
 
                     LOG_TRACE(
-                        "Compressed 0x{:x}->0x{:x} at chunk 0x{:x}, remaining 0x{:x}",
+                        "Compressed 0x{:x}->0x{:x} at chunk 0x{:x}, writing to: 0x{:x}, remaining 0x{:x}",
                         uncompressedSize,
                         h.compressedSize,
                         idx,
+                        blockOffset,
                         remainingSize
                     );
 
@@ -214,7 +308,7 @@ namespace {
 
                 // blocks load data
                 for (size_t i = 0; i < fastfile::linker::bo4::XFILE_BLOCK_COUNT; i++) {
-                    header.blockSize[i] = (uint64_t)ff.blockSizes[i] * 2;
+                    header.blockSize[i] = (uint64_t)ff.blockSizes[i];
                 }
 
                 // todo: write other data

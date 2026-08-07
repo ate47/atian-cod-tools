@@ -33,6 +33,9 @@ namespace utils::compress {
         COMP_OODLE_TYPE_HYDRA = 12ull << 9,
         COMP_OODLE_TYPE_LEVIATHAN = 13ull << 9,
         COMP_OODLE_TYPE_MASK = 15ull << 9,
+
+        // stored compression
+        COMP_STORED = 1ull << 13,
     };
 
     constexpr size_t MAX_LZ4_SIZE = 0x7E000000;
