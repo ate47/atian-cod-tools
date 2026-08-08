@@ -30,7 +30,7 @@ namespace tool::gsc::opcode {
             vt7->RegisterVMOperatorFunction(
                 "notify",
                 "<caller> notify(event, param*)",
-                OPCODE_Notify,
+                OPCODE_IW_Notify,
                 VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL,
                 1
             );
