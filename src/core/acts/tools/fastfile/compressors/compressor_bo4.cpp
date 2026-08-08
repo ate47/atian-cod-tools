@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/fastfile/fastfile_handlers.hpp>
 #include <tools/fastfile/fastfile_data_tre.hpp>
+#include <tools/fastfile/linkers/linker_bo3.hpp>
 #include <tools/fastfile/linkers/linker_bo4.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>
@@ -9,11 +10,59 @@
 namespace {
     using namespace fastfile;
     using namespace compatibility::acti::crypto_keys;
-    struct XFile {
+
+    struct XFileBO3 {
         uint8_t magic[8];
         uint32_t version;
         uint8_t server;
-        FastFileCompression compression;
+        fastfile::FastFileCompression compression;
+        uint8_t platform;
+        uint8_t encrypted;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builder[32];
+        uint32_t metaVersion;
+        char mergeFastfile[64];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[fastfile::linker::bo3::XFILE_BLOCK_COUNT];
+        char fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileBO3) == 0x248);
+
+    struct XFileBO4_Dev {
+        uint8_t magic[8];
+        uint32_t version;
+        uint8_t server;
+        fastfile::FastFileCompression compression;
+        uint8_t platform;
+        uint8_t encrypted;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builder[32];
+        uint32_t metaVersion;
+        char mergeFastfile[64];
+        char missionFastFiles[16][64];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[8];
+        char fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileBO4_Dev) == 0x638);
+
+    struct XFileBO4_0x27F {
+        uint8_t magic[8];
+        uint32_t version;
+        uint8_t server;
+        fastfile::FastFileCompression compression;
         uint8_t platform;
         uint8_t encrypted;
         uint64_t timestamp;
@@ -40,9 +89,15 @@ namespace {
         uint8_t signature[256];
         uint8_t aesIV[16];
     };
-    static_assert(sizeof(XFile) == 0x840);
+    static_assert(sizeof(XFileBO4_0x27F) == 0x840);
 
-    class FFCompressorBO4 : public FFCompressor {
+    enum T78Version {
+        T78V_BO3 = 0x251,
+        T78V_BO4 = 0x27F,
+    };
+
+    template<typename XFile, T78Version version, size_t compressionMax, KeyVersion keyVersion>
+    class FFCompressorT78 : public FFCompressor {
       public:
         static constexpr uint32_t READ_SEGMENT = 0x800000;
         static constexpr uint32_t ZLIB_STORED_OVERHEAD = 11;
@@ -50,7 +105,10 @@ namespace {
             (uint32_t)sizeof(fastfile::DBStreamHeader) + ZLIB_STORED_OVERHEAD + 4;
         static constexpr uint32_t SAFE_MARGIN = MIN_FILLER_GAP;
 
-        FFCompressorBO4() : FFCompressor("BO4", "Black ops 4 fast file compressor") {}
+        static constexpr size_t headerSize = sizeof(XFile);
+        static constexpr size_t numXBlocks = ACTS_ARRAYSIZE(XFile::blockSize);
+
+        FFCompressorT78(const char* name, const char* desc) : FFCompressor(name, desc) {}
 
         void Init(FastFileLinkerOption& opt) override {
             constexpr size_t maxSize{ utils::GetMaxSize<int32_t>() };
@@ -60,14 +118,30 @@ namespace {
             }
         }
 
+        void LoadArchiveChecksums(uint32_t* archiveChecksum) {
+            uint32_t* l;
+            if constexpr (version == T78V_BO4) {
+                static uint32_t stt[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
+                l = stt;
+            } else if constexpr (version == T78V_BO3) {
+                static uint32_t stt[4]{ 0xB425573A, 0x40603FE2, 0x49F6F169, 0xBBE38E92 };
+                l = stt;
+            } else {
+                static_assert(false && "Missing archive checksum case for version");
+            }
+
+            std::memcpy(archiveChecksum, l, sizeof(*l));
+        }
+
         void Compress(FastFileLinkerContext& ctx) override {
-            // bo4 seems constantly use oodle, but DB_DecompressIOStream can handle everything
+            // bo4 seems constantly use oodle,
+            // bo3 zlib, but DB_DecompressIOStream can handle everything
             FastFileCompression compression{ FastFileCompression::XFILE_UNCOMPRESSED };
             const char* compressionType{ ctx.zone.GetConfig("compression") };
             if (compressionType) {
                 compression = GetFastFileCompression(compressionType);
 
-                if (compression == FastFileCompression::XFILE_COMPRESSION_COUNT) {
+                if (compression >= compressionMax) {
                     throw std::runtime_error(std::format("Invalid compression format name: {}", compressionType));
                 }
             }
@@ -92,10 +166,10 @@ namespace {
                 uint8_t aesVal[16]{};
 
                 if (ctx.opt.encrypt) {
-                    aesKey = GetKeyByName(ff.ffname, KeyVersion::VER_BO4);
+                    aesKey = GetKeyByName(ff.ffname, keyVersion);
 
                     if (!aesKey) {
-                        LOG_WARNING("Missing bo4 AES key for file {}, it won't be encrypted", ff.ffname);
+                        LOG_WARNING("Missing {} AES key for file {}, it won't be encrypted", name, ff.ffname);
                     } else {
                         utils::data::FillRandomBuffer(aesIV, sizeof(aesIV));
                     }
@@ -281,7 +355,7 @@ namespace {
                 // write header data
                 XFile& header{ *(XFile*)out.data() };
                 *(uint64_t*)&header.magic[0] = 0x3030303066664154;
-                header.version = 0x27F;
+                header.version = version;
                 header.platform = ctx.opt.platform;
                 header.server = ctx.opt.server;
                 header.timestamp = utils::GetTimestamp() / 1000;
@@ -290,24 +364,13 @@ namespace {
                 header.encrypted = aesKey != nullptr;
                 std::memcpy(header.aesIV, aesIV, sizeof(aesIV));
 
-                // header.unk4f0 = 0xFFFFFFFFF;
-                // header.unk4f8 = 0xFFFFFFFFF;
-                // header.unk500 = 0xFFFFFFFFF;
-                // header.unk508 = 0xFFFFFFFFF;
-                // header.unk510s = 0xFFFFFFFFF;
-                // header.unk518s = 0xFFFFFFFFF;
-                // header.unk520pa = 0xFFFFFFFFF;
-                // std::memset(header.pad0, 0xff, sizeof(header.pad0));
-                // static uint32_t archiveChecksum[4]{ 0x34FF23CB, 0xE4505D2, 0xB3C783A, 0x3208003D };
-                static uint32_t archiveChecksum[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
-                static_assert(sizeof(archiveChecksum) == sizeof(header.archiveChecksum));
-                std::memcpy(header.archiveChecksum, archiveChecksum, sizeof(archiveChecksum));
+                LoadArchiveChecksums(header.archiveChecksum);
 
                 platform::GetComputerInfoName(header.builder, sizeof(header.builder));
                 snprintf(header.fastfileName, sizeof(header.fastfileName), "%s", ff.ffname);
 
                 // blocks load data
-                for (size_t i = 0; i < fastfile::linker::bo4::XFILE_BLOCK_COUNT; i++) {
+                for (size_t i = 0; i < numXBlocks; i++) {
                     header.blockSize[i] = (uint64_t)ff.blockSizes[i];
                 }
 
@@ -347,5 +410,11 @@ namespace {
         }
     };
 
-    utils::ArrayAdder<FFCompressorBO4, FFCompressor> impl{ GetCompressors() };
+    utils::ArrayAdder<
+        FFCompressorT78<XFileBO3, T78V_BO3, XFILE_COMPRESSION_COUNT_T7, KeyVersion::VER_BO3>, FFCompressor>
+        implt7{ GetCompressors(), "BO3", "Black ops 3 fast file compressor" };
+    utils::ArrayAdder<
+        FFCompressorT78<XFileBO4_0x27F, T78V_BO4, XFILE_COMPRESSION_COUNT, KeyVersion::VER_BO4>, FFCompressor>
+        implt8{ GetCompressors(), "BO4", "Black ops 4 fast file compressor" };
+
 } // namespace

@@ -19,6 +19,7 @@ namespace fastfile {
         XFILE_LZ4_HC = 0x4,
         XFILE_BDELTA_UNCOMP = 0x5,
         XFILE_BDELTA_ZLIB = 0x6,
+        XFILE_COMPRESSION_COUNT_T7 = 0x7,
         XFILE_BDELTA_LZMA = 0x7,
         XFILE_OODLE_KRAKEN = 0x8,
         XFILE_OODLE_MERMAID = 0x9,

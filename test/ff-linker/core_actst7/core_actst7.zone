@@ -1,0 +1,11 @@
+// test file for the bo3 fastfile linker
+
+// fastfile options
+>game=bo3
+>name=core_acts_dev
+>compression=zlib
+>compression.high=true
+
+
+scriptparsetree,scripts/core/_test_acts.gsc
+scriptparsetree,scripts/core/_test_acts2.gsc
