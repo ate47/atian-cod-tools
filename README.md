@@ -58,6 +58,7 @@ The linkers create custom fast files.
 
 | Game                  | Linker   | Pools      |
 | --------------------- | --------- | ---------- |
+| Black Ops 3           | `bo3`     | `scriptparsetree` |
 | Black Ops 4           | `bo4`     | `aitype`, `character`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `keyvaluepairs`, `objective`,  `rank`, `ranktable`, `prestige`, `prestigetable`, `localize`, `ttf`, `bgcache`, `zbarrier` |
 | Black&nbsp;Ops&nbsp;Cold&nbsp;War    | `cw`     | `rawfile` |
 
