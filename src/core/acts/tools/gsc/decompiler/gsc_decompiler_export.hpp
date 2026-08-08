@@ -9,6 +9,7 @@ namespace tool::gsc {
         virtual uint64_t GetFileNamespace() = 0;
         virtual uint64_t GetChecksum() = 0;
         virtual uint32_t GetAddress() = 0;
+        virtual void SetAddress(uint32_t addr) = 0;
         virtual uint8_t GetParamCount() = 0;
         virtual uint8_t GetFlags() = 0;
         virtual size_t SizeOf() = 0;

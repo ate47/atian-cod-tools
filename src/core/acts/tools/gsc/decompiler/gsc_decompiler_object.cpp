@@ -51,6 +51,16 @@ namespace tool::gsc {
         return utils::va("unk:%lx", floc);
     }
 
+    void T8GSCOBJContext::Read(byte* loc, void* to, size_t len) const {
+        scriptfile->CheckInsideScript(loc);
+        if (len > 1) {
+            scriptfile->CheckInsideScript(loc + (len - 1));
+        }
+        std::memcpy(to, loc, len);
+        if (SwitchEndian()) {
+            utils::SwapByte(to, len);
+        }
+    }
     // apply ~ to ref to avoid using 0, 1, 2 which might already be used
 
     uint64_t T8GSCOBJContext::GetGlobalVarName(uint16_t gvarRef) {
@@ -132,6 +142,36 @@ namespace tool::gsc {
         r = ptr;
 
         return ptr;
+    }
+    void LocateStartTrampolines(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx) {
+        uint32_t baseLoc{ exp.GetAddress() };
+        bool hasAlign{ ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) };
+        bool hasOpU16{ ctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN) };
+        while (true) {
+            uint32_t base{ baseLoc };
+            if (hasOpU16 && hasAlign) {
+                base = utils::AlignedC<uint16_t>(base);
+            }
+            uint16_t opcode{ hasOpU16 ? ctx.Read<uint16_t>(ctx.scriptfile->Ptr(base))
+                                      : (uint16_t)ctx.Read<uint8_t>(ctx.scriptfile->Ptr(base)) };
+            base += hasOpU16 ? 2 : 1;
+
+            const tool::gsc::opcode::OPCodeInfo* nfo{ ctx.m_vmInfo->LookupOpCode(ctx.currentPlatform, opcode) };
+            if (nfo->m_id != tool::gsc::opcode::OPCODE_Jump) {
+                break; // not a trampoline
+            }
+            if (hasAlign) {
+                base = utils::AlignedC<uint16_t>(base);
+            }
+            int16_t delta{ ctx.Read<int16_t>(ctx.scriptfile->Ptr(base)) };
+            base += 2;
+            uint32_t newLoc{ (uint32_t)((uint64_t)base + delta) };
+            ctx.scriptfile->CheckInsideScript(ctx.scriptfile->Ptr(newLoc));
+
+            out << "// TRAMPOLINE DETECTED 0x" << std::hex << baseLoc << " -> 0x" << newLoc << std::endl;
+            baseLoc = newLoc;
+        }
+        exp.SetAddress(baseLoc);
     }
 
     int
@@ -983,6 +1023,16 @@ namespace tool::gsc {
 
     opcode::Platform GSCOBJHandler::ComputePlatform(T8GSCOBJContext& ctx) {
         return PLATFORM_UNKNOWN; // can't compute platform for that
+    }
+
+    bool GSCOBJHandler::IsInsideScript(byte* bytecodeLocation) {
+        return Ptr() <= bytecodeLocation && Ptr(GetFileSize()) > bytecodeLocation;
+    }
+
+    void GSCOBJHandler::CheckInsideScript(byte* location) {
+        if (!IsInsideScript(location)) {
+            throw std::runtime_error(std::format("Outside script {}", (void*)location));
+        }
     }
 
     std::pair<const char*, size_t> GSCOBJHandler::GetStringHeader(size_t len) {

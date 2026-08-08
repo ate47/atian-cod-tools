@@ -536,15 +536,13 @@ namespace tool::gsc::opcode {
     uint32_t ASMContext::ScriptAbsoluteLocation(byte* bytecodeLocation) {
         return funcRloc + (uint32_t)FunctionRelativeLocation(bytecodeLocation);
     }
-    bool ASMContext::IsInsideScript(byte* bytecodeLocation) {
-        return m_gscReader.Ptr() <= bytecodeLocation && m_gscReader.Ptr(m_gscReader.GetFileSize()) > bytecodeLocation;
+    bool ASMContext::IsInsideScript(byte* bytecodeLocation) const {
+        return m_objctx.scriptfile->IsInsideScript(bytecodeLocation);
     }
-    void ASMContext::CheckInsideScript(byte* location) {
-        if (!IsInsideScript(location)) {
-            throw std::runtime_error(std::format("Outside script {}", (void*)m_bcl));
-        }
-    }
+    void ASMContext::CheckInsideScript(byte* location) const { m_objctx.scriptfile->CheckInsideScript(location); }
     bool ASMContext::SwitchEndian() const { return m_objctx.SwitchEndian(); }
+
+    void ASMContext::Read(byte* loc, void* to, size_t len) { m_objctx.Read(loc, to, len); }
 
     std::ostream& ASMContext::WritePadding(std::ostream& out) {
         if (m_opt.m_func_floc) {

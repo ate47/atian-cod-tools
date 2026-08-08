@@ -340,7 +340,7 @@ namespace tool::gsc {
             // @return absolute location in the script
             inline uint32_t ScriptAbsoluteLocation() { return ScriptAbsoluteLocation(m_bcl); }
             // @return if we are in the script
-            inline bool IsInsideScript() { return IsInsideScript(m_bcl); }
+            inline bool IsInsideScript() const { return IsInsideScript(m_bcl); }
             // @return Push the current location to the locations
             inline ASMContextLocation& PushLocation() { return PushLocation(m_bcl); }
             // @return Push a location to the locations and return it
@@ -354,7 +354,7 @@ namespace tool::gsc {
              * @param bytecodeLocation Location
              * @return If the location is inside the script
              */
-            bool IsInsideScript(byte* bytecodeLocation);
+            bool IsInsideScript(byte* bytecodeLocation) const;
             /*
              * Get a relative location from the function start
              * @param bytecodeLocation Location
@@ -371,12 +371,12 @@ namespace tool::gsc {
              * Check we are inside the script
              * @param location pointer
              */
-            void CheckInsideScript(byte* location);
+            void CheckInsideScript(byte* location) const;
 
             // @return if the endian is switched
             bool SwitchEndian() const;
 
-            inline void CheckInsideScript() { CheckInsideScript(m_bcl); }
+            inline void CheckInsideScript() const { CheckInsideScript(m_bcl); }
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
             inline byte*& Aligned() {
@@ -384,7 +384,12 @@ namespace tool::gsc {
                 return m_bcl = utils::Aligned<Type>(m_bcl);
             }
             template<typename Type>
-            Type Read(byte* loc = m_bcl);
+            inline Type Read(byte* loc = m_bcl) {
+                Type t;
+                Read(loc, &t, sizeof(t));
+                return t;
+            }
+            void Read(byte* loc, void* to, size_t len);
 
             template<typename Type>
             inline void Read(Type* out, size_t count = 1, byte* loc = m_bcl) {
@@ -537,17 +542,6 @@ namespace tool::gsc {
              */
             void DisableDecompiler(const std::string& reason);
         };
-
-        template<typename Type>
-        Type ASMContext::Read(byte* loc) {
-            CheckInsideScript(loc);
-            CheckInsideScript(loc + (sizeof(Type) - 1));
-            Type t{ *(Type*)loc };
-            if (SwitchEndian()) {
-                utils::SwapByte(&t, sizeof(Type));
-            }
-            return t;
-        }
 
         size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements);
         ASMContextStatement* GetNoEmptyNode(std::vector<ASMContextStatement>& statements, size_t index);

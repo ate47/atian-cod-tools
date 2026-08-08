@@ -1115,6 +1115,21 @@ namespace tool::gsc {
                     continue;
                 }
 
+                try {
+                    tool::gsc::LocateStartTrampolines(*exp, output, *scriptfile, ctx);
+                } catch (std::runtime_error& err) {
+                    asmout << "// FAILURE ON TRAMPOLINES CHECKS, " << err.what() << std::endl;
+
+                    {
+                        core::async::opt_lock_guard lg{ gdctx.asyncMtx };
+                        gdctx.hardErrors++;
+                        if (!(exportErrors++) || dumpAllErrors) {
+                            LOG_ERROR("Can't decompile export: {}", err.what());
+                        }
+                    }
+                    continue;
+                }
+
                 auto r = ctx.contextes.try_emplace(
                     rname,
                     scriptfile->Ptr(exp->GetAddress()),
@@ -1134,7 +1149,7 @@ namespace tool::gsc {
                     continue;
                 }
 
-                auto& asmctx = r.first->second;
+                tool::gsc::ASMContext& asmctx{ r.first->second };
 
                 if (opt.m_debugHashes) {
                     uint64_t name{ exp->GetName() };

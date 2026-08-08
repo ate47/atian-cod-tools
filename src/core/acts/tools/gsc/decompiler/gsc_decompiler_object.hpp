@@ -95,6 +95,15 @@ namespace tool::gsc {
             }
         }
 
+        void Read(byte* loc, void* to, size_t len) const;
+
+        template<typename Type>
+        inline Type Read(byte* loc) const {
+            Type t;
+            Read(loc, &t, sizeof(t));
+            return t;
+        }
+
         /*
          * Get a name for a global var ref
          * @param gvarRef ref
@@ -183,6 +192,7 @@ namespace tool::gsc {
         GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx,
         tool::gsc::opcode::ASMContext& asmctx
     );
+    void LocateStartTrampolines(GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& ctx);
     DumpVTableAnswer DumpVTable(
         GSCExportReader& exp, std::ostream& out, GSCOBJHandler& gscFile, T8GSCOBJContext& objctx,
         opcode::ASMContext& ctx, opcode::DecompContext& dctxt
@@ -422,6 +432,9 @@ namespace tool::gsc {
         virtual int PatchCode(T8GSCOBJContext& ctx);
         virtual int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout);
         virtual opcode::Platform ComputePlatform(T8GSCOBJContext& ctx);
+
+        bool IsInsideScript(byte* bytecodeLocation);
+        void CheckInsideScript(byte* location);
     };
 
 } // namespace tool::gsc

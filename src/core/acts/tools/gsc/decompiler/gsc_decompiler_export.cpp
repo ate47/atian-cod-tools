@@ -16,6 +16,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return 0; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
@@ -30,6 +31,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->callback_event; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
@@ -43,6 +45,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->file_name_space; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
@@ -56,6 +59,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->file_name_space; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         uint32_t GetSize() { return exp->size; };
@@ -71,6 +75,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->file_name_space; };
         uint64_t GetChecksum() override { return 0; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
@@ -85,6 +90,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->data; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
@@ -99,6 +105,7 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->file_name_space; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
