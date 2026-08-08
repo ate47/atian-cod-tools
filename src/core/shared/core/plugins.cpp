@@ -1,10 +1,15 @@
 #include <includes_shared.hpp>
-#include <core/plugins.hpp>
+#define __ACTS_PLUGINS_HAS_VERSION
+#if __has_include(<core/actsinfo.hpp>)
 #include <core/actsinfo.hpp>
+#endif
+#include <core/plugins.hpp>
 #include <hook/library.hpp>
 #include <core/shared_cfg.hpp>
 
+#ifdef __ACTS_PLUGINS_HAS_VERSION
 constexpr uint32_t GetNextMajorVersion(uint32_t version) { return (version & 0xFF000000) + 0x1000000; }
+#endif
 
 namespace core::plugins {
     using GetActsVersion = uint32_t (*)();
@@ -26,6 +31,7 @@ namespace core::plugins {
                 LOG_ERROR("Failed to load plugin {}/{}", plugin.string(), name);
                 continue;
             }
+#ifdef __ACTS_PLUGINS_HAS_VERSION
             GetActsVersion pGetActsMinVersion{ lib.GetProc<GetActsVersion>("GetActsMinVersion") };
             if (!pGetActsMinVersion) {
                 LOG_ERROR("Failed to find <uint32_t GetActsMinVersion()> in plugin {}", plugin.string());
@@ -51,6 +57,7 @@ namespace core::plugins {
                 lib.Free();
                 continue;
             }
+#endif // __ACTS_PLUGINS_HAS_VERSION
 
 #ifdef _MSC_VER
             // if the plugin wants to use ABI unsafe functions, check for MSVC version mismatch
@@ -66,7 +73,7 @@ namespace core::plugins {
                 lib.Free();
                 continue;
             }
-#endif
+#endif // _MSC_VER
 
             LOG_TRACE("Loaded plugin {}", name);
             plugins.loaded[name] = lib;

@@ -1,5 +1,8 @@
 #include <includes_shared.hpp>
+#if __has_include(<deps/oodle.hpp>)
 #include <deps/oodle.hpp>
+#define __ACTS_COMPRESS_HAS_OODLE
+#endif
 #if __has_include(<zlib.h>)
 #include <zlib.h>
 #define __ACTS_COMPRESS_HAS_ZLIB
@@ -25,46 +28,49 @@
 namespace utils::compress {
     namespace {
         thread_local int lastoutput;
-    }
+
+#ifdef __ACTS_COMPRESS_HAS_OODLE
+        deps::oodle::OodleCompressor GetOodleCompressor(CompressionAlgorithm c) {
+            if (GetCompressionType(c) != COMP_OODLE)
+                throw std::runtime_error(actssec("Not an oodle compressor"));
+
+            switch (GetOodleCompressionType(c)) {
+            case COMP_OODLE_TYPE_KRAKEN:
+                return deps::oodle::OODLE_COMP_KRAKEN;
+            case COMP_OODLE_TYPE_LZH:
+                return deps::oodle::OODLE_COMP_LZH;
+            case COMP_OODLE_TYPE_LZH_LW:
+                return deps::oodle::OODLE_COMP_LZH_LW;
+            case COMP_OODLE_TYPE_LZNIB:
+                return deps::oodle::OODLE_COMP_LZNIB;
+            case COMP_OODLE_TYPE_NONE:
+                return deps::oodle::OODLE_COMP_NONE;
+            case COMP_OODLE_TYPE_LZB16:
+                return deps::oodle::OODLE_COMP_LZB16;
+            case COMP_OODLE_TYPE_LZBW:
+                return deps::oodle::OODLE_COMP_LZBW;
+            case COMP_OODLE_TYPE_LZA:
+                return deps::oodle::OODLE_COMP_LZA;
+            case COMP_OODLE_TYPE_LZNA:
+                return deps::oodle::OODLE_COMP_LZNA;
+            case COMP_OODLE_TYPE_MERMAID:
+                return deps::oodle::OODLE_COMP_MERMAID;
+            case COMP_OODLE_TYPE_BITKNIT:
+                return deps::oodle::OODLE_COMP_BITKNIT;
+            case COMP_OODLE_TYPE_SELKIE:
+                return deps::oodle::OODLE_COMP_SELKIE;
+            case COMP_OODLE_TYPE_HYDRA:
+                return deps::oodle::OODLE_COMP_HYDRA;
+            case COMP_OODLE_TYPE_LEVIATHAN:
+                return deps::oodle::OODLE_COMP_LEVIATHAN;
+            default:
+                throw std::runtime_error(std::format("Unknown oodle compressor for {}", c));
+            }
+        }
+#endif
+    } // namespace
 
     int GetLastErr() { return lastoutput; }
-    deps::oodle::OodleCompressor GetOodleCompressor(CompressionAlgorithm c) {
-        if (GetCompressionType(c) != COMP_OODLE)
-            throw std::runtime_error(actssec("Not an oodle compressor"));
-
-        switch (GetOodleCompressionType(c)) {
-        case COMP_OODLE_TYPE_KRAKEN:
-            return deps::oodle::OODLE_COMP_KRAKEN;
-        case COMP_OODLE_TYPE_LZH:
-            return deps::oodle::OODLE_COMP_LZH;
-        case COMP_OODLE_TYPE_LZH_LW:
-            return deps::oodle::OODLE_COMP_LZH_LW;
-        case COMP_OODLE_TYPE_LZNIB:
-            return deps::oodle::OODLE_COMP_LZNIB;
-        case COMP_OODLE_TYPE_NONE:
-            return deps::oodle::OODLE_COMP_NONE;
-        case COMP_OODLE_TYPE_LZB16:
-            return deps::oodle::OODLE_COMP_LZB16;
-        case COMP_OODLE_TYPE_LZBW:
-            return deps::oodle::OODLE_COMP_LZBW;
-        case COMP_OODLE_TYPE_LZA:
-            return deps::oodle::OODLE_COMP_LZA;
-        case COMP_OODLE_TYPE_LZNA:
-            return deps::oodle::OODLE_COMP_LZNA;
-        case COMP_OODLE_TYPE_MERMAID:
-            return deps::oodle::OODLE_COMP_MERMAID;
-        case COMP_OODLE_TYPE_BITKNIT:
-            return deps::oodle::OODLE_COMP_BITKNIT;
-        case COMP_OODLE_TYPE_SELKIE:
-            return deps::oodle::OODLE_COMP_SELKIE;
-        case COMP_OODLE_TYPE_HYDRA:
-            return deps::oodle::OODLE_COMP_HYDRA;
-        case COMP_OODLE_TYPE_LEVIATHAN:
-            return deps::oodle::OODLE_COMP_LEVIATHAN;
-        default:
-            throw std::runtime_error(std::format("Unknown oodle compressor for {}", c));
-        }
-    }
 
     int Decompress2(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize) {
         CompressionAlgorithm type{ GetCompressionType(alg) };
@@ -86,6 +92,7 @@ namespace utils::compress {
             return r;
         }
 #endif
+#ifdef __ACTS_COMPRESS_HAS_OODLE
         case COMP_OODLE: {
             deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
 
@@ -97,6 +104,7 @@ namespace utils::compress {
             }
             return r;
         }
+#endif
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
         case COMP_ZLIB: {
             uLongf sizef = (uLongf)destSize;
@@ -186,6 +194,7 @@ namespace utils::compress {
             *destSize = srcSize;
             std::memcpy(dest, src, srcSize);
             return true;
+#ifdef __ACTS_COMPRESS_HAS_OODLE
         case COMP_OODLE: {
             deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
             deps::oodle::OodleCompressionLevel lvl{ alg & COMP_HIGH_COMPRESSION ? deps::oodle::OODLE_COMPL_OPTIMAL5
@@ -197,6 +206,7 @@ namespace utils::compress {
             *destSize = r;
             return true;
         }
+#endif
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
         case COMP_ZLIB: {
             uLongf destSizef = (uLongf)*destSize;
@@ -264,10 +274,12 @@ namespace utils::compress {
         case COMP_LZ4:
             return LZ4_compressBound((int)srcSize);
 #endif
+#ifdef __ACTS_COMPRESS_HAS_OODLE
         case COMP_OODLE: {
             deps::oodle::Oodle& oodle{ deps::oodle::GetInstance() };
             return oodle.GetCompressedBufferSizeNeeded(GetOodleCompressor(alg), (int32_t)srcSize);
         }
+#endif
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
         case COMP_ZLIB: {
             return compressBound((uLong)srcSize);

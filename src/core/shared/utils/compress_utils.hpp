@@ -1,5 +1,5 @@
 #pragma once
-#include <deps/oodle.hpp>
+#include <utils/utils.hpp>
 
 namespace utils::compress {
     typedef size_t _CompressionAlgorithm;
@@ -79,7 +79,6 @@ namespace utils::compress {
 
     bool Compress(CompressionAlgorithm alg, void* dest, size_t* destSize, const void* src, size_t srcSize);
     size_t GetCompressSize(CompressionAlgorithm alg, size_t srcSize);
-    deps::oodle::OodleCompressor GetOodleCompressor(CompressionAlgorithm c);
     std::unique_ptr<byte[]> Compress(CompressionAlgorithm alg, const void* src, size_t srcSize, size_t* compressSize);
 
     bool CompressBuffer(CompressionAlgorithm alg, const void* src, size_t srcSize, std::vector<byte>& out);
