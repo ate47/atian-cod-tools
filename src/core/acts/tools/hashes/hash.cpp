@@ -17,6 +17,7 @@
 #include <sha256.h>
 #include <acts_api/hash.h>
 #include <tools/coder/error_coder.hpp>
+#include <utils/data_utils.hpp>
 
 namespace hash {
 
@@ -1380,15 +1381,13 @@ namespace hash {
 
             utils::CloseEnd ce{ [&os]() { os.close(); } };
 
-            srand(0);
-
             char buff[36]{};
 
             for (size_t i = 0; i < 0x100; i++) {
-                int len = 5 + rand() % 30;
+                int len = 5 + utils::data::Rand(30);
 
                 for (int i = 0; i < len; i++) {
-                    buff[i] = rand() % ('Z' - 'A') + 'a';
+                    buff[i] = 'a' + utils::data::Rand(('Z' - 'A'));
                 }
                 buff[len] = 0;
 

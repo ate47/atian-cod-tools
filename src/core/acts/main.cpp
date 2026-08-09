@@ -18,6 +18,7 @@
 #include <core/shared_cfg_data.hpp>
 #include <core/plugins.hpp>
 #include <acts_api/version.h>
+#include <utils/data_utils.hpp>
 #include <game_data.hpp>
 
 namespace {
@@ -160,6 +161,12 @@ namespace {
                 }
             } else if (!_strcmpi("--mark-hash", arg)) {
                 opt.markHash = true;
+            } else if (!_strcmpi("--seed", arg)) {
+                if (i + 1 == argc) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                utils::data::RandomMachine().seed(utils::ParseFormatInt(argv[++i]));
             } else if (!strcmp("-x", arg) || !_strcmpi("--extracted", arg)) {
                 if (i + 1 == argc) {
                     LOG_ERROR("Missing value for param: {}!", arg);
@@ -300,9 +307,9 @@ namespace {
         );
         LOG_INFO(" -W --work               : Tell which work to use: repl, cli");
         LOG_INFO(" --noUpdater             : Disable updater");
-
         LOG_DEBUG(" --hash0                 : Use \"hash_0\" instead of \"\" during lookup");
         LOG_DEBUG("--mark-hash              : Mark the hash default value");
+        LOG_DEBUG("--seed [s]               : Seed used for the randomness");
         LOG_DEBUG("--hashprefix [p]         : Ignore the default prefix");
         LOG_DEBUG("--heavy-hashes           : Heavy hashes format");
         LOG_DEBUG("-F --force-error         : Force error");
@@ -329,7 +336,6 @@ int InitActsAPI(bool cli, int* argc, const char*** argv, uint32_t version) {
     }
     initialized = true;
     core::config::SyncConfig(true);
-    srand((unsigned int)time(nullptr));
 
     // by default we don't display heavy logs in cli
     if (cli) {

@@ -13,6 +13,7 @@
 #include <systems/gsc_op.hpp>
 #include <systems/errors.hpp>
 #include <systems/events.hpp>
+#include <utils/data_utils.hpp>
 
 namespace systems::gsc::link {
     constexpr bool traceLinking = false;
@@ -463,7 +464,7 @@ namespace systems::gsc::link {
             if constexpr (len == 1) {
                 return arr[0];
             } else {
-                return (uint16_t)arr[rand() % arr.size()];
+                return (uint16_t)arr[utils::data::Rand(arr.size())];
             }
         }
 

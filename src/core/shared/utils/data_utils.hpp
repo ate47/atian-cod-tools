@@ -10,7 +10,7 @@ namespace utils::data {
 
     void FillRandomBuffer(void* buff, size_t size);
     std::mt19937& RandomMachine();
-    size_t Rand(size_t max);
+    size_t Rand(size_t max = INT32_MAX);
 
     template<typename T>
     std::string ArrayAsString(

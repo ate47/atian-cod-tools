@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include "compatibility/serious_db2.hpp"
 #include "tools/gsc/gsc.hpp"
+#include <utils/data_utils.hpp>
 
 namespace {
     using namespace tool::gsc::opcode;
@@ -93,7 +94,7 @@ namespace {
 
             if (nopId++ % delta) {
                 // put a random value to fake ids and to increase the entropy
-                mappedId = (SeriousId)(rand() % seriousIdCurr);
+                mappedId = (SeriousId)utils::data::Rand(seriousIdCurr);
                 if (mappedId == SERID_PreScriptCall) {
                     continue;
                 }

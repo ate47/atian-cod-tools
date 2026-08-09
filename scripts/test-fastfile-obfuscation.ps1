@@ -14,7 +14,7 @@ try {
         Write-Error "Error during linking"
         return -1
     }
-    acts -s ignored -w .\output_ff\package_index\fastfile0.wni -l p gsco .\output_ff\zone\fastfile0.ff --seed 42 --private .\test\gsc-obfuscator\fastfile0_privates.csv -o output_ff/obf
+    acts -s ignored -w .\output_ff\package_index\fastfile0.wni -l p --seed 42 gsco .\output_ff\zone\fastfile0.ff --private .\test\gsc-obfuscator\fastfile0_privates.csv -o output_ff/obf
     if (!$?) {
         Write-Error "Error during obfuscation"
         return -1

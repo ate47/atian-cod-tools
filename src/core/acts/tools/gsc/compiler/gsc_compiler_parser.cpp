@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <tools/gsc/compiler/gsc_compiler_parser.hpp>
 #include <tools/gsc/compiler/gsc_compiler_script_object.hpp>
+#include <utils/data_utils.hpp>
 
 namespace tool::gsc::compiler {
 
@@ -3006,7 +3007,9 @@ namespace tool::gsc::compiler {
         case gscParser::BOOL_VALUE:
             fobj.AddNode(
                 term,
-                obj.BuildAscmNodeData(term->getText() == "true" ? (fobj.obj.config.obfuscate ? rand() + 1 : 1) : 0)
+                obj.BuildAscmNodeData(
+                    term->getText() == "true" ? (fobj.obj.config.obfuscate ? utils::data::Rand() + 1 : 1) : 0
+                )
             );
             return true;
         case gscParser::FLOATVAL:
@@ -3368,11 +3371,12 @@ namespace tool::gsc::compiler {
         ParseTree* paramsRule = func->children[(size_t)(func->children.size() - 3 - deltaArrow)];
         ParseTree* blockRule = func->children[(size_t)(func->children.size() - 1)];
 
-        std::string name = hasName ? func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText()
-                                   : utils::va(
-                                         "$nameless_%llx",
-                                         (obj.config.obfuscate ? (obj.emptyNameInc += 1 + rand()) : obj.emptyNameInc++)
-                                     );
+        std::string name =
+            hasName ? func->children[(size_t)(func->children.size() - (5 + deltaArrow))]->getText()
+                    : utils::va(
+                          "$nameless_%llx",
+                          (obj.config.obfuscate ? (obj.emptyNameInc += 1 + utils::data::Rand()) : obj.emptyNameInc++)
+                      );
 
         obj.AddHash(name);
         uint64_t nameHashed = obj.vmInfo->HashField(name.data());

@@ -4,6 +4,7 @@
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <tools/gsc/decompiler/gsc_decompiler_formatter.hpp>
 #include <tools/gsc/decompiler/gsc_decompiler_asm_nodes.hpp>
+#include <utils/data_utils.hpp>
 
 using namespace tool::gsc::opcode;
 
@@ -415,7 +416,7 @@ namespace tool::gsc::opcode {
             return std::make_pair(false, 0);
         }
 
-        return std::make_pair(true, ref2->second[rand() % ref2->second.size()]);
+        return std::make_pair(true, ref2->second[utils::data::Rand(ref2->second.size())]);
     }
     bool VmInfo::HasOpCode(Platform plt, OPCode opcode, bool modTool) {
         auto [ok, id] = GetOpCodeId(plt, opcode, modTool);
