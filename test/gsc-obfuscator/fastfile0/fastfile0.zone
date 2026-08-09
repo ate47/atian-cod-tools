@@ -1,0 +1,9 @@
+>game=bo3
+>name=fastfile0
+>compression=zlib
+>compression.high=true
+
+
+scriptparsetree,scripts/zm/_fastfile0.gsc
+scriptparsetree,scripts/zm/_fastfile0_utils.gsc
+scriptparsetree,scripts/zm/_fastfile0_data.gsc

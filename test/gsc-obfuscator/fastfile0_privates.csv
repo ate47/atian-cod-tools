@@ -1,0 +1,6 @@
+script,scripts/zm/_fastfile0_data.gsc
+script,scripts/zm/_fastfile0_utils.gsc
+string,fastfile0_sys
+hash,fastfile0_do_something
+hash,fastfile0_data
+hash,fastfile0_utils

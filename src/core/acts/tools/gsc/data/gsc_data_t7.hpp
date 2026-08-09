@@ -43,4 +43,21 @@ namespace tool::gsc {
         uint16_t padding;
     };
 
+    enum T7GSCExportFlags {
+        T7GEF_LINKED = 1,
+        T7GEF_AUTOEXEC = 2,
+        T7GEF_PRIVATE = 4,
+        T7GEF_VE = 0x20,
+    };
+
+    enum T7GSCImportFlags {
+        T7GIF_FUNC_METHOD = 1,
+        T7GIF_FUNCTION = 2,
+        T7GIF_FUNCTION_THREAD = 3,
+        T7GIF_METHOD = 4,
+        T7GIF_METHOD_THREAD = 5,
+        T7GIF_DEV_CALL = 0x10,
+        T7GIF_GET_CALL = 0x20,
+    };
+
 } // namespace tool::gsc
