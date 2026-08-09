@@ -53,6 +53,158 @@ namespace fastfile {
     FastFileCompression GetFastFileCompression(const char* name);
     utils::compress::CompressionAlgorithm GetFastFileCompressionAlgorithm(FastFileCompression comp);
 
+    struct XFileBO3_x132 {
+        uint8_t magic[8];
+        uint32_t version;
+        uint8_t server;
+        uint8_t compression;
+        uint8_t platform;
+        uint8_t encrypted;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builder[32];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t blockSize[9];
+        int8_t fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileBO3_x132) == 0x1F8);
+
+    struct XFileBO3 {
+        uint8_t magic[8];
+        uint32_t version;
+        uint8_t server;
+        fastfile::FastFileCompression compression;
+        uint8_t platform;
+        uint8_t encrypted;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builder[32];
+        uint32_t metaVersion;
+        char mergeFastfile[64];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[10];
+        char fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileBO3) == 0x248);
+
+    struct XFileBO4_Dev {
+        uint8_t magic[8];
+        uint32_t version;
+        uint8_t server;
+        fastfile::FastFileCompression compression;
+        uint8_t platform;
+        uint8_t encrypted;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builder[32];
+        uint32_t metaVersion;
+        char mergeFastfile[64];
+        char missionFastFiles[16][64];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[8];
+        int8_t fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileBO4_Dev) == 0x638);
+
+    struct XFileBO4_0x27F {
+        uint8_t magic[8];
+        uint32_t version;
+        uint8_t server;
+        fastfile::FastFileCompression compression;
+        uint8_t platform;
+        uint8_t encrypted;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builder[32];
+        uint32_t metaVersion;
+        char mergeFastfile[64];
+        char missionFastFiles[16][64];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[9];
+        uint64_t unk4f0;
+        uint64_t unk4f8;
+        uint64_t unk500;
+        uint64_t unk508;
+        uint64_t unk510s;
+        uint64_t unk518s;
+        uint64_t unk520pa;
+        byte pad0[392];
+        char unkSign[64];
+        char fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileBO4_0x27F) == 0x840);
+
+    struct XFileCOD2020 {
+        uint32_t version;
+        bool server;
+        fastfile::FastFileCompression compression;
+        fastfile::FastFilePlatform platform;
+        bool encrypted;
+        uint64_t unk8;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builderName[32];
+        uint32_t unk4c;
+        uint32_t unk50;
+        byte linkResultCode;
+        char linkResult[256];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[12];
+        byte pad[536];
+        char fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileCOD2020) == 0x538);
+
+    struct XFileCW {
+        uint32_t version;
+        bool server;
+        fastfile::FastFileCompression compression;
+        fastfile::FastFilePlatform platform;
+        bool encrypted;
+        uint64_t unk8;
+        uint64_t timestamp;
+        uint32_t changelist;
+        uint32_t archiveChecksum[4];
+        char builderName[32];
+        uint32_t unk4c;
+        uint32_t unk50;
+        byte linkResultCode;
+        char linkResult[256];
+        uint64_t size;
+        uint64_t externalSize;
+        uint64_t memMappedOffset;
+        uint64_t blockSize[13];
+        byte pad[584];
+        char fastfileName[64];
+        uint8_t signature[256];
+        uint8_t aesIV[16];
+    };
+    static_assert(sizeof(XFileCW) == 0x570);
+
     namespace flexible {
         struct PFFFastFileInfo {
             char fastfileName[0x40];

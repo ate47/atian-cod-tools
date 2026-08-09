@@ -14,7 +14,7 @@
 namespace {
 
     namespace cod2020 {
-        enum XFileBlock : __int32 {
+        enum XFileBlockCOD2020 : __int32 {
             XFILE_BLOCK_TEMP = 0x0,
             XFILE_BLOCK_TEMP_PRELOAD = 0x1,
             XFILE_BLOCK_RUNTIME_VIRTUAL = 0x2,
@@ -29,34 +29,9 @@ namespace {
             XFILE_BLOCK_TEMP_PRELOAD_SAVED_PTR = 0xB,
             XFILE_BLOCK_COUNT = 0xC,
         };
-        struct XFileData {
-            uint32_t version;
-            bool server;
-            fastfile::FastFileCompression compression;
-            fastfile::FastFilePlatform platform;
-            bool encrypted;
-            uint64_t unk8;
-            uint64_t timestamp;
-            uint32_t changelist;
-            uint32_t archiveChecksum[4];
-            char builderName[32];
-            uint32_t unk4c;
-            uint32_t unk50;
-            byte linkResultCode;
-            char linkResult[256];
-            uint64_t size;
-            uint64_t externalSize;
-            uint64_t memMappedOffset;
-            uint64_t blockSize[12];
-            byte pad[536];
-            char fastfileName[64];
-            uint8_t signature[256];
-            uint8_t aesIV[16];
-        };
-        static_assert(sizeof(XFileData) == 0x538);
     } // namespace cod2020
     namespace cwrelease {
-        enum XFileBlock : __int32 {
+        enum XFileBlockCW : __int32 {
             XFILE_BLOCK_TEMP = 0x0,
             XFILE_BLOCK_TEMP_PRELOAD = 0x1,
             XFILE_BLOCK_RUNTIME_VIRTUAL = 0x2,
@@ -72,31 +47,6 @@ namespace {
             XFILE_BLOCK_MESH = 0xC,
             XFILE_BLOCK_COUNT = 0xD,
         };
-        struct XFileData {
-            uint32_t version;
-            bool server;
-            fastfile::FastFileCompression compression;
-            fastfile::FastFilePlatform platform;
-            bool encrypted;
-            uint64_t unk8;
-            uint64_t timestamp;
-            uint32_t changelist;
-            uint32_t archiveChecksum[4];
-            char builderName[32];
-            uint32_t unk4c;
-            uint32_t unk50;
-            byte linkResultCode;
-            char linkResult[256];
-            uint64_t size;
-            uint64_t externalSize;
-            uint64_t memMappedOffset;
-            uint64_t blockSize[13];
-            byte pad[584];
-            char fastfileName[64];
-            uint8_t signature[256];
-            uint8_t aesIV[16];
-        };
-        static_assert(sizeof(XFileData) == 0x570);
 
     } // namespace cwrelease
 
