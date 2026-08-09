@@ -25,7 +25,7 @@ namespace tool::gsc::compiler {
     };
     struct LocatedHash {
         size_t operator()(const Located& k) const {
-            return k.name_space ^ RotateLeft64(k.name, 21) ^ RotateLeft64(k.script, 42);
+            return k.name_space ^ std::rotl(k.name, 21) ^ std::rotl(k.script, 42);
         }
     };
     struct LocatedEquals {

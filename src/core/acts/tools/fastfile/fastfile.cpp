@@ -6,63 +6,11 @@
 #include <deps/bo4.hpp>
 #include <games/bo4/pool.hpp>
 #include <utils/decrypt.hpp>
+#include <xxhash.h>
 
 namespace fastfile {
     int ComputeChecksum32(const char* buffer, unsigned int len, int start) {
-        int* v3;              // rbx
-        int* v4;              // r9
-        int v5;               // r10d
-        int v6;               // r11d
-        int v7;               // eax
-        int v8;               // ecx
-        int v9;               // r8d
-        int v10;              // eax
-        unsigned int v11;     // eax
-        int* i;               // rdx
-        int v13;              // ecx
-        unsigned __int64 v14; // r8
-        unsigned __int64 v15; // r10
-        int v16;              // ecx
-        unsigned int v17;     // edx
-
-        v3 = (int*)&buffer[len];
-        v4 = (int*)buffer;
-        if (len < 0x10) {
-            v10 = start + 374761393;
-        } else {
-            v5 = start + 606290984;
-            v6 = start - 2048144777;
-            v7 = start + 1640531535;
-            do {
-                v5 = -1640531535 * RotateLeft32(v5 - 2048144777 * *v4, 13);
-                v6 = -1640531535 * RotateLeft32(v6 - 2048144777 * v4[1], 13);
-                v8 = 2048144777 * v4[3];
-                v9 = RotateLeft32(start - 2048144777 * v4[2], 13);
-                v4 += 4;
-                start = -1640531535 * v9;
-                v7 = -1640531535 * RotateLeft32(v7 - v8, 13);
-            } while (v4 <= v3 - 4);
-            v10 = RotateLeft32(v5, 1) + RotateLeft32(v6, 7) + RotateLeft32(start, 12) + RotateLeft32(v7, 18);
-        }
-        v11 = len + v10;
-        for (i = v4 + 1; i <= v3; v11 = 668265263 * RotateLeft32(v11 - v13, 17)) {
-            v13 = 1028477379 * *v4;
-            v4 = i++;
-        }
-        v14 = 0i64;
-        v15 = (char*)v3 - (char*)v4;
-        if (v4 > v3)
-            v15 = 0i64;
-        if (v15) {
-            do {
-                v16 = *(unsigned __int8*)v4;
-                v4 = (int*)((char*)v4 + 1);
-                ++v14;
-                v11 = -1640531535 * RotateLeft32(v11 + 374761393 * v16, 11);
-            } while (v14 < v15);
-        }
-        v17 = -1028477379 * ((-2048144777 * (v11 ^ (v11 >> 15))) ^ ((-2048144777 * (v11 ^ (v11 >> 15))) >> 13));
-        return v17 ^ B_HIWORD(v17);
+        return XXH32(buffer, (size_t)len, (XXH32_hash_t)start);
     }
 
 } // namespace fastfile

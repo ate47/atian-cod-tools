@@ -10,7 +10,7 @@ namespace tool::gsc {
     };
     struct NameLocatedHash {
         size_t operator()(const NameLocated& k) const {
-            return k.name_space ^ RotateLeft64(k.name, 21) ^ RotateLeft64(k.script, 42);
+            return k.name_space ^ std::rotl(k.name, 21) ^ std::rotl(k.script, 42);
         }
     };
     struct NameLocatedEquals {
