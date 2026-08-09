@@ -15,6 +15,7 @@
 #include <tools/gsc/decompiler/gsc_decompiler_asm.hpp>
 #include <tools/gsc/decompiler/gsc_decompiler_asm_nodes.hpp>
 #include <tools/gsc/decompiler/gsc_decompiler_opcodes.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_import.hpp>
 #include <tools/cw/cw.hpp>
 #include <gsc/gsc_acts_debug.hpp>
 #include <tools/gsc/gsc_gdb.hpp>
@@ -148,6 +149,7 @@ namespace tool::gsc {
 
         ctx.scriptfile = readerBuilder->NewHandler(data, size);
         ctx.exp = CreateExportReader(ctx.m_vmInfo);
+        std::unique_ptr<GSCImportReader> importReader{ CreateImportReader(ctx.m_vmInfo) };
 
         GSCOBJHandler* scriptfile{ ctx.scriptfile.get() };
         GSCExportReader* exp{ ctx.exp.get() };
@@ -846,53 +848,33 @@ namespace tool::gsc {
         }
 
         if (opt.m_imports) {
-            uintptr_t import_location = reinterpret_cast<uintptr_t>(scriptfile->Ptr(scriptfile->GetImportsOffset()));
+            size_t importMember{ scriptfile->GetImportsOffset() };
+            size_t impSize{ importReader->SizeOf() };
 
             for (size_t i = 0; i < scriptfile->GetImportsCount(); i++) {
-                uint64_t name_space;
-                uint64_t name;
-                size_t impSize;
-                byte flags;
-                byte param_count;
-                uint16_t numAddress;
-
-                if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_IW_LIKE)) {
-                    if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + sizeof(IW23GSCImport) >
-                        scriptfile->GetFileSize()) {
-                        LOG_ERROR("Invalid import {} location", i);
-                        return tool::BASIC_ERROR;
-                    }
-                    const auto* imp = reinterpret_cast<IW23GSCImport*>(import_location);
-                    name_space = imp->name_space;
-                    name = imp->name;
-                    flags = imp->flags;
-                    numAddress = imp->num_address;
-                    param_count = imp->param_count;
-                    impSize = sizeof(*imp);
-                } else {
-                    if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + sizeof(T8GSCImport) >
-                        scriptfile->GetFileSize()) {
-                        LOG_ERROR("Invalid import {} location", i);
-                        return tool::BASIC_ERROR;
-                    }
-                    const auto* imp = reinterpret_cast<T8GSCImport*>(import_location);
-                    name_space = imp->import_namespace;
-                    name = imp->name;
-                    flags = imp->flags;
-                    param_count = imp->param_count;
-                    numAddress = imp->num_address;
-                    impSize = sizeof(*imp);
+                size_t importsLoc{ importMember };
+                importReader->SetHandle(scriptfile->Ptr(importsLoc));
+                if (!scriptfile->IsInsideScript(scriptfile->Ptr(importsLoc) + impSize)) {
+                    LOG_ERROR("Invalid import {} location", i);
+                    return tool::BASIC_ERROR;
                 }
-                if (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr<>()) + impSize +
-                        sizeof(uint32_t) * numAddress >
-                    scriptfile->GetFileSize()) {
+                uint64_t name_space{ importReader->GetNamespace() };
+                uint64_t name{ importReader->GetName() };
+                byte flags{ importReader->GetFlags() };
+                byte param_count{ importReader->GetParamCount() };
+                uint16_t numAddress{ importReader->GetNumAddresses() };
+                uint32_t* addresses{ importReader->GetAddresses() };
+
+                if (!scriptfile->IsInsideScript((byte*)&addresses[numAddress] - 1)) {
                     LOG_ERROR("Invalid import {} num address {}", i, numAddress);
                     return tool::BASIC_ERROR;
                 }
 
+                importMember += impSize + sizeof(addresses[0]) * numAddress;
+
                 asmout << std::hex << "import ";
 
-                auto remapedFlags = scriptfile->RemapFlagsImport(flags);
+                byte remapedFlags{ scriptfile->RemapFlagsImport(flags) };
 
                 switch (remapedFlags & T8GSCImportFlags::CALLTYPE_MASK) {
                 case FUNC_METHOD:
@@ -959,21 +941,18 @@ namespace tool::gsc {
 
                 asmout << std::hex << "address: " << numAddress << ", params: " << std::dec << (int)param_count
                        << ", iflags: 0x" << std::hex << (uint16_t)(flags) << ", iftype: 0x" << std::hex
-                       << (int)(flags & T8GSCImportFlags::CALLTYPE_MASK) << ", loc: 0x" << std::hex
-                       << (import_location - reinterpret_cast<uintptr_t>(scriptfile->Ptr())) << std::endl;
+                       << (int)(flags & T8GSCImportFlags::CALLTYPE_MASK) << ", loc: 0x" << std::hex << importsLoc
+                       << std::endl;
 
                 asmout << "location(s): ";
 
-                const auto* imports = reinterpret_cast<const uint32_t*>(import_location + impSize);
-                asmout << std::hex << ctx.GetFLocName(imports[0]);
+                asmout << std::hex << ctx.GetFLocName(addresses[0]);
                 for (size_t j = 1; j < numAddress; j++) {
-                    asmout << std::hex << "," << ctx.GetFLocName(imports[j]) << "(0x" << imports[j] << ")";
+                    asmout << std::hex << "," << ctx.GetFLocName(addresses[j]) << "(0x" << addresses[j] << ")";
                 }
                 asmout << std::endl;
 
                 asmout << "--------------" << std::endl;
-
-                import_location += impSize + sizeof(*imports) * numAddress;
             }
             if (scriptfile->GetImportsCount()) {
                 asmout << std::endl;

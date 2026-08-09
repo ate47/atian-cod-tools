@@ -20,6 +20,12 @@ namespace tool::gsc {
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { /* nothing */ }
+        void SetChecksum(uint64_t checksum) override { exp->checksum = checksum; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
 
     struct H32GSCExportReader : GSCExportReader {
@@ -35,6 +41,12 @@ namespace tool::gsc {
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { exp->callback_event = fileNamespace; }
+        void SetChecksum(uint64_t checksum) override { exp->checksum = checksum; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
     struct H64GSCExportReader : GSCExportReader {
         IW23GSCExport* exp{};
@@ -49,6 +61,12 @@ namespace tool::gsc {
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { exp->file_name_space = fileNamespace; }
+        void SetChecksum(uint64_t checksum) override { exp->checksum = checksum; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
     struct BINGSCExportReader : GSCExportReader {
         tool::gsc::iw::BINGSCExport* exp{};
@@ -64,6 +82,12 @@ namespace tool::gsc {
         uint8_t GetFlags() override { return exp->flags; };
         uint32_t GetSize() { return exp->size; };
         size_t SizeOf() override { return sizeof(*exp); };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { exp->file_name_space = fileNamespace; }
+        void SetChecksum(uint64_t checksum) override { exp->checksum = checksum; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
 
     struct H64CERGSCExportReader : GSCExportReader {
@@ -79,6 +103,12 @@ namespace tool::gsc {
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { exp->file_name_space = fileNamespace; }
+        void SetChecksum(uint64_t checksum) override { /* nothing */ ; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
 
     struct ACTSExportReader : GSCExportReader {
@@ -90,10 +120,17 @@ namespace tool::gsc {
         uint64_t GetFileNamespace() override { return exp->data; };
         uint64_t GetChecksum() override { return exp->checksum; };
         uint32_t GetAddress() override { return exp->address; };
-        void SetAddress(uint32_t addr) override { exp->address = addr; };
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
+
+        void SetAddress(uint32_t addr) override { exp->address = addr; };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { exp->data = fileNamespace; }
+        void SetChecksum(uint64_t checksum) override { exp->checksum = checksum; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
 
     struct H64CER2GSCExportReader : GSCExportReader {
@@ -109,6 +146,12 @@ namespace tool::gsc {
         uint8_t GetParamCount() override { return exp->param_count; };
         uint8_t GetFlags() override { return exp->flags; };
         size_t SizeOf() override { return sizeof(*exp); };
+        void SetName(uint64_t name) override { exp->name = name; }
+        void SetNamespace(uint64_t nameSpace) override { exp->name_space = nameSpace; }
+        void SetFileNamespace(uint64_t fileNamespace) override { exp->file_name_space = fileNamespace; }
+        void SetChecksum(uint64_t checksum) override { exp->checksum = checksum; }
+        void SetFlags(uint8_t flags) override { exp->flags = flags; }
+        void SetParamCount(uint8_t flags) override { exp->flags = flags; }
     };
 
     std::unique_ptr<GSCExportReader> CreateExportReader(VmInfo* vmInfo) {
