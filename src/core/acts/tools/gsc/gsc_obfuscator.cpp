@@ -136,8 +136,8 @@ namespace {
         );
         opts.addOption(&opt.output, "output dir (default: output)", "--output", " (path)", "-o");
 
-        if (!opts.ComputeOptions(1, argc, argv) || opt.printHelp || opts.NotEnoughParam(1)) {
-            LOG_INFO("usage: {} (file)", argv[0]);
+        if (!opts.ComputeOptions(2, argc, argv) || opt.printHelp || opts.NotEnoughParam(1)) {
+            LOG_INFO("usage: {} {} (file)", argv[0], argv[1]);
             opts.PrintOptions();
             return opt.printHelp ? 0 : -1;
         }
@@ -168,7 +168,7 @@ namespace {
                 utils::GetFileRecurseExt(parent, paths, ".gscc\0.cscc\0.ff\0", true);
 
                 if (paths.empty()) {
-                    LOG_WARNING("Can't find compiled gsc files (.gscc/.cscc) in {}", opts[i]);
+                    LOG_WARNING("Can't find compiled gsc files (.gscc/.cscc/.ff) in {}", opts[i]);
                     continue;
                 }
             }
