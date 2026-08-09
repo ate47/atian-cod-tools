@@ -132,13 +132,13 @@ namespace tool::gsc {
 
         byte RemapFlagsExport(byte flags) override {
             byte nflags{};
-            if (flags & 1)
+            if (flags & T7GEF_LINKED)
                 nflags |= T8GSCExportFlags::LINKED;
-            if (flags & 2)
+            if (flags & T7GEF_AUTOEXEC)
                 nflags |= T8GSCExportFlags::AUTOEXEC;
-            if (flags & 4)
+            if (flags & T7GEF_PRIVATE)
                 nflags |= T8GSCExportFlags::PRIVATE;
-            if (flags & 0x20)
+            if (flags & T7GEF_VE)
                 nflags |= T8GSCExportFlags::VE;
 
             return nflags;
@@ -147,19 +147,19 @@ namespace tool::gsc {
             byte nflags{};
 
             switch (flags & 0xF) {
-            case 1:
+            case T7GIF_FUNC_METHOD:
                 nflags |= T8GSCImportFlags::FUNC_METHOD;
                 break;
-            case 2:
+            case T7GIF_FUNCTION:
                 nflags |= T8GSCImportFlags::FUNCTION;
                 break;
-            case 3:
+            case T7GIF_FUNCTION_THREAD:
                 nflags |= T8GSCImportFlags::FUNCTION_THREAD;
                 break;
-            case 4:
+            case T7GIF_METHOD:
                 nflags |= T8GSCImportFlags::METHOD;
                 break;
-            case 5:
+            case T7GIF_METHOD_THREAD:
                 nflags |= T8GSCImportFlags::METHOD_THREAD;
                 break;
             default:
@@ -167,9 +167,9 @@ namespace tool::gsc {
                 break; // wtf?
             }
 
-            if (flags & 0x10)
+            if (flags & T7GIF_DEV_CALL)
                 nflags |= T8GSCImportFlags::DEV_CALL;
-            if (flags & 0x20)
+            if (flags & T7GIF_GET_CALL)
                 nflags |= T8GSCImportFlags::GET_CALL;
 
             return nflags;
@@ -178,15 +178,15 @@ namespace tool::gsc {
         byte MapFlagsExportToInt(byte flags) override {
             byte nflags{};
             if (flags == tool::gsc::CLASS_VTABLE)
-                return 0x6;
+                return T7GEF_AUTOEXEC | T7GEF_PRIVATE;
             if (flags & T8GSCExportFlags::LINKED)
-                nflags |= 1;
+                nflags |= T7GEF_LINKED;
             if (flags & T8GSCExportFlags::AUTOEXEC)
-                nflags |= 2;
+                nflags |= T7GEF_AUTOEXEC;
             if (flags & T8GSCExportFlags::PRIVATE)
-                nflags |= 4;
+                nflags |= T7GEF_PRIVATE;
             if (flags & T8GSCExportFlags::VE)
-                nflags |= 0x20;
+                nflags |= T7GEF_VE;
             return nflags;
         }
 
@@ -194,34 +194,34 @@ namespace tool::gsc {
             byte nflags{};
             switch (flags & 0xF) {
             case FUNC_METHOD:
-                nflags |= 1;
+                nflags |= T7GIF_FUNC_METHOD;
                 break;
             case FUNCTION:
-                nflags |= 2;
+                nflags |= T7GIF_FUNCTION;
                 break;
             case FUNCTION_THREAD:
-                nflags |= 3;
+                nflags |= T7GIF_FUNCTION_THREAD;
                 break;
             case METHOD:
-                nflags |= 4;
+                nflags |= T7GIF_METHOD;
                 break;
             case METHOD_THREAD:
-                nflags |= 5;
+                nflags |= T7GIF_METHOD_THREAD;
                 break;
             default:
                 nflags |= (flags & 0xF);
                 break; // wtf?
             }
             if (flags & T8GSCImportFlags::DEV_CALL)
-                nflags |= 0x10;
+                nflags |= T7GIF_DEV_CALL;
             if (flags & T8GSCImportFlags::GET_CALL)
-                nflags |= 0x20;
+                nflags |= T7GIF_GET_CALL;
 
             return nflags;
         }
 
-        bool IsVTableImportFlags(byte flags) override { return flags == 0x6; }
-        byte GetVTableImportFlags() override { return 0x6; }
+        bool IsVTableImportFlags(byte flags) override { return flags == (T7GEF_AUTOEXEC | T7GEF_PRIVATE); }
+        byte GetVTableImportFlags() override { return T7GEF_AUTOEXEC | T7GEF_PRIVATE; }
     };
 
     class T71BGSCOBJHandler : public GSCOBJHandler {
@@ -351,13 +351,13 @@ namespace tool::gsc {
 
         byte RemapFlagsExport(byte flags) override {
             byte nflags{};
-            if (flags & 1)
+            if (flags & T7GEF_LINKED)
                 nflags |= T8GSCExportFlags::LINKED;
-            if (flags & 2)
+            if (flags & T7GEF_AUTOEXEC)
                 nflags |= T8GSCExportFlags::AUTOEXEC;
-            if (flags & 4)
+            if (flags & T7GEF_PRIVATE)
                 nflags |= T8GSCExportFlags::PRIVATE;
-            if (flags & 0x20)
+            if (flags & T7GEF_VE)
                 nflags |= T8GSCExportFlags::VE;
 
             return nflags;
@@ -366,19 +366,19 @@ namespace tool::gsc {
             byte nflags{};
 
             switch (flags & 0xF) {
-            case 1:
+            case T7GIF_FUNC_METHOD:
                 nflags |= T8GSCImportFlags::FUNC_METHOD;
                 break;
-            case 2:
+            case T7GIF_FUNCTION:
                 nflags |= T8GSCImportFlags::FUNCTION;
                 break;
-            case 3:
+            case T7GIF_FUNCTION_THREAD:
                 nflags |= T8GSCImportFlags::FUNCTION_THREAD;
                 break;
-            case 4:
+            case T7GIF_METHOD:
                 nflags |= T8GSCImportFlags::METHOD;
                 break;
-            case 5:
+            case T7GIF_METHOD_THREAD:
                 nflags |= T8GSCImportFlags::METHOD_THREAD;
                 break;
             default:
@@ -386,9 +386,9 @@ namespace tool::gsc {
                 break; // wtf?
             }
 
-            if (flags & 0x10)
+            if (flags & T7GIF_DEV_CALL)
                 nflags |= T8GSCImportFlags::DEV_CALL;
-            if (flags & 0x20)
+            if (flags & T7GIF_GET_CALL)
                 nflags |= T8GSCImportFlags::GET_CALL;
 
             return nflags;
@@ -397,15 +397,15 @@ namespace tool::gsc {
         byte MapFlagsExportToInt(byte flags) override {
             byte nflags{};
             if (flags == tool::gsc::CLASS_VTABLE)
-                return 0x6;
+                return T7GEF_AUTOEXEC | T7GEF_PRIVATE;
             if (flags & T8GSCExportFlags::LINKED)
-                nflags |= 1;
+                nflags |= T7GEF_LINKED;
             if (flags & T8GSCExportFlags::AUTOEXEC)
-                nflags |= 2;
+                nflags |= T7GEF_AUTOEXEC;
             if (flags & T8GSCExportFlags::PRIVATE)
-                nflags |= 4;
+                nflags |= T7GEF_PRIVATE;
             if (flags & T8GSCExportFlags::VE)
-                nflags |= 0x20;
+                nflags |= T7GEF_VE;
             return nflags;
         }
 
@@ -413,32 +413,34 @@ namespace tool::gsc {
             byte nflags{};
             switch (flags & 0xF) {
             case FUNC_METHOD:
-                nflags |= 1;
+                nflags |= T7GIF_FUNC_METHOD;
                 break;
             case FUNCTION:
-                nflags |= 2;
+                nflags |= T7GIF_FUNCTION;
                 break;
             case FUNCTION_THREAD:
-                nflags |= 3;
+                nflags |= T7GIF_FUNCTION_THREAD;
                 break;
             case METHOD:
-                nflags |= 4;
+                nflags |= T7GIF_METHOD;
                 break;
             case METHOD_THREAD:
-                nflags |= 5;
+                nflags |= T7GIF_METHOD_THREAD;
                 break;
             default:
                 nflags |= (flags & 0xF);
                 break; // wtf?
             }
+            if (flags & T8GSCImportFlags::DEV_CALL)
+                nflags |= T7GIF_DEV_CALL;
             if (flags & T8GSCImportFlags::GET_CALL)
-                nflags |= 0x20;
+                nflags |= T7GIF_GET_CALL;
 
             return nflags;
         }
 
-        bool IsVTableImportFlags(byte flags) override { return flags == 0x6; }
-        byte GetVTableImportFlags() override { return 0x6; }
+        bool IsVTableImportFlags(byte flags) override { return flags == (T7GEF_AUTOEXEC | T7GEF_PRIVATE); }
+        byte GetVTableImportFlags() override { return T7GEF_AUTOEXEC | T7GEF_PRIVATE; }
     };
 
     class T71AGSCOBJHandler : public GSCOBJHandler {
@@ -568,13 +570,13 @@ namespace tool::gsc {
 
         byte RemapFlagsExport(byte flags) override {
             byte nflags{};
-            if (flags & 1)
+            if (flags & T7GEF_LINKED)
                 nflags |= T8GSCExportFlags::LINKED;
-            if (flags & 2)
+            if (flags & T7GEF_AUTOEXEC)
                 nflags |= T8GSCExportFlags::AUTOEXEC;
-            if (flags & 4)
+            if (flags & T7GEF_PRIVATE)
                 nflags |= T8GSCExportFlags::PRIVATE;
-            if (flags & 0x20)
+            if (flags & T7GEF_VE)
                 nflags |= T8GSCExportFlags::VE;
 
             return nflags;
@@ -583,19 +585,19 @@ namespace tool::gsc {
             byte nflags{};
 
             switch (flags & 0xF) {
-            case 1:
+            case T7GIF_FUNC_METHOD:
                 nflags |= T8GSCImportFlags::FUNC_METHOD;
                 break;
-            case 2:
+            case T7GIF_FUNCTION:
                 nflags |= T8GSCImportFlags::FUNCTION;
                 break;
-            case 3:
+            case T7GIF_FUNCTION_THREAD:
                 nflags |= T8GSCImportFlags::FUNCTION_THREAD;
                 break;
-            case 4:
+            case T7GIF_METHOD:
                 nflags |= T8GSCImportFlags::METHOD;
                 break;
-            case 5:
+            case T7GIF_METHOD_THREAD:
                 nflags |= T8GSCImportFlags::METHOD_THREAD;
                 break;
             default:
@@ -603,9 +605,9 @@ namespace tool::gsc {
                 break; // wtf?
             }
 
-            if (flags & 0x10)
+            if (flags & T7GIF_DEV_CALL)
                 nflags |= T8GSCImportFlags::DEV_CALL;
-            if (flags & 0x20)
+            if (flags & T7GIF_GET_CALL)
                 nflags |= T8GSCImportFlags::GET_CALL;
 
             return nflags;
@@ -614,15 +616,15 @@ namespace tool::gsc {
         byte MapFlagsExportToInt(byte flags) override {
             byte nflags{};
             if (flags == tool::gsc::CLASS_VTABLE)
-                return 0x6;
+                return T7GEF_AUTOEXEC | T7GEF_PRIVATE;
             if (flags & T8GSCExportFlags::LINKED)
-                nflags |= 1;
+                nflags |= T7GEF_LINKED;
             if (flags & T8GSCExportFlags::AUTOEXEC)
-                nflags |= 2;
+                nflags |= T7GEF_AUTOEXEC;
             if (flags & T8GSCExportFlags::PRIVATE)
-                nflags |= 4;
+                nflags |= T7GEF_PRIVATE;
             if (flags & T8GSCExportFlags::VE)
-                nflags |= 0x20;
+                nflags |= T7GEF_VE;
             return nflags;
         }
 
@@ -630,34 +632,34 @@ namespace tool::gsc {
             byte nflags{};
             switch (flags & 0xF) {
             case FUNC_METHOD:
-                nflags |= 1;
+                nflags |= T7GIF_FUNC_METHOD;
                 break;
             case FUNCTION:
-                nflags |= 2;
+                nflags |= T7GIF_FUNCTION;
                 break;
             case FUNCTION_THREAD:
-                nflags |= 3;
+                nflags |= T7GIF_FUNCTION_THREAD;
                 break;
             case METHOD:
-                nflags |= 4;
+                nflags |= T7GIF_METHOD;
                 break;
             case METHOD_THREAD:
-                nflags |= 5;
+                nflags |= T7GIF_METHOD_THREAD;
                 break;
             default:
                 nflags |= (flags & 0xF);
                 break; // wtf?
             }
             if (flags & T8GSCImportFlags::DEV_CALL)
-                nflags |= 0x10;
+                nflags |= T7GIF_DEV_CALL;
             if (flags & T8GSCImportFlags::GET_CALL)
-                nflags |= 0x20;
+                nflags |= T7GIF_GET_CALL;
 
             return nflags;
         }
 
-        bool IsVTableImportFlags(byte flags) override { return flags == 0x6; }
-        byte GetVTableImportFlags() override { return 0x6; }
+        bool IsVTableImportFlags(byte flags) override { return flags == (T7GEF_AUTOEXEC | T7GEF_PRIVATE); }
+        byte GetVTableImportFlags() override { return T7GEF_AUTOEXEC | T7GEF_PRIVATE; }
     };
 
 } // namespace tool::gsc
