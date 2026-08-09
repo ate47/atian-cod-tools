@@ -314,7 +314,7 @@ namespace tool::gsc {
          */
         template<typename T = byte, typename R = T>
         constexpr R* PtrAlign(size_t shift = 0) {
-            return reinterpret_cast<R*>(utils::Aligned<T>(file + shift));
+            return reinterpret_cast<R*>(file + utils::AlignedC<T>(shift));
         }
 
         /*
