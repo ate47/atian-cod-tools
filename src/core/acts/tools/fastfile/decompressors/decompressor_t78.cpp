@@ -16,6 +16,25 @@ namespace {
 
     void ErrorStub(uint32_t errcode) { throw std::runtime_error(games::bo4::errors::TranslateError(errcode)); }
 
+    void PrintArchiveChecksum(
+        fastfile::FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, size_t archiveChecksumsLoc
+    ) {
+        if (opt.m_header) {
+            if (!reader.CanRead(archiveChecksumsLoc + sizeof(uint32_t) * 4)) {
+                throw std::runtime_error("Can't read XFile header");
+            }
+            uint32_t* archiveChecksum{ reader.Ptr<uint32_t>(archiveChecksumsLoc) };
+
+            LOG_INFO(
+                "archive checksum: [0x{:x},0x{:x},0x{:x},0x{:x}]",
+                archiveChecksum[0],
+                archiveChecksum[1],
+                archiveChecksum[2],
+                archiveChecksum[3]
+            );
+        }
+    }
+
     class T78FFDecompressor : public fastfile::FFDecompressor {
       public:
         T78FFDecompressor() : fastfile::FFDecompressor("Black Ops 3/4", 0x3030303066664154, fastfile::MASK64) {}
@@ -47,6 +66,7 @@ namespace {
             size_t blockSizeLoc;
             size_t signLoc{};
             size_t aesIVLoc{};
+            size_t archiveChecksumsLoc{};
             compatibility::acti::crypto_keys::KeyVersion keyVersion{};
             const char* rsaKeyName{};
             bool noStreamInfo{};
@@ -61,6 +81,7 @@ namespace {
                 signLoc = offsetof(XFileBO3_x132, signature);
                 aesIVLoc = offsetof(XFileBO3_x132, aesIV);
                 blockSizeLoc = offsetof(XFileBO3_x132, blockSize);
+                archiveChecksumsLoc = offsetof(XFileBO3_x132, archiveChecksum);
                 rsaKeyName = "bo3dev";
                 keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
                 noStreamInfo = true;
@@ -77,6 +98,7 @@ namespace {
                 rsaKeyName = "bo3";
                 keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO3;
                 ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO3::blockSize);
+                archiveChecksumsLoc = offsetof(XFileBO3, archiveChecksum);
                 break;
             case 0x265: // Black ops 4 Dev
                 fastFileSize = sizeof(XFileBO4_Dev);
@@ -85,6 +107,7 @@ namespace {
                 signLoc = offsetof(XFileBO4_Dev, signature);
                 aesIVLoc = offsetof(XFileBO4_Dev, aesIV);
                 blockSizeLoc = offsetof(XFileBO4_Dev, blockSize);
+                archiveChecksumsLoc = offsetof(XFileBO4_Dev, archiveChecksum);
                 rsaKeyName = "bo4dev";
                 keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
                 ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO4_Dev::blockSize);
@@ -108,6 +131,7 @@ namespace {
                 ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO4_0x27F::blockSize);
                 signLoc = offsetof(XFileBO4_0x27F, signature);
                 aesIVLoc = offsetof(XFileBO4_0x27F, aesIV);
+                archiveChecksumsLoc = offsetof(XFileBO4_0x27F, archiveChecksum);
                 rsaKeyName = "bo4_old";
                 keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
                 xhashType = true;
@@ -120,23 +144,10 @@ namespace {
                 ctx.blocksCount = ACTS_ARRAYSIZE(XFileBO4_0x27F::blockSize);
                 signLoc = offsetof(XFileBO4_0x27F, signature);
                 aesIVLoc = offsetof(XFileBO4_0x27F, aesIV);
+                archiveChecksumsLoc = offsetof(XFileBO4_0x27F, archiveChecksum);
                 rsaKeyName = "bo4";
                 keyVersion = compatibility::acti::crypto_keys::KeyVersion::VER_BO4;
                 xhashType = true;
-                if (opt.m_header) {
-                    if (!reader.CanRead(sizeof(XFileBO4_0x27F))) {
-                        throw std::runtime_error("Can't read XFile header");
-                    }
-                    XFileBO4_0x27F* xfile{ reader.Ptr<XFileBO4_0x27F>() };
-
-                    LOG_INFO(
-                        "archive checksum: 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-                        xfile->archiveChecksum[0],
-                        xfile->archiveChecksum[1],
-                        xfile->archiveChecksum[2],
-                        xfile->archiveChecksum[3]
-                    );
-                }
                 break;
             default:
                 throw std::runtime_error(std::format("Fast file version not supported: 0x{:x}", header->version));
@@ -144,6 +155,7 @@ namespace {
             if (opt.rsaKey) {
                 rsaKeyName = opt.rsaKey;
             }
+            PrintArchiveChecksum(opt, reader, archiveChecksumsLoc);
 
             ctx.hasGSCBin = false;
             switch (header->platform) {
@@ -489,6 +501,8 @@ namespace {
                         throw std::runtime_error("Can't read patch file header");
                     }
 
+                    PrintArchiveChecksum(opt, fdreader, archiveChecksumsLoc);
+
                     fastfile::TXFileHeader* newXFileHeader{ fdreader.Ptr<fastfile::TXFileHeader>() };
                     fdreader.Goto(decompressedSizeLoc);
                     uint64_t fdDecompressedSize{ fdreader.Read<uint64_t>() };
@@ -518,18 +532,6 @@ namespace {
                             bdiffHeader->maxDiffWindowSize,
                             fdDecompressedSize
                         );
-
-                        if (newXFileHeader->version == 0x27f) {
-                            XFileBO4_0x27F* xfile{ (XFileBO4_0x27F*)newXFileHeader };
-
-                            LOG_INFO(
-                                "archive checksum: 0x{:x} 0x{:x} 0x{:x} 0x{:x}",
-                                xfile->archiveChecksum[0],
-                                xfile->archiveChecksum[1],
-                                xfile->archiveChecksum[2],
-                                xfile->archiveChecksum[3]
-                            );
-                        }
                     }
 
                     if (bdiffHeader->size != bdiffHeaderSize) {

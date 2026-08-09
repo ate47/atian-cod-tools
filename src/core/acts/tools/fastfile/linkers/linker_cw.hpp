@@ -21,6 +21,7 @@ namespace fastfile::linker::cw {
         XFILE_BLOCK_MEMMAPPED = 0x9,
         XFILE_BLOCK_LOAD_TIME = 0xA,
         XFILE_BLOCK_TEMP_PRELOAD_SAVED_PTR = 0xB,
+        XFILE_BLOCK_COUNT_COD2020 = 0xC,
         XFILE_BLOCK_MESH = 0xC,
         XFILE_BLOCK_COUNT = 0xD,
     };

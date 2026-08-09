@@ -65,6 +65,13 @@ namespace {
             trPlatform.server ? "true" : "false",
             trBuildData.builderName
         );
+        LOG_INFO(
+            "archive checksum: [0x{:x},0x{:x},0x{:x},0x{:x}]",
+            trBuildData.archiveChecksum[0],
+            trBuildData.archiveChecksum[1],
+            trBuildData.archiveChecksum[2],
+            trBuildData.archiveChecksum[3]
+        );
     }
 
     class T9FFDecompressor : public fastfile::FFDecompressor {

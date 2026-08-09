@@ -13,6 +13,7 @@
 #include <cli/clicolor.hpp>
 #include <acts_api/event.h>
 #include <xxhash.h>
+#include <tools/compatibility/acti_archive_checksums.hpp>
 
 namespace fastfile {
     class AssetPool;
@@ -183,13 +184,13 @@ namespace fastfile {
                 m_help = true;
             } else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 m_output = args[++i];
             } else if (!strcmp("-c", arg) || !_strcmpi("--compressor", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 const char* id{ args[++i] };
@@ -199,7 +200,7 @@ namespace fastfile {
                 }
             } else if (!strcmp("-l", arg) || !_strcmpi("--linker", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 const char* id{ args[++i] };
@@ -209,7 +210,7 @@ namespace fastfile {
                 }
             } else if (!strcmp("-P", arg) || !_strcmpi("--platform", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 const char* plt{ args[++i] };
@@ -219,7 +220,7 @@ namespace fastfile {
                 }
             } else if (!strcmp("-n", arg) || !_strcmpi("--name", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 ffname = args[++i];
@@ -235,13 +236,24 @@ namespace fastfile {
                 server = true;
             } else if (!_strcmpi("--chunkSize", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 chunkSize = (size_t)utils::ParseFormatInt(args[++i]);
+            } else if (!_strcmpi("--archive-checksums", arg)) {
+                if (i + 1 == endIndex) {
+                    LOG_ERROR("Missing value for param '{}'!", arg);
+                    return false;
+                }
+                const char* archiveChecksumsName{ args[++i] };
+                archiveChecksums = compatibility::acti::archive_checksums::GetChecksumsByName(archiveChecksumsName);
+                if (!archiveChecksums) {
+                    LOG_ERROR("Can't find archive checksum for name '{}'!", archiveChecksumsName);
+                    return false;
+                }
             } else if (*arg == '-') {
                 if (arg[1] != 'D') {
-                    std::cerr << "Invalid argument: " << arg << "!\n";
+                    LOG_ERROR("Invalid argument '{}'!", arg);
                     return false;
                 }
                 defines.push_back(&arg[2]);
@@ -288,19 +300,19 @@ namespace fastfile {
                 m_help = true;
             } else if (!strcmp("-o", arg) || !_strcmpi("--output", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 m_output = outputPath = args[++i];
             } else if (!strcmp("-g", arg) || !_strcmpi("--game", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 game = args[++i];
             } else if (!strcmp("-G", arg) || !_strcmpi("--game-path", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 gamePath = args[++i];
@@ -312,7 +324,7 @@ namespace fastfile {
                 }
             } else if (!strcmp("-C", arg) || !_strcmpi("--casc", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 m_casc = args[++i];
@@ -324,7 +336,7 @@ namespace fastfile {
                 }
             } else if (!strcmp("-r", arg) || !_strcmpi("--handler", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 const char* id{ args[++i] };
@@ -334,7 +346,7 @@ namespace fastfile {
                 }
             } else if (!strcmp("-a", arg) || !_strcmpi("--assets", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 assetTypes = args[++i];
@@ -344,38 +356,38 @@ namespace fastfile {
                 print_handlers = true;
             } else if (!strcmp("-w", arg) || !_strcmpi("--wildcard", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 wildcard = args[++i];
             } else if (!strcmp("-W", arg) || !_strcmpi("--ignore-wildcard", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 ignoreWildcard = args[++i];
             } else if (!strcmp("-I", arg) || !_strcmpi("--ignore", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 ignore = args[++i];
             } else if (!strcmp("-n", arg) || !_strcmpi("--name", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 assets = args[++i];
             } else if (!strcmp("-t", arg) || !_strcmpi("--translate", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 translation = args[++i];
                 LoadTranslationKeys();
             } else if (!strcmp("-k", arg) || !_strcmpi("--rsa-key", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 rsaKey = args[++i];
@@ -391,7 +403,7 @@ namespace fastfile {
                 m_header = true;
             } else if (!_strcmpi("--headerDump", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 headerDump = args[++i];
@@ -421,7 +433,7 @@ namespace fastfile {
                 dumpBinaryAssetsMap = true;
             } else if (!_strcmpi("--scriptsFormatter", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
 
@@ -441,7 +453,7 @@ namespace fastfile {
                 print_revId = true;
             } else if (!_strcmpi("--gameId", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 const char* gid{ args[++i] };
@@ -451,7 +463,7 @@ namespace fastfile {
                 }
             } else if (!_strcmpi("--gameRevId", arg)) {
                 if (i + 1 == endIndex) {
-                    std::cerr << "Missing value for param: " << arg << "!\n";
+                    LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
                 const char* grid{ args[++i] };
@@ -462,7 +474,7 @@ namespace fastfile {
             } else if (!strcmp("-i", arg) || !_strcmpi("--fd-ignore", arg)) {
                 m_fdIgnoreMissing = true;
             } else if (*arg == '-') {
-                std::cerr << "Invalid argument: " << arg << "!\n";
+                LOG_ERROR("Invalid argument '{}'!", arg);
                 return false;
             } else {
                 files.push_back(arg);
@@ -1335,6 +1347,32 @@ namespace fastfile {
         }
 
         old = strs.CloneStr(str);
+    }
+    void FastFileLinkerContext::LoadArchiveChecksums(uint32_t* checksum) {
+        if (opt.archiveChecksums) {
+            // user defined checksums
+            std::memcpy(checksum, opt.archiveChecksums->checksums, sizeof(opt.archiveChecksums->checksums));
+            return;
+        }
+
+        if (!compressor) {
+            throw std::runtime_error("Can't load archive checksums: no compressor or archiveChecksums key defined");
+        }
+
+        const compatibility::acti::archive_checksums::ArchiveChecksums* check{
+            compatibility::acti::archive_checksums::GetChecksumsByName(compressor->name)
+        };
+
+        if (!check) {
+            throw std::runtime_error(
+                std::format(
+                    "Can't load archive checksums: no archiveChecksums key defined for compressor {}",
+                    compressor->name
+                )
+            );
+        }
+
+        std::memcpy(checksum, check->checksums, sizeof(check->checksums));
     }
 
     int fastfilelinker(int argc, const char* argv[]) {

@@ -16,6 +16,7 @@ namespace actscli {
         const char* packFile{};
         const char* aesKeys{};
         const char* rsaKeys{};
+        const char* archiveChecksums{};
         bool noDefaultHash{};
         bool noIWHash{};
         bool markHash{};

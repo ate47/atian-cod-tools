@@ -11,6 +11,7 @@
 #include <core/actsinfo.hpp>
 #include "main_ui.hpp"
 #include <tools/compatibility/acti_crypto_keys.hpp>
+#include <tools/compatibility/acti_archive_checksums.hpp>
 #include "tools/tools_nui.hpp"
 #include <core/config.hpp>
 #include <core/updater.hpp>
@@ -217,6 +218,12 @@ namespace {
                     return false;
                 }
                 opt.aesKeys = argv[++i];
+            } else if (!_strcmpi("--archive-checksums", arg)) {
+                if (i + 1 == argc) {
+                    LOG_ERROR("Missing value for param: {}!", arg);
+                    return false;
+                }
+                opt.archiveChecksums = argv[++i];
             } else if (!_strcmpi("--rsa-keys", arg)) {
                 if (i + 1 == argc) {
                     LOG_ERROR("Missing value for param: {}!", arg);
@@ -252,43 +259,53 @@ namespace {
         LOG_INFO("- search (query)  : search for a tool");
         LOG_INFO("");
         LOG_INFO("Options:");
-        LOG_INFO(" -? --help -h       : Help");
-        LOG_INFO(" -l --log [l]       : Set log level p(path)/t(race)/d(ebug)/i(nfo)/w(arn)/e(rror), default: i");
-        LOG_INFO(" -L --log-file [f]  : Set the log file");
-        LOG_INFO(" --log-path [p]     : Set the log path(s), semicolon separated");
-        LOG_INFO(" -d --debug         : Enable debug mode");
-        LOG_INFO(" -x --extracted [f] : Write the extracted hashes into a file after the process");
-        LOG_INFO(" --extracted-unk    : with -x Extract the unknown values");
-        LOG_INFO(" -t --no-title      : Hide ACTS title at start");
-        LOG_INFO(" -p --pack [f]      : Load ACTS pack file");
-        LOG_INFO(" -P --profiler [f]  : Save profiler file after tool usage");
-        LOG_INFO(" -N --no-hash       : No default hash");
-        LOG_INFO(" -H --no-install    : No install hashes");
-        LOG_INFO(" -I --no-iw         : No IW hash (ignored with -N)");
-        LOG_INFO("--decrypt-mod [f]   : Use exe dump to decrypt strings");
-        LOG_INFO("--decrypt-t8 [v]    : Set the bo4 decryption algorithm, default 0");
+        LOG_INFO(" -? --help -h            : Help");
+        LOG_INFO(" -l --log [l]            : Set log level p(path)/t(race)/d(ebug)/i(nfo)/w(arn)/e(rror), default: i");
+        LOG_INFO(" -L --log-file [f]       : Set the log file");
+        LOG_INFO(" --log-path [p]          : Set the log path(s), semicolon separated");
+        LOG_INFO(" -d --debug              : Enable debug mode");
+        LOG_INFO(" -x --extracted [f]      : Write the extracted hashes into a file after the process");
+        LOG_INFO(" --extracted-unk         : with -x Extract the unknown values");
+        LOG_INFO(" -t --no-title           : Hide ACTS title at start");
+        LOG_INFO(" -p --pack [f]           : Load ACTS pack file");
+        LOG_INFO(" -P --profiler [f]       : Save profiler file after tool usage");
+        LOG_INFO(" -N --no-hash            : No default hash");
+        LOG_INFO(" -H --no-install         : No install hashes");
+        LOG_INFO(" -I --no-iw              : No IW hash (ignored with -N)");
+        LOG_INFO("--decrypt-mod [f]        : Use exe dump to decrypt strings");
+        LOG_INFO("--decrypt-t8 [v]         : Set the bo4 decryption algorithm, default 0");
         LOG_INFO(
-            " -s --strings [f]   : Set default hash file, default: '{}' (ignored with -N)",
+            " -s --strings [f]        : Set default hash file, default: '{}' (ignored with -N)",
             hashutils::DEFAULT_HASH_FILE
         );
-        LOG_INFO(" -D --db2-files [f] : Load DB2 files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
-        LOG_INFO(" -w --wni-files [f] : Load WNI files at start, default: '{}'", deps::scobalula::wni::packageIndexDir);
         LOG_INFO(
-            " --aes-keys [f]     : Set default AES keys file, default: '{}'",
+            " -D --db2-files [f]      : Load DB2 files at start, default: '{}'",
+            deps::scobalula::wni::packageIndexDir
+        );
+        LOG_INFO(
+            " -w --wni-files [f]      : Load WNI files at start, default: '{}'",
+            deps::scobalula::wni::packageIndexDir
+        );
+        LOG_INFO(
+            " --aes-keys [f]          : Set default AES keys file, default: '{}'",
             compatibility::acti::crypto_keys::DEFAULT_AES_KEY_FILE
         );
         LOG_INFO(
-            " --rsa-keys [f]     : Set default RSA keys file, default: '{}'",
+            " --rsa-keys [f]          : Set default RSA keys file, default: '{}'",
             compatibility::acti::crypto_keys::DEFAULT_RSA_KEY_FILE
         );
-        LOG_INFO(" -W --work          : Tell which work to use: repl, cli");
-        LOG_INFO(" --noUpdater        : Disable updater");
+        LOG_INFO(
+            " --archive-checksums [f] : Set default RSA keys file, default: '{}'",
+            compatibility::acti::crypto_keys::DEFAULT_RSA_KEY_FILE
+        );
+        LOG_INFO(" -W --work               : Tell which work to use: repl, cli");
+        LOG_INFO(" --noUpdater             : Disable updater");
 
-        LOG_DEBUG(" --hash0            : Use \"hash_0\" instead of \"\" during lookup");
-        LOG_DEBUG("--mark-hash         : Mark the hash default value");
-        LOG_DEBUG("--hashprefix [p]    : Ignore the default prefix");
-        LOG_DEBUG("--heavy-hashes      : Heavy hashes format");
-        LOG_DEBUG("-F --force-error    : Force error");
+        LOG_DEBUG(" --hash0                 : Use \"hash_0\" instead of \"\" during lookup");
+        LOG_DEBUG("--mark-hash              : Mark the hash default value");
+        LOG_DEBUG("--hashprefix [p]         : Ignore the default prefix");
+        LOG_DEBUG("--heavy-hashes           : Heavy hashes format");
+        LOG_DEBUG("-F --force-error         : Force error");
     }
 } // namespace
 
@@ -478,6 +495,14 @@ int MainActs(int argc, const char* argv[], void* hInstance, int nShowCmd) {
                                                   : acts::game_data::GetDataDir() / "keys" /
                                                         compatibility::acti::crypto_keys::DEFAULT_RSA_KEY_FILE };
     compatibility::acti::crypto_keys::LoadRsaKeys(rsaKeyFile);
+
+    // load archive checksums
+    std::filesystem::path archiveChecksumsFile{
+        opt.archiveChecksums ? std::filesystem::path{ opt.archiveChecksums }
+                             : acts::game_data::GetDataDir() / "keys" /
+                                   compatibility::acti::archive_checksums::DEFAULT_ARCHIVE_CHECKSUMS_FILE
+    };
+    compatibility::acti::archive_checksums::LoadArchiveChecksums(archiveChecksumsFile);
 
     if (opt.type == actscli::ACTS_NUI || (hInstance && core::config::GetBool("nui.force", true))) {
         tool::nui::OpenNuiWindow();

@@ -11,7 +11,9 @@
 #include <tools/fastfile/fastfile_flexible.hpp>
 #include <compatibility/scobalula_csi.hpp>
 #include <acts_api/fastfile.h>
-
+namespace compatibility::acti::archive_checksums {
+    struct ArchiveChecksums;
+}
 namespace fastfile {
     template<typename T>
     inline bool IsSame(T t, int64_t val) {
@@ -159,6 +161,7 @@ namespace fastfile {
         size_t chunkSize{};
         std::filesystem::path m_output{ "output_ff" };
         const char* ffname{};
+        const compatibility::acti::archive_checksums::ArchiveChecksums* archiveChecksums{};
         std::vector<const char*> files{};
         std::vector<const char*> defines{};
         FFCompressor* compressor{};
@@ -198,6 +201,8 @@ namespace fastfile {
         void RegisterHash(uint64_t val, const char* str);
 
         inline void RegisterHash(uint64_t val, const std::string& str) { RegisterHash(val, str.data()); }
+
+        void LoadArchiveChecksums(uint32_t* checksum);
     };
 
     constexpr uint64_t MASK32 = 0xFFFFFFFF;

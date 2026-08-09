@@ -5,6 +5,7 @@
 #include <tools/fastfile/linkers/linker_cw.hpp>
 #include <tools/compatibility/scobalula_wnigen.hpp>
 #include <tools/compatibility/acti_crypto_keys.hpp>
+#include <tools/compatibility/acti_archive_checksums.hpp>
 #include <utils/data_utils.hpp>
 
 namespace fastfile::compressor::t789 {
@@ -23,25 +24,6 @@ namespace fastfile::compressor::t789 {
         uint8_t aesIV[16]{};
         uint8_t aesVal[16]{};
     };
-
-    template<T789Version version>
-    inline void LoadArchiveChecksums(uint32_t* archiveChecksum) {
-        uint32_t* l;
-        if constexpr (version == T789V_BO4) {
-            static uint32_t stt[4]{ 0xCF92ECF4, 0xA75D3F79, 0x2A550D25, 0xF927447B };
-            l = stt;
-        } else if constexpr (version == T789V_BO3) {
-            static uint32_t stt[4]{ 0xB425573A, 0x40603FE2, 0x49F6F169, 0xBBE38E92 };
-            l = stt;
-        } else if constexpr (version == T789V_CW) {
-            static uint32_t stt[4]{ 0xf70752af, 0x7044510f, 0xfaa71cc5, 0x9fd5dfc7 };
-            l = stt;
-        } else {
-            static_assert(false && "Missing archive checksum case for version");
-        }
-
-        std::memcpy(archiveChecksum, l, sizeof(*l));
-    }
 
     template<T789Version version, size_t compressionMax, KeyVersion keyVersion, typename HeaderWriterData = void*>
     class AbstractCompressorT789 : public FFCompressor {
@@ -63,13 +45,11 @@ namespace fastfile::compressor::t789 {
             }
         }
 
-        virtual void AllocateHeader(
-            FastFileLinkerContext& ctx, std::vector<byte>& output, HeaderWriterData& header
-        ) = 0;
+        virtual void
+        AllocateHeader(FastFileLinkerContext& ctx, std::vector<byte>& output, HeaderWriterData& header) = 0;
         virtual void WriteHeaderData(
             FastFileLinkerContext& ctx, std::vector<byte>& output, fastfile::FastFile& ff,
-            FastFileCompression compression, FFCompressorSecureInfo& secure,
-            HeaderWriterData& header
+            FastFileCompression compression, FFCompressorSecureInfo& secure, HeaderWriterData& header
         ) = 0;
 
         void Compress(FastFileLinkerContext& ctx) override {

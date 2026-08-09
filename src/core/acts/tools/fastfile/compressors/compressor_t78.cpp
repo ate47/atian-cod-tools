@@ -32,7 +32,7 @@ namespace {
             header.encrypted = secure.aesKey != nullptr;
             std::memcpy(header.aesIV, secure.aesIV, sizeof(secure.aesIV));
 
-            LoadArchiveChecksums<version>(header.archiveChecksum);
+            ctx.LoadArchiveChecksums(header.archiveChecksum);
 
             platform::GetComputerInfoName(header.builder, sizeof(header.builder));
             snprintf(header.fastfileName, sizeof(header.fastfileName), "%s", ff.ffname);

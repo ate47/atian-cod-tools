@@ -26,11 +26,14 @@ namespace {
         }
     };
 
+    template<size_t numBlocks>
     class FFCompressorBOCW
         : public AbstractCompressorT789<
               T789Version::T789V_CW, XFILE_COMPRESSION_COUNT, KeyVersion::VER_BO4, std::unique_ptr<T9Header>> {
       public:
-        FFCompressorBOCW() : AbstractCompressorT789("CW", "Black ops Cold War fast file compressor") {}
+        using AbstractCompressorT789<
+            T789Version::T789V_CW, XFILE_COMPRESSION_COUNT, KeyVersion::VER_BO4,
+            std::unique_ptr<T9Header>>::AbstractCompressorT789;
 
         void AllocateHeader(
             FastFileLinkerContext& ctx, std::vector<byte>& output, std::unique_ptr<T9Header>& header
@@ -50,14 +53,14 @@ namespace {
             header->size.size = ff.linkedData.size();
             header->platform.compression = compression;
 
-            LoadArchiveChecksums<T789V_CW>(header->build.archiveChecksum);
+            ctx.LoadArchiveChecksums(header->build.archiveChecksum);
 
             // build data
             platform::GetComputerInfoName(header->build.builderName, sizeof(header->build.builderName));
             snprintf(header->ff.fastfileName, sizeof(header->ff.fastfileName), "%s", ff.ffname);
 
             // blocks load data
-            for (size_t i = 0; i < fastfile::linker::cw::XFILE_BLOCK_COUNT; i++) {
+            for (size_t i = 0; i < numBlocks; i++) {
                 header->blockSizes[i] = (uint64_t)ff.blockSizes[i];
             }
 
@@ -67,5 +70,11 @@ namespace {
         }
     };
 
-    utils::ArrayAdder<FFCompressorBOCW, FFCompressor> impl{ GetCompressors() };
+    utils::ArrayAdder<FFCompressorBOCW<fastfile::linker::cw::XFILE_BLOCK_COUNT>, FFCompressor> implt9{
+        GetCompressors(), "CW", "Black ops Cold War fast file compressor"
+    };
+
+    utils::ArrayAdder<FFCompressorBOCW<fastfile::linker::cw::XFILE_BLOCK_COUNT_COD2020>, FFCompressor> implcod2020{
+        GetCompressors(), "COD2020", "Black ops Cold War PreAlpha fast file compressor"
+    };
 } // namespace
