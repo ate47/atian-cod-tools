@@ -377,7 +377,7 @@ namespace tool::gsc {
             bool SwitchEndian() const;
 
             inline void CheckInsideScript() const { CheckInsideScript(m_bcl); }
-            
+
             byte* Aligned(byte* loc, size_t align);
 
             template<typename Type>
