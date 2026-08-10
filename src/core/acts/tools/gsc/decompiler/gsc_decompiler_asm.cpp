@@ -455,7 +455,7 @@ namespace tool::gsc::opcode {
     ASMContextLocation& ASMContext::PushLocation(byte* location) {
         // push aligned location to avoid missing a location
         if (m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
-            location = utils::Aligned<uint16_t>(location);
+            location = Aligned<uint16_t>(location);
         }
         auto loc = FunctionRelativeLocation(location);
         auto& ref = m_locs[loc];
@@ -542,6 +542,11 @@ namespace tool::gsc::opcode {
     void ASMContext::CheckInsideScript(byte* location) const { m_objctx.scriptfile->CheckInsideScript(location); }
     bool ASMContext::SwitchEndian() const { return m_objctx.SwitchEndian(); }
 
+    byte* ASMContext::Aligned(byte* loc, size_t align) {
+        CheckInsideScript();
+        byte* base{ m_gscReader.Ptr() };
+        return &base[utils::Aligned(loc - base, align)];
+    }
     void ASMContext::Read(byte* loc, void* to, size_t len) { m_objctx.Read(loc, to, len); }
 
     std::ostream& ASMContext::WritePadding(std::ostream& out) {

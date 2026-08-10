@@ -129,7 +129,7 @@ namespace tool::gsc::opcode {
 
             if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
                 for (size_t i = 0; i < 0x3; i++) {
-                    auto* loc = utils::Aligned<uint32_t>(context.m_bcl);
+                    auto* loc = context.Aligned<uint32_t>(context.m_bcl);
 
                     uint32_t hash = *reinterpret_cast<uint32_t*>(loc + i * 4);
                     auto* str = hashutils::ExtractPtr(hash);
@@ -153,7 +153,7 @@ namespace tool::gsc::opcode {
 
             if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
                 for (size_t i = 0; i < 0x3; i++) {
-                    byte* loc = utils::Aligned<uint64_t>(context.m_bcl);
+                    byte* loc = context.Aligned<uint64_t>(context.m_bcl);
 
                     uint64_t hash = *reinterpret_cast<uint64_t*>(loc + i * 8);
                     const char* str = hashutils::ExtractPtr(hash);
@@ -983,7 +983,7 @@ namespace tool::gsc::opcode {
 
             uint16_t pointedOpCode{};
             if (context.m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
-                pointedOpCode = *reinterpret_cast<uint16_t*>(utils::Aligned<uint16_t>(newLoc));
+                pointedOpCode = *reinterpret_cast<uint16_t*>(context.Aligned<uint16_t>(newLoc));
             } else {
                 pointedOpCode = *newLoc;
             }
@@ -1007,7 +1007,7 @@ namespace tool::gsc::opcode {
                                 byte* curr;
 
                                 if (objctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN | VmFlags::VMF_OPCODE_U16)) {
-                                    curr = utils::Aligned<int16_t>(context.m_bcl);
+                                    curr = context.Aligned<int16_t>(context.m_bcl);
                                 } else {
                                     curr = context.m_bcl;
                                 }
@@ -3793,7 +3793,7 @@ namespace tool::gsc::opcode {
             baseCases += 4;
 
             out << "table: ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1)
-                << context.FunctionRelativeLocation(utils::Aligned<int64_t>(baseTable)) << " cases: " << cases
+                << context.FunctionRelativeLocation(context.Aligned<int64_t>(baseTable)) << " cases: " << cases
                 << std::endl;
 
             ASMContextNodeSwitchPreCompute* node = nullptr;
@@ -3872,7 +3872,8 @@ namespace tool::gsc::opcode {
 
                 if (c == cases) {
                     if (node) {
-                        node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<uint16_t>(context.m_bcl));
+                        node->m_endLocation =
+                            context.FunctionRelativeLocation(context.Aligned<uint16_t>(context.m_bcl));
                     }
 
                     if (!caseValue) {
@@ -3887,7 +3888,7 @@ namespace tool::gsc::opcode {
             if (node) {
                 if (!node->m_endLocation) {
                     // wtf? no cases???
-                    node->m_endLocation = context.FunctionRelativeLocation(utils::Aligned<uint16_t>(context.m_bcl));
+                    node->m_endLocation = context.FunctionRelativeLocation(context.Aligned<uint16_t>(context.m_bcl));
                 }
                 context.PushASMCNode(node);
                 context.CompleteStatement();

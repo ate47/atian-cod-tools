@@ -377,11 +377,17 @@ namespace tool::gsc {
             bool SwitchEndian() const;
 
             inline void CheckInsideScript() const { CheckInsideScript(m_bcl); }
+            
+            byte* Aligned(byte* loc, size_t align);
+
+            template<typename Type>
+            inline byte* Aligned(byte* loc) {
+                return Aligned(loc, sizeof(Type));
+            }
             // @return align and return m_bcl on a particular datatype
             template<typename Type>
             inline byte*& Aligned() {
-                CheckInsideScript();
-                return m_bcl = utils::Aligned<Type>(m_bcl);
+                return m_bcl = Aligned<Type>(m_bcl);
             }
             template<typename Type>
             inline Type Read(byte* loc = m_bcl) {
