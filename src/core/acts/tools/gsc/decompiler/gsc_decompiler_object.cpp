@@ -147,11 +147,18 @@ namespace tool::gsc {
         uint32_t baseLoc{ exp.GetAddress() };
         bool hasAlign{ ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) };
         bool hasOpU16{ ctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN) };
+        std::unordered_set<uint32_t> knownBases{};
         while (true) {
             uint32_t base{ baseLoc };
             if (hasOpU16 && hasAlign) {
                 base = utils::AlignedC<uint16_t>(base);
             }
+            if (knownBases.contains(base)) {
+                LOG_WARNING("Trampoline loop detected at 0x{:x}", base);
+                break;
+            }
+            knownBases.insert(base);
+
             uint16_t opcode{ hasOpU16 ? ctx.Read<uint16_t>(ctx.scriptfile->Ptr(base))
                                       : (uint16_t)ctx.Read<uint8_t>(ctx.scriptfile->Ptr(base)) };
             base += hasOpU16 ? 2 : 1;
