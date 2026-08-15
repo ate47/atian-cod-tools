@@ -1,5 +1,6 @@
 #pragma once
 #include <tools/gsc/gsc_opcodes.hpp>
+#include <tools/gsc/data/gsc_data_jup.hpp>
 
 namespace tool::gsc {
     struct GSCImportReader {
@@ -16,6 +17,7 @@ namespace tool::gsc {
         virtual void SetNamespace(uint64_t nameSpace) = 0;
         virtual void SetFlags(uint8_t flags) = 0;
         virtual void SetParamCount(uint8_t paramCount) = 0;
+        virtual void ReadGeneric(IW23GSCImport& imp) = 0;
     };
 
     std::unique_ptr<GSCImportReader> CreateImportReader(tool::gsc::opcode::VmInfo* vmInfo);

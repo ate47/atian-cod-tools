@@ -496,7 +496,7 @@ namespace tool::gsc {
             LOG_DEBUG("Using dbg file {}", ctx.gdbctx->path.string());
         }
 
-        if (opt.m_gdbZipOutputFile) {
+        if (opt.m_gdbZipOutputFile || opt.m_generateDbgData) {
             core::async::opt_lock_guard lg{ gdctx.asyncMtx };
             GscDecompilerGDBData*& gdb{ gdctx.gdbData[scriptfile->GetName()] };
             if (gdb) {
@@ -2029,6 +2029,7 @@ namespace tool::gsc {
                     return false;
                 }
                 m_gdbZipOutputFile = args[++i];
+                m_generateDbgData = true;
             } else if (!strcmp("-m", arg) || !_strcmpi("--hashmap", arg)) {
                 if (i + 1 == endIndex) {
                     LOG_ERROR("Missing value for param: {}!", arg);

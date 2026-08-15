@@ -23,6 +23,16 @@ namespace tool::gsc {
         void SetNamespace(uint64_t nameSpace) override { imp->import_namespace = nameSpace; }
         void SetFlags(uint8_t flags) override { imp->flags = flags; }
         void SetParamCount(uint8_t paramCount) override { imp->param_count = paramCount; }
+
+        void ReadGeneric(IW23GSCImport& imp) override {
+            imp = IW23GSCImport{
+                .name = this->imp->name,
+                .name_space = this->imp->import_namespace,
+                .num_address = this->imp->num_address,
+                .param_count = this->imp->param_count,
+                .flags = this->imp->flags,
+            };
+        }
     };
 
     struct H64IW23GSCImportReader : GSCImportReader {
@@ -41,6 +51,7 @@ namespace tool::gsc {
         void SetNamespace(uint64_t nameSpace) override { imp->name_space = nameSpace; }
         void SetFlags(uint8_t flags) override { imp->flags = flags; }
         void SetParamCount(uint8_t paramCount) override { imp->param_count = paramCount; }
+        void ReadGeneric(IW23GSCImport& imp) override { imp = *this->imp; }
     };
 
     std::unique_ptr<GSCImportReader> CreateImportReader(tool::gsc::opcode::VmInfo* vmInfo) {

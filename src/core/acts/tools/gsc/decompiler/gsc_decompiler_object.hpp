@@ -344,6 +344,7 @@ namespace tool::gsc {
 
         // Read functions
         virtual uint64_t GetName() = 0;
+        virtual uint32_t GetNameOffset();
         virtual bool IsValidHeader(size_t size) = 0;
         virtual void SwitchHeaderEndian();
         virtual uint16_t GetExportsCount() = 0;

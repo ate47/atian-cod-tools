@@ -43,6 +43,7 @@ namespace tool::gsc {
             hashutils::Add(name);
             return hash::Hash64(name);
         }
+        uint32_t GetNameOffset() override { return Ptr<T7GSCOBJ>()->name_offset; }
         uint16_t GetExportsCount() override { return Ptr<T7GSCOBJ>()->export_count; }
         uint32_t GetExportsOffset() override { return Ptr<T7GSCOBJ>()->export_offset; }
         uint16_t GetIncludesCount() override { return Ptr<T7GSCOBJ>()->include_count; }
@@ -262,6 +263,7 @@ namespace tool::gsc {
             hashutils::Add(name);
             return hash::Hash64(name);
         }
+        uint32_t GetNameOffset() override { return Ptr<T7GSCOBJ>()->name_offset; }
         uint16_t GetExportsCount() override { return Ptr<T7GSCOBJ>()->export_count; }
         uint32_t GetExportsOffset() override { return Ptr<T7GSCOBJ>()->export_offset; }
         uint16_t GetIncludesCount() override { return Ptr<T7GSCOBJ>()->include_count; }
@@ -481,6 +483,7 @@ namespace tool::gsc {
             hashutils::Add(name);
             return hash::Hash64(name);
         }
+        uint32_t GetNameOffset() override { return Ptr<T7GSCOBJ>()->name_offset; }
         uint16_t GetExportsCount() override { return Ptr<T7GSCOBJ>()->export_count; }
         uint32_t GetExportsOffset() override { return Ptr<T7GSCOBJ>()->export_offset; }
         uint16_t GetIncludesCount() override { return Ptr<T7GSCOBJ>()->include_count; }

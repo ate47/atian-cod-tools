@@ -423,6 +423,7 @@ namespace tool::gsc {
             hashutils::Add(name);
             return hash::Hash64(name);
         }
+        uint32_t GetNameOffset() override { return Ptr<T831GSCOBJ>()->name; }
         uint16_t GetExportsCount() override { return Ptr<T831GSCOBJ>()->exports_count; }
         uint32_t GetExportsOffset() override { return Ptr<T831GSCOBJ>()->exports_offset; }
         uint16_t GetIncludesCount() override { return Ptr<T831GSCOBJ>()->include_count; }

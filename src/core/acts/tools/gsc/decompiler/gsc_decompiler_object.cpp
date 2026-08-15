@@ -1015,6 +1015,7 @@ namespace tool::gsc {
     void GSCOBJHandler::SwitchHeaderEndian() {
         throw std::runtime_error("SwitchHeaderEndian not implemented for this vm");
     }
+    uint32_t GSCOBJHandler::GetNameOffset() { throw std::runtime_error("GetNameOffset not implemented for this vm"); }
 
     uint16_t GSCOBJHandler::GetTokensCount() { return 0; }
     uint32_t GSCOBJHandler::GetTokensOffset() { return 0; }
