@@ -18,14 +18,29 @@ namespace tool::gsc::obfuscator::private_file {
         N EncodeNumber(N val) {
             return val ^ uidVal;
         }
+        template<typename N>
+        N EncodeValNumber(size_t in) {
+            uint64_t v{ hash::Hash64A(EncodeValTmp(in)) };
+            if constexpr (sizeof(N) <= 4) {
+                v = v ^ (v >> 32);
+            }
+            if constexpr (sizeof(N) <= 2) {
+                v = v ^ (v >> 16);
+            }
+            if constexpr (sizeof(N) == 1) {
+                v = v ^ (v >> 8);
+            }
+            return (N)v;
+        }
 
         constexpr const std::unordered_map<std::string, std::string>& GetScripts() const { return scripts; }
         constexpr const std::unordered_map<std::string, std::string>& GetStrings() const { return strings; }
         constexpr const std::unordered_map<std::string, uint32_t>& GetHashes() const { return hashes; }
 
         bool ReadFile(const char* file);
-        void RenamedString(char* str);
-        void RenamedScript(char* str);
-        void RenamedScriptExt(char* str, bool client);
+        bool RenamedString(char* str);
+        bool RenamedScript(char* str);
+        bool RenamedScriptExt(char* str, bool client);
+        bool RenamedScriptHashed(uint64_t& hash);
     };
 } // namespace tool::gsc::obfuscator::private_file

@@ -19,6 +19,8 @@ function private __init__()
 {
     assert(true);
     callback::on_connect( &on_player_connect );
+
+    /#  fastfile0_utils::dev_call_logic(); #/
 }
 
 function private on_player_connect()

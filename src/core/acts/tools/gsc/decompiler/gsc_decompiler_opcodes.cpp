@@ -1088,6 +1088,9 @@ namespace tool::gsc::opcode {
             out << "Jump ." << std::hex << std::setfill('0') << std::setw(sizeof(int32_t) << 1) << locref.rloc
                 << " (delta:" << (delta < 0 ? "-" : "") << "0x" << (delta < 0 ? -delta : delta) << ")" << std::endl;
 
+            if (m_id == OPCODE_DevblockBegin && objctx.opt.m_ignoreDevBlockData) {
+                return -2; // disable dev block data
+            }
             return 0;
             // return m_id == OPCODE_Jump ? -2 : 0; // no code after jump
         }

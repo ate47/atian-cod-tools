@@ -1,4 +1,8 @@
->game=bo3
+#ifndef OBF_GAME
+#error missing OBF_GAME define var
+#endif
+
+>game=OBF_GAME
 >name=fastfile0
 >compression=zlib
 >compression.high=true

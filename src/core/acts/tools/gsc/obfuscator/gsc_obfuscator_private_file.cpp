@@ -2,6 +2,7 @@
 #include <tools/gsc/obfuscator/gsc_obfuscator_private_file.hpp>
 #include <rapidcsv.h>
 #include <utils/data_utils.hpp>
+#include <core/hashes/hash_store.hpp>
 
 namespace tool::gsc::obfuscator::private_file {
 
@@ -125,6 +126,8 @@ namespace tool::gsc::obfuscator::private_file {
                 }
                 CleanPath(val.data());
                 LOG_TRACE("add scr '{}'->'{}'", val, str);
+                // we store its hash for hashed includes
+                hashutils::Add(val.data(), true, true);
                 this->scripts[val] = std::move(str);
                 continue;
             }
@@ -134,36 +137,61 @@ namespace tool::gsc::obfuscator::private_file {
 
         return true;
     }
-    void PrivateFile::RenamedString(char* str) {
+    bool PrivateFile::RenamedString(char* str) {
         auto it{ strings.find(str) };
         if (it == strings.end()) {
-            return; // not known
+            return false; // not known
         }
 
         // replace the value
         std::memcpy(str, it->second.data(), it->second.size() + 1);
+        return true;
     }
-    void PrivateFile::RenamedScript(char* str) {
-        auto it{ scripts.find(str) };
+    bool PrivateFile::RenamedScript(char* str) {
+        std::string k{ str };
+        CleanPath(k.data());
+        auto it{ scripts.find(k) };
         if (it == scripts.end()) {
-            return; // not known
+            return false; // not known
         }
 
         // replace the value
         std::memcpy(str, it->second.data(), it->second.size() + 1);
+        return true;
     }
 
-    void PrivateFile::RenamedScriptExt(char* str, bool client) {
+    bool PrivateFile::RenamedScriptExt(char* str, bool client) {
         std::string k{ std::format("{}{}", str, client ? ".csc" : ".gsc") };
         CleanPath(k.data());
         auto it{ scripts.find(k) };
         if (it == scripts.end()) {
-            return; // not known
+            return false; // not known
         }
 
         // replace the value
         size_t noExtSize{ it->second.size() - 4 };
         std::memcpy(str, it->second.data(), noExtSize);
         str[noExtSize] = 0;
+        return true;
     }
+
+    bool PrivateFile::RenamedScriptHashed(uint64_t& hash) {
+        // we use core::hashes to not load the default hashes
+        const char* str{ core::hashes::ExtractPtr(hash) };
+
+        if (!str) {
+            return false; // no unhashed, so not a known script
+        }
+
+        std::string k{ str };
+        CleanPath(k.data());
+        auto it{ scripts.find(k) };
+        if (it == scripts.end()) {
+            return false; // not known
+        }
+
+        hash = hash::Hash64A(it->second.data());
+        return true;
+    }
+
 } // namespace tool::gsc::obfuscator::private_file

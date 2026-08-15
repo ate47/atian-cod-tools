@@ -125,9 +125,12 @@ namespace {
         opts.addOption(&opt.noRemoveLocals, "no remove locals", "--no-locals");
         opts.addOption(&opt.noRemovePrivateExports, "no remove private exports", "--no-private");
         opts.addOption(&opt.noTrampoline, "no trampoline build", "--no-trampoline", "", "-t");
+        opts.addOption(&opt.noDevOpCodeReplace, "no dev block opcode replace", "--no-devop-replace");
+        opts.addOption(&opt.dumpDecompiledScripts, "dump decompiled scripts in outpout dir", "--dump-scripts");
         opts.addOption(&opt.recomputeCRC, "recompute export crc", "--export-crc-recomp", "", "-r");
         opts.addOption(&opt.privateFile, "private file", "--private", " (file)", "-p");
         opts.addOption(&opt.fastfileBuilder, "replace fastfile builder name", "--fastfile-builder", " (builder)");
+        opts.addOption(&opt.pltName, "Input platform name", "--plt", " [plt]", "-t");
         opts.addOption(
             &opt.fastfileCompression,
             "replace fastfile compression (uncompressed, lz4, lz4_hc, zlib or zlib_hc)",
@@ -140,6 +143,15 @@ namespace {
             LOG_INFO("usage: {} {} (file)", argv[0], argv[1]);
             opts.PrintOptions();
             return opt.printHelp ? 0 : -1;
+        }
+
+        if (opt.pltName) {
+            opt.plt = tool::gsc::opcode::PlatformOf(opt.pltName);
+            if (!opt.plt) {
+                LOG_ERROR("Invalid platform name '{}'", opt.pltName);
+                return tool::BASIC_ERROR;
+            }
+            LOG_INFO("use plt: {}", tool::gsc::opcode::PlatformName(opt.plt));
         }
 
         if (opt.privateFile) {

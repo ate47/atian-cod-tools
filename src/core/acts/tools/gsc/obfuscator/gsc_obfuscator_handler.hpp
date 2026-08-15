@@ -1,15 +1,17 @@
 #pragma once
 #include <tools/gsc/data/gsc_data_t7.hpp>
 #include <tools/gsc/data/gsc_data_t8.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_export.hpp>
+#include <tools/gsc/decompiler/gsc_decompiler_import.hpp>
 #include <tools/gsc/gsc_obfuscator.hpp>
+#include <tools/gsc/gsc_decompiler.hpp>
+#include <tools/gsc/gsc_vm.hpp>
 
 namespace tool::gsc::obfuscator::handler {
     using T7GSCExport = tool::gsc::T7GSCExport;
     using T7GSCOBJ = tool::gsc::T7GSCOBJ;
     using T7GSCImport = tool::gsc::T8GSCImport;
     using T7GSCString = tool::gsc::T8GSCString;
-
-    constexpr size_t TRAMPOLINE_SIZE = 4; // Jmp[2] Delta[2]
 
     struct NameLocated {
         uint64_t name_space;
@@ -31,9 +33,20 @@ namespace tool::gsc::obfuscator::handler {
     using NameLocatedMap = std::unordered_map<NameLocated, Value, NameLocatedHash, NameLocatedEquals>;
 
     struct GscExportData {
-        T7GSCExport* ref;
+        void* ref;
         byte* bc{};
+        byte flags{};
         size_t len{};
+    };
+
+    struct GscImportData {
+        void* ref;
+        byte flags{};
+    };
+
+    struct FreeDataChunk {
+        size_t rva;
+        size_t len;
     };
 
     class GscObfuscator {
@@ -41,25 +54,39 @@ namespace tool::gsc::obfuscator::handler {
         byte* script;
         size_t scriptLen;
         void* scriptEnd;
-        T7GSCOBJ& header;
+        bool u16OpCodes;
+        bool alignedCode;
+        bool modToolOpCodes{};
+        size_t trampolineSize;
+        std::shared_ptr<GSCOBJHandler> scriptFile{};
+        std::unique_ptr<GSCExportReader> exportReader{};
+        std::unique_ptr<GSCImportReader> importReader{};
+        opcode::VmInfo* vmInfo{};
 
-        NameLocatedMap<std::vector<GscExportData>> exportsMap{};
-        NameLocatedMap<std::vector<T7GSCImport*>> importsMap{};
-        std::vector<uint32_t> trampolineFreeLocations{};
-        uint32_t junkLocation{}; // well to redirect all the offset
+        std::vector<GscImportData*> imports{};
+        std::vector<GscExportData*> exports{};
+        NameLocatedMap<std::vector<GscExportData*>> exportsMap{};
+        NameLocatedMap<std::vector<GscImportData*>> importsMap{};
+        std::vector<FreeDataChunk> freeData{};
+        GscDecompilerGlobalContext gdctx{};
+        std::unordered_map<uint64_t, std::unordered_set<uint32_t>> opcodesLocsMap{};
+        std::unordered_set<uint32_t>* opcodesLocs{};
+        GscDecompilerGDBData* gdbData{};
+
       public:
         GscObfuscator(tool::gsc::obfuscator::options::GscObfOptions& opt, byte* script, size_t scriptLen);
 
         // init
-        void ReadTables();
-        void RemoveLocalVariables();
-        void KillDevImports();
+        void DecompileScript();
+        void PatchOpcodes();
+        void ApplyPrivateHashes();
         void KillDevStrings();
         void KillPrivateExports();
         void ApplyPrivateStrings();
         void ApplyPrivateScripts();
-        void ApplyPrivateHashes();
+        void RewriteImports();
         void CreateTrampolines();
+        void KillRemainingDevBlocks();
         void ComputeChecksums();
         void RunTasks();
 
@@ -67,13 +94,28 @@ namespace tool::gsc::obfuscator::handler {
         void PrintHeader();
         void ValidateInScript(const void* ptr, const char* descr);
         void ValidateStringInScript(const char* ptr, const char* descr);
-        void KillDevByteCodeOp(uint32_t& floc, size_t len, size_t delta);
+        FreeDataChunk* FetchNearFreeDataChunk(size_t loc, size_t maxDist, size_t minSize, size_t align);
+        void SetAndPassOpCode(byte*& loc, opcode::OPCode val);
+        uint16_t GetAndPassOpCode(byte*& loc);
 
         // align a location relative to the header (used to avoid aligning the script in memory)
         byte* Aligned(byte* loc, size_t size) { return &script[utils::Aligned<size_t>(loc - script, size)]; }
         template<typename T>
         byte* Aligned(byte* loc) {
             return Aligned(loc, sizeof(T));
+        }
+
+        template<typename T>
+        T& ReadAlignedRef(byte*& loc, const char* name) {
+            if constexpr (sizeof(T) != 1) {
+                if (alignedCode) {
+                    loc = Aligned<T>(loc);
+                }
+            }
+            ValidateInScript(loc + (sizeof(T) - 1), name);
+            T& t{ *(T*)loc };
+            loc += sizeof(T);
+            return t;
         }
     };
 } // namespace tool::gsc::obfuscator::handler

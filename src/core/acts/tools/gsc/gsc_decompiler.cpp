@@ -1939,6 +1939,8 @@ namespace tool::gsc {
                 m_use_internal_names = true;
             } else if (!_strcmpi("--jumpdelta", arg)) {
                 m_show_jump_delta = true;
+            } else if (!_strcmpi("--ignore-devblocks", arg)) {
+                m_ignoreDevBlockData = true;
             } else if (!_strcmpi("--prestruct", arg)) {
                 m_show_pre_dump = true;
             } else if (!_strcmpi("--markjump", arg)) {
@@ -2120,6 +2122,7 @@ namespace tool::gsc {
         LOG_DEBUG("--test-header      : Write test header");
         LOG_DEBUG("--internalblocks   : Show internal blocks ");
         LOG_DEBUG("--jumpdelta        : Show jump delta");
+        LOG_DEBUG("--ignore-devblocks : Ignore dev blocks data");
         LOG_DEBUG("--hideop           : Hide opcode values in disassembly");
         LOG_DEBUG("--prestruct        : Show prestruct");
         LOG_DEBUG("--refcount         : Show ref count");

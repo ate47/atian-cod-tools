@@ -87,6 +87,7 @@ namespace tool::gsc {
         bool m_noStrDecrypt{};
         bool m_lineCount{};
         bool m_generateDbgData{};
+        bool m_ignoreDevBlockData{};
         const char* vtable_dump{};
         uint32_t m_stepskip{};
         opcode::Platform m_platform{ opcode::Platform::PLATFORM_PC };
