@@ -131,6 +131,38 @@ namespace fastfile::handlers::cw {
             JsonWriter::WriteFieldValueString(hash, GetScrString(val));
         }
 
+        void WriteFieldValueVector(const char* name, vec2_t& vec) {
+            this->WriteFieldValueString(name, std::format("{} {}", vec[0], vec[1]));
+        }
+
+        void WriteFieldValueVector(uint64_t hash, vec2_t& vec) {
+            this->WriteFieldValueString(hash, std::format("{} {}", vec[0], vec[1]));
+        }
+
+        void WriteFieldValueVector(const char* name, vec3_t& vec) {
+            this->WriteFieldValueString(name, std::format("{} {} {}", vec[0], vec[1], vec[2]));
+        }
+
+        void WriteFieldValueVector(uint64_t hash, vec3_t& vec) {
+            this->WriteFieldValueString(hash, std::format("{} {} {}", vec[0], vec[1], vec[2]));
+        }
+
+        void WriteFieldValueVector(const char* name, vec4_t& vec) {
+            this->WriteFieldValueString(name, std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
+        }
+
+        void WriteFieldValueVector(uint64_t hash, vec4_t& vec) {
+            this->WriteFieldValueString(hash, std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
+        }
+
+        void WriteValueVector(vec2_t& vec) { this->WriteValueString(std::format("{} {}", vec[0], vec[1])); }
+
+        void WriteValueVector(vec3_t& vec) { this->WriteValueString(std::format("{} {} {}", vec[0], vec[1], vec[2])); }
+
+        void WriteValueVector(vec4_t& vec) {
+            this->WriteValueString(std::format("{} {} {} {}", vec[0], vec[1], vec[2], vec[3]));
+        }
+
         void WriteFieldValueScrStringArray(const char* name, size_t count, ScrString_t* val, bool ignoreEmpty = true) {
             if (ignoreEmpty && (!count || !*val))
                 return;
