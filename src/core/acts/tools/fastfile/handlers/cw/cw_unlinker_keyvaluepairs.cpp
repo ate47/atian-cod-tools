@@ -2,6 +2,7 @@
 #include <core/raw_file_json.hpp>
 #include <core/hashes/raw_file_extractor.hpp>
 #include <tools/fastfile/handlers/handler_game_cw.hpp>
+#include <tools/fastfile/handlers/bo4/bo4_unlinker_keyvaluepairs.hpp>
 
 namespace {
     using namespace fastfile::handlers::cw;
@@ -26,7 +27,7 @@ namespace {
 
             const char* n{ hashutils::ExtractTmp("file", asset->name) };
             std::filesystem::path outFile{ opt.m_output / "cw" / "source" / "tables" / "keyvaluepairs" /
-                                           std::format("{}.csv", n) };
+                                           fastfile::GetCurrentContext().GetFFType() / std::format("{}.csv", n) };
 
             std::filesystem::create_directories(outFile.parent_path());
 
@@ -43,7 +44,9 @@ namespace {
 
             for (size_t i = 0; i < asset->count; i++) {
                 KeyValuePair* kvp{ asset->kvp + i };
-                os << "\n" << "0x" << std::hex << kvp->keyHash << "," << utils::PtrOrElse(kvp->value, "");
+                os << "\n"
+                   << fastfile::handlers::bo4::keyvaluepairs::GetName(kvp->keyHash) << ","
+                   << utils::PtrOrElse(kvp->value, "");
             }
         }
     };
