@@ -1,6 +1,4 @@
 #include <includes.hpp>
-#include <core/raw_file_json.hpp>
-#include <core/hashes/raw_file_extractor.hpp>
 #include <tools/fastfile/handlers/handler_game_cw.hpp>
 #include <tools/fastfile/handlers/cw/cw_unlinker_scriptbundle.hpp>
 

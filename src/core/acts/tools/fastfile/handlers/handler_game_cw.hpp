@@ -189,22 +189,26 @@ namespace fastfile::handlers::cw {
             JsonWriter::EndArray();
         }
 
+        void WriteValueXAsset(XAssetType type, void* val) {
+            if (!val) {
+                WriteValueNull();
+            }
+            uint64_t* hname{ cw::GetAssetName(type, val) };
+            WriteValueHash(*hname);
+        }
+
         void WriteFieldValueXAsset(const char* name, XAssetType type, void* val) {
             if (!val)
                 return;
-            uint64_t* hname{ cw::GetAssetName(type, val) };
-            if (*hname) {
-                WriteFieldValueXHash(name, *hname);
-            }
+            WriteFieldNameString(name);
+            WriteValueXAsset(type, val);
         }
 
         void WriteFieldValueXAsset(uint64_t hash, XAssetType type, void* val) {
             if (!val)
                 return;
-            uint64_t* hname{ cw::GetAssetName(type, val) };
-            if (*hname) {
-                WriteFieldValueXHash(hash, *hname);
-            }
+            WriterFieldNameHash(hash);
+            WriteValueXAsset(type, val);
         }
 
         void WriteFieldValueXAssetArray(

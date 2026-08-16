@@ -206,8 +206,11 @@ namespace fastfile::handlers::cw {
             int assetSize{ gcx.DB_GetXAssetTypeSize(type) };
             CWXHash* phash{ header ? cw::GetAssetName(type, header, assetSize) : nullptr };
             CWXHash hash{ phash ? *phash : 0 };
+            bool defaultAsset{ (hash & ~hash::MASK63) != 0 };
             if (gcx.opt->workflow == FFW_READER)
-                *(gcx.outAsset) << "\n" << cw::PoolName(type) << ",#" << hashutils::ExtractTmp("hash", hash);
+                *(gcx.outAsset) << "\n"
+                                << cw::PoolName(type) << "," << (defaultAsset ? "d" : "") << "#"
+                                << hashutils::ExtractTmp("hash", hash);
 
             // const char* assetName{ hash ? hashutils::ExtractTmp("hash", hash->hash) : "<unknown>" };
             //*bo4FFHandlerContext.osassets << "\n" << XAssetNameFromId(xasset->type) << "," << assetName;
@@ -238,7 +241,7 @@ namespace fastfile::handlers::cw {
 
             if (gcx.opt->noAssetDump || (!gcx.handleList.Empty() && !gcx.handleList[type]))
                 return ref; // ignore
-            if (header) {
+            if (header && !defaultAsset) {
                 auto& workers{ GetWorkers() };
                 auto it{ workers.find(type) };
                 if (it != workers.end()) {
