@@ -83,6 +83,10 @@ namespace {
             } else if (!strcmp("-d", arg) || !_strcmpi("--debug", arg)) {
                 hook::error::EnableHeavyDump();
                 opt.debug = true;
+            } else if (!strcmp("-D", arg) || !_strcmpi("--debug-data", arg)) {
+                hook::error::EnableHeavyDump();
+                hook::error::EnableDebugDump();
+                opt.debug = true;
             } else if (!strcmp("-s", arg) || !_strcmpi("--strings", arg)) {
                 if (i + 1 == argc) {
                     LOG_ERROR("Missing value for param: {}!", arg);
@@ -271,6 +275,7 @@ namespace {
         LOG_INFO(" -L --log-file [f]       : Set the log file");
         LOG_INFO(" --log-path [p]          : Set the log path(s), semicolon separated");
         LOG_INFO(" -d --debug              : Enable debug mode");
+        LOG_INFO(" -D --debug-data         : Enable debug mode with debug loading");
         LOG_INFO(" -x --extracted [f]      : Write the extracted hashes into a file after the process");
         LOG_INFO(" --extracted-unk         : with -x Extract the unknown values");
         LOG_INFO(" -t --no-title           : Hide ACTS title at start");

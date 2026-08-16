@@ -5,6 +5,7 @@ namespace hook::error {
         std::vector<void (*)()> dumpers{};
         uint32_t mainThread{};
         bool heavyDump{};
+        bool debugDump{};
 
         void* hmod{};
         int showCmd{};
@@ -41,6 +42,10 @@ namespace hook::error {
      * Print more error information inside the error hook
      */
     void EnableHeavyDump();
+    /*
+     * Use debug data with dump
+     */
+    void EnableDebugDump();
 
     /*
      * Dump stack trace with a level

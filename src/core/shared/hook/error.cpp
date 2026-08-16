@@ -45,6 +45,7 @@ namespace hook::error {
     }
 
     void EnableHeavyDump() { cfg.heavyDump = true; }
+    void EnableDebugDump() { cfg.debugDump = true; }
 
     void DumpVTable(void* object, size_t size) {
         uintptr_t vtable{};
