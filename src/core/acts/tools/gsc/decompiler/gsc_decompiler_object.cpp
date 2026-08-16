@@ -237,7 +237,9 @@ namespace tool::gsc {
                 };
 
                 // compute the late operations (OR|AND)
-                for (const auto& lateop : loc.m_lateop) {
+                // fix #38 when multiple lateops are at the same loc
+                for (size_t i = loc.m_lateop.size(); i; i--) {
+                    ASMContextLocationOp* lateop{ loc.m_lateop[i - 1] };
                     lateop->Run(ctx, objctx);
                     printStack(lateop->type);
                 }
