@@ -1,94 +1,10 @@
 #include <includes.hpp>
 #include <tools/fastfile/handlers/handler_game_cw.hpp>
+#include <tools/fastfile/handlers/cw/cw_unlinker_scriptbundle.hpp>
 #include <core/hashes/raw_file_extractor.hpp>
 
 namespace fastfile::handlers::cw::scriptbundle {
     using namespace fastfile::handlers::cw;
-    enum SB_ValueType : uint32_t {
-        KVP_STRING = 0,
-        KVP_XHASH = 1,
-        KVP_INT = 2,
-        KVP_FLOAT = 3,
-        KVP_ANIMATION = 4,
-        KVP_PLAYER_ANIMATION = 5,
-        KVP_SIEGE_ANIMATION = 6,
-        KVP_MODEL = 7,
-        KVP_AITYPE = 8,
-        KVP_CHARACTER = 9,
-        KVP_FX = 10,
-        KVP_SURFACE_FX_TABLE = 11,
-        KVP_RUMBLE_STR = 12,
-        KVP_SCRIPTBUNDLE_STR = 13,
-        KVP_SCRIPTBUNDLE = 14,
-        KVP_XCAM_STR = 15,
-        KVP_MATERIAL = 16,
-        KVP_IMAGE = 17,
-        KVP_LOCALIZED18 = 18,
-        KVP_LOCALIZED19 = 19,
-        KVP_UNK19 = 20,
-        KVP_WEAPON = 21,
-        KVP_VEHICLE = 22,
-        KVP_ENUM_INT = 23,
-        KVP_STREAMERHINT_STR = 24,
-        KVP_STATUS_EFFECT_STR = 25,
-        KVP_DURATION_INT = 26,
-        KVP_OBJECTIVE = 27,
-        KVP_GESTURE = 28,
-        KVP_RENDER_OVERRIDE_BUNDLE = 29,
-        KVP_GESTURE_TABLE_STR = 30,
-        KVP_IMPACT_FX_TABLE = 31,
-        KVP_UNK32 = 32,
-        KVP_EXECUTION = 33,
-        KVP_VEHICLE_SKIN = 34,
-    };
-
-    struct SB_Object {
-        CWXHash keyName;
-        CWXHash hashValue;
-        uint32_t keyScrName;
-        ScrString_t stringRef;
-        SB_ValueType type;
-        union {
-            int32_t intVal;
-            float floatVal;
-        } value;
-    };
-    static_assert(sizeof(SB_Object) == 0x20);
-
-    struct SB_ObjectsArray;
-
-    struct SB_Sub {
-        CWXHash hashname;
-        uint32_t namecanon;
-        uint32_t unkc;
-        uint64_t count;
-        SB_ObjectsArray* item;
-    };
-    static_assert(sizeof(SB_Sub) == 0x20);
-
-    struct SB_ObjectsArray {
-        uint64_t sbObjectCount;
-        SB_Object* sbObjects;
-        uint64_t sbSubCount;
-        SB_Sub* sbSubs;
-    };
-    static_assert(sizeof(SB_ObjectsArray) == 0x20);
-
-    struct ScriptBundle {
-        CWXHash name;
-        CWXHash bundleType;
-        SB_ObjectsArray sbObjectsArray;
-    };
-    static_assert(sizeof(ScriptBundle) == 0x30);
-
-    struct ScriptBundleList {
-        CWXHash name;
-        ScrString_t assetType;
-        uint32_t assetCount;
-        ScriptBundle* assets;
-    };
-    static_assert(sizeof(ScriptBundleList) == 0x18);
-
     void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, SB_ObjectsArray& arr, bool& error) {
         json.BeginObject();
 
@@ -250,9 +166,17 @@ namespace fastfile::handlers::cw::scriptbundle {
         json.EndObject();
     }
 
+    void WriteObject(core::hashes::raw_file_extractor::JsonWriter& json, const char* name, SB_ObjectsArray& arr) {
+        if (arr.sbObjects || arr.sbSubs) {
+            json.WriteFieldNameString(name);
+            bool err{};
+            WriteObject(json, arr, err);
+        }
+    }
+
     class ScriptBundleWorker : public Worker {
 
-        void Unlink(fastfile::FastFileOption& opt, void* ptr) {
+        void Unlink(fastfile::FastFileOption& opt, void* ptr) override {
 
             ScriptBundle* asset{ (ScriptBundle*)ptr };
 
@@ -284,39 +208,26 @@ namespace fastfile::handlers::cw::scriptbundle {
 
         void Unlink(fastfile::FastFileOption& opt, void* ptr) {
             ScriptBundleList* asset{ (ScriptBundleList*)ptr };
+
             std::filesystem::path outFile{ opt.m_output / "cw" / "source" / "scriptbundle" / "list" /
+                                           (asset->assetType ? GetScrString(asset->assetType) : "default") /
                                            std::format("{}.json", hashutils::ExtractTmp("hash", asset->name)) };
 
             std::filesystem::create_directories(outFile.parent_path());
 
-            core::hashes::raw_file_extractor::JsonWriter json{};
+            BOCWJsonWriter json{};
 
             LOG_OPT_INFO("Dump scriptbundlelist {}", outFile.string());
 
             json.BeginObject();
 
-            json.WriteFieldNameString("name");
-            json.WriteValueHash(asset->name);
+            json.WriteFieldValueXHash("name", asset->name);
+            json.WriteFieldValueScrString("type", asset->assetType);
 
-            if (asset->assetType) {
-                json.WriteFieldNameString("type");
-                json.WriteValueString(GetScrString(asset->assetType));
-            }
             json.WriteFieldNameString("bundles");
             json.BeginArray();
             for (size_t i = 0; i < asset->assetCount; i++) {
-                ScriptBundle* bundle{ asset->assets + i };
-                if (bundle->bundleType) {
-                    json.WriteValueString(
-                        std::format(
-                            "#{}/#{}",
-                            hashutils::ExtractTmp("hash", bundle->bundleType),
-                            hashutils::ExtractTmp("hash", bundle->name)
-                        )
-                    );
-                } else {
-                    json.WriteValueHash(bundle->name);
-                }
+                json.WriteValueHash(asset->assets[i]->name);
             }
             json.EndArray();
 
@@ -329,6 +240,6 @@ namespace fastfile::handlers::cw::scriptbundle {
     };
 
     utils::MapAdder<ScriptBundleWorker, XAssetType, Worker> impl{ GetWorkers(), XAssetType::ASSET_TYPE_SCRIPTBUNDLE };
-    // utils::MapAdder<ScriptBundleListWorker, XAssetType, Worker> impllist{ GetWorkers(),
-    // XAssetType::ASSET_TYPE_SCRIPTBUNDLELIST };
+    utils::MapAdder<ScriptBundleListWorker, XAssetType, Worker> impllist{ GetWorkers(),
+                                                                          XAssetType::ASSET_TYPE_SCRIPTBUNDLELIST };
 } // namespace fastfile::handlers::cw::scriptbundle
