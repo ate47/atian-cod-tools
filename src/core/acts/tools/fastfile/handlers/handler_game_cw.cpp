@@ -317,6 +317,7 @@ namespace fastfile::handlers::cw {
                 hook::module_mapper::Module& mod{ opt.GetGameModule(true, nullptr, false, game.GetModuleName(), "cw") };
                 hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
                 game.SetScanContainer(&scan);
+                scan.Sync();
 
                 gcx.handleList.Clear();
                 if (opt.assetTypes) {
@@ -358,6 +359,7 @@ namespace fastfile::handlers::cw {
 
                 game.ApplyNullScans("fastfile");
 
+                scan.Save();
                 if (scan.foundMissing) {
                     throw std::runtime_error("Can't find some patterns");
                 }
