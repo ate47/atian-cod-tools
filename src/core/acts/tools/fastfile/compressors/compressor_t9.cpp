@@ -49,9 +49,10 @@ namespace {
             header->platform.platform = ctx.opt.platform;
             header->platform.server = ctx.opt.server;
             header->build.timestamp = utils::GetTimestamp() / 1000;
-            header->platform.encrypted = false;
             header->size.size = ff.linkedData.size();
             header->platform.compression = compression;
+            header->platform.encrypted = secure.aesKey != nullptr;
+            std::memcpy(header->ff.aesIV, secure.aesIV, sizeof(secure.aesIV));
 
             ctx.LoadArchiveChecksums(header->build.archiveChecksum);
 
