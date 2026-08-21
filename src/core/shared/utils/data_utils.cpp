@@ -72,6 +72,66 @@ namespace utils::data {
         return ss.str();
     }
 
+    constexpr const char* UNITS = "kMGTPE";
+
+    std::string PrettyNumberSize(double number, bool si) {
+        double delta{ si ? 1000.0 : 1024.0 };
+
+        if (number < delta) {
+            return std::format("{:.4}", number);
+        }
+
+        const char* u{ UNITS };
+        double n{ number };
+        n /= delta;
+
+        while (u[1] && n >= delta) {
+            n /= delta;
+            u++;
+        }
+        return std::format("{:.4}{}", n, *u);
+    }
+    std::string PrettyTime(double seconds) {
+        if (seconds < 1e-12) {
+            return "0s"; // oor
+        }
+        if (seconds < 1e-9) {
+            return std::format("{}ps", (size_t)(seconds * 1e12));
+        }
+        if (seconds < 1e-6) {
+            return std::format("{}ns", (size_t)(seconds * 1e9));
+        }
+        if (seconds < 1e-3) {
+            return std::format("{}µs", (size_t)(seconds * 1e6));
+        }
+
+        std::stringstream ss{};
+
+        size_t ms{ (size_t)(seconds * 1000) };
+
+        if (ms >= 3600000) {
+            ss << (ms / 3600000) << "h ";
+            ms %= 3600000;
+        }
+
+        if (ms >= 60000) {
+            ss << (ms / 60000) << "min ";
+            ms %= 60000;
+        }
+
+        if (ms >= 1000) {
+            ss << (ms / 1000) << "s ";
+            ms %= 1000;
+        }
+
+        if (ms) {
+            ss << ms << "ms ";
+        }
+
+        std::string r{ ss.str() };
+        r.resize(r.length() - 1);
+        return r;
+    }
     std::mt19937& RandomMachine() {
         static struct {
             std::random_device rd;

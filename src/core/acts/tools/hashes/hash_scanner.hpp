@@ -115,7 +115,7 @@ namespace tool::hash::scanner {
     void ScanHashes(
         const std::vector<std::filesystem::path>& files, std::unordered_set<uint64_t>& hashes, uint64_t mask = ~0ull
     );
-    std::vector<const char*> ReadDict(std::filesystem::path file, std::string& store);
+    std::vector<const char*> ReadDict(std::filesystem::path file, std::string& store, bool cleanString = false);
     std::vector<std::filesystem::path> GetHashFiles(const std::filesystem::path& path);
 
 } // namespace tool::hash::scanner

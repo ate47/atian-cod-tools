@@ -116,12 +116,12 @@ namespace tool::hash::scanner {
         }
     }
 
-    std::vector<const char*> ReadDict(std::filesystem::path file, std::string& store) {
+    std::vector<const char*> ReadDict(std::filesystem::path file, std::string& store, bool cleanString) {
         store = utils::ReadFile<std::string>(file);
         size_t offset{};
         std::vector<const char*> dict{};
         while (offset < store.length()) {
-            const char* str{ &store[offset] };
+            char* str{ &store[offset] };
             if (*str == '\r' || *str == '\n') {
                 offset++;
                 continue; // empty line
@@ -132,6 +132,15 @@ namespace tool::hash::scanner {
                 store[next] = 0;
             } else {
                 next = store.length();
+            }
+
+            if (cleanString) {
+                utils::MapString(str, [](char c) -> char {
+                    if (c == '\\') {
+                        return '/';
+                    }
+                    return tolower(c);
+                });
             }
 
             dict.push_back(str);

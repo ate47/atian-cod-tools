@@ -8,6 +8,10 @@ namespace utils::data {
 
     std::string AsHexArray(const void* buff, size_t size);
 
+    std::string PrettyNumberSize(double number, bool si = true);
+
+    std::string PrettyTime(double seconds);
+
     void FillRandomBuffer(void* buff, size_t size);
     std::mt19937& RandomMachine();
     size_t Rand(size_t max = INT32_MAX);
