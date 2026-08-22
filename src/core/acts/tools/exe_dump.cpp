@@ -82,8 +82,21 @@ namespace tool::exe_dump {
             );
             current = (uintptr_t)page.BaseAddress;
 
-            if (page.State != MEM_COMMIT || page.Protect == PAGE_NOACCESS || (page.Protect & PAGE_GUARD)) {
+            bool notCommit{ page.State != MEM_COMMIT };
+            bool noAccess{ page.Protect == PAGE_NOACCESS };
+            bool guard{ (page.Protect & PAGE_GUARD) != 0 };
+
+            if (notCommit || noAccess || guard) {
                 current += page.RegionSize;
+                LOG_TRACE(
+                    "Ignore page {}->{} (0x{:x}){}{}{}",
+                    proc.GetLocation(page.BaseAddress),
+                    proc.GetLocation(page.BaseAddress + page.RegionSize),
+                    page.RegionSize,
+                    notCommit ? " notCommit" : "",
+                    noAccess ? " noAccess" : "",
+                    guard ? " guard" : ""
+                );
                 continue;
             }
             size_t offset{ current - src };
@@ -102,7 +115,7 @@ namespace tool::exe_dump {
         LOG_DEBUG("dump {} : {}", proc, main);
 
         IMAGE_DOS_HEADER dosHeader;
-        IMAGE_NT_HEADERS ntHeader;
+        IMAGE_NT_HEADERS64 ntHeader;
 
         if (!proc.ReadMemory(&dosHeader, main.start, sizeof(dosHeader)) || dosHeader.e_magic != IMAGE_DOS_SIGNATURE) {
             throw std::runtime_error(std::format("{} Can't read dos module header", proc));
@@ -159,30 +172,44 @@ namespace tool::exe_dump {
         for (IMAGE_DATA_DIRECTORY& dir : ntHeader.OptionalHeader.DataDirectory) {
             max = std::max<size_t>(dir.VirtualAddress + dir.Size, max);
         }
+        LOG_DEBUG("copy {} : {:x} (0x{:x})", main, main.start + max, max);
 
-        std::unique_ptr<byte[]> exeData{ std::make_unique<byte[]>(max) };
+        std::vector<byte> exeData{};
+        exeData.resize(max);
 
-        CopyMemorySafe(proc, exeData.get(), main.start, max);
+        CopyMemorySafe(proc, exeData.data(), main.start, exeData.size());
 
         PIMAGE_NT_HEADERS mntHeader{ (PIMAGE_NT_HEADERS)&exeData[dosHeader.e_lfanew] };
+        LOG_DEBUG("mntHeader->OptionalHeader.ImageBase {} : {:x}", main, mntHeader->OptionalHeader.ImageBase);
         PIMAGE_SECTION_HEADER sections{ IMAGE_FIRST_SECTION(mntHeader) };
 
         char nameBuff[9];
         nameBuff[8] = 0;
         for (size_t i = 0; i < mntHeader->FileHeader.NumberOfSections; i++) {
             PIMAGE_SECTION_HEADER sec{ &sections[i] };
+            size_t shend{ (size_t)(sec->VirtualAddress +
+                                   (sec->Misc.VirtualSize ? sec->Misc.VirtualSize : sec->SizeOfRawData)) };
             if (opt->dumpHeader) {
                 std::memcpy(nameBuff, &sec->Name, sizeof(sec->Name));
                 LOG_INFO(
-                    "section '{}' va:0x{:x} sr:0x{:x} pr:0x{:x}",
+                    "section '{}' va:0x{:x} sr:0x{:x}/vs:0x{:x} pr:0x{:x} -> 0x{:x}  ({:x}->{:x})",
                     nameBuff,
                     sec->VirtualAddress,
                     sec->SizeOfRawData,
-                    sec->PointerToRawData
+                    sec->Misc.VirtualSize,
+                    sec->PointerToRawData,
+                    shend,
+                    main.start + sec->VirtualAddress,
+                    main.start + shend
                 );
             }
+
             // patch address
             sec->PointerToRawData = sec->VirtualAddress;
+
+            if (sec->Misc.VirtualSize) {
+                sec->SizeOfRawData = sec->Misc.VirtualSize;
+            }
         }
 
         if (opt->rebuildIAT) {
@@ -206,12 +233,12 @@ namespace tool::exe_dump {
                 {
                     // cache iat names
 
-                    PIMAGE_THUNK_DATA thunks{ (PIMAGE_THUNK_DATA)&exeData[imports->FirstThunk] };
-                    PIMAGE_THUNK_DATA originalThunks{ (PIMAGE_THUNK_DATA)&exeData[imports->OriginalFirstThunk] };
+                    PIMAGE_THUNK_DATA64 thunks{ (PIMAGE_THUNK_DATA64)&exeData[imports->FirstThunk] };
+                    PIMAGE_THUNK_DATA64 originalThunks{ (PIMAGE_THUNK_DATA64)&exeData[imports->OriginalFirstThunk] };
 
                     while (originalThunks->u1.Function) {
-                        IMAGE_THUNK_DATA& thunk{ *thunks++ };
-                        IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+                        IMAGE_THUNK_DATA64& thunk{ *thunks++ };
+                        IMAGE_THUNK_DATA64& originalThunk{ *originalThunks++ };
 
                         ProcessModuleExport* func;
                         const char* id;
@@ -237,12 +264,12 @@ namespace tool::exe_dump {
                 }
                 // remap them
                 {
-                    PIMAGE_THUNK_DATA thunks{ (PIMAGE_THUNK_DATA)&exeData[imports->FirstThunk] };
-                    PIMAGE_THUNK_DATA originalThunks{ (PIMAGE_THUNK_DATA)&exeData[imports->OriginalFirstThunk] };
+                    PIMAGE_THUNK_DATA64 thunks{ (PIMAGE_THUNK_DATA64)&exeData[imports->FirstThunk] };
+                    PIMAGE_THUNK_DATA64 originalThunks{ (PIMAGE_THUNK_DATA64)&exeData[imports->OriginalFirstThunk] };
                     size_t patchs{};
                     while (originalThunks->u1.Function) {
-                        IMAGE_THUNK_DATA& thunk{ *thunks++ };
-                        IMAGE_THUNK_DATA& originalThunk{ *originalThunks++ };
+                        IMAGE_THUNK_DATA64& thunk{ *thunks++ };
+                        IMAGE_THUNK_DATA64& originalThunk{ *originalThunks++ };
 
                         uintptr_t val{ *(uintptr_t*)&thunk };
 
@@ -269,7 +296,7 @@ namespace tool::exe_dump {
             // TODO: patch
             throw std::runtime_error("searchIAT not implemented");
 
-            core::bytebuffer::ByteBuffer reader{ exeData.get(), max };
+            core::bytebuffer::ByteBuffer reader{ exeData };
             proc.ComputeModules();
             std::vector<ProcessModule>& modules{ proc.modules() };
             for (size_t i = 0; i < modules.size(); i++) {
@@ -287,7 +314,7 @@ namespace tool::exe_dump {
             }
         }
 
-        if (!utils::WriteFile(out, exeData.get(), max)) {
+        if (!utils::WriteFile(out, exeData)) {
             throw std::runtime_error(std::format("{} Can't write to {}", proc, out.string()));
         }
     }
@@ -352,6 +379,8 @@ namespace tool::exe_dump {
             );
             break;
         }
+        case LOAD_DLL_DEBUG_EVENT:
+            break; // ignore
         default:
             LOG_LVLF(lvl, "{}", DebugEventName(ev.dwDebugEventCode));
             break;
@@ -484,6 +513,7 @@ namespace tool::exe_dump {
             { "mw3", "../cod23-cod.exe", "../oo2core_8_win64.dll\0", {} },
             { "mw3hq", "cod23-cod.exe", "oo2core_8_win64.dll\0", {} },
             { "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
+            { "mw4", "cod26-cod.exe", "oo2core_8_win64.dll\0", {} },
             //{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
         };
 

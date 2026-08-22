@@ -6,6 +6,7 @@ namespace hook::module_mapper {
     class Module {
         bool freeOnExit{};
         hook::library::Library lib{ (void*)0 };
+        uintptr_t originBase{};
         hook::scan_container::ScanContainer scanContainer{ true };
         hook::library::ScanLogger logger{};
 
@@ -28,5 +29,21 @@ namespace hook::module_mapper {
 
         hook::scan_container::ScanContainer& GetScanContainer();
         hook::library::ScanLogger& GetScanLogger();
+
+        void* RebasePtr(uintptr_t origin) const;
+
+        template<typename T = void>
+        T* Rebase(uintptr_t origin) const {
+            return (T*)RebasePtr(origin);
+        }
+
+        template<typename T = void>
+        T* Rebase(T* origin) const {
+            return Rebase<T>(reinterpret_cast<uintptr_t>(origin));
+        }
+
+        friend std::ostream& operator<<(std::ostream& out, const Module& ptr);
     };
 } // namespace hook::module_mapper
+template<>
+struct std::formatter<hook::module_mapper::Module, char> : utils::BasicFormatter<hook::module_mapper::Module> {};

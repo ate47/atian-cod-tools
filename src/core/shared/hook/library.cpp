@@ -464,6 +464,9 @@ namespace hook::library {
     void hook::library::Library::PatchIAT() { platform::PatchIAT(*this); }
 
     std::ostream& operator<<(std::ostream& out, const hook::library::CodePointer& ptr) {
+        if (!ptr.location) {
+            out << "null";
+        }
         hook::library::Library library{ GetLibraryInfo(ptr.location) };
         return out << library << "+0x" << std::hex << ((byte*)ptr.location - (byte*)*library);
     }

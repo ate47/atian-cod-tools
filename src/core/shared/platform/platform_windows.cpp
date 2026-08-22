@@ -18,6 +18,7 @@
 #include <hook/error.hpp>
 #include <hook/library.hpp>
 #include <hook/memory.hpp>
+#include <core/bytebuffer_file.hpp>
 
 namespace platform {
 
@@ -104,6 +105,26 @@ namespace platform {
         }
 
         return nullptr;
+    }
+
+    void* GetLibBase(const char* lib) {
+        utils::InFileCE is{ lib };
+        if (!is) {
+            return 0;
+        }
+        core::bytebuffer::FileReader reader{ *is };
+
+        IMAGE_DOS_HEADER dos{};
+
+        reader.Read(&dos, sizeof(dos));
+
+        if (!dos.e_lfanew) {
+            throw std::runtime_error(std::format("Can't read dos.e_lfanew for {}", lib));
+        }
+        reader.Goto(dos.e_lfanew);
+        IMAGE_NT_HEADERS nt{};
+        reader.Read(&nt, sizeof(nt));
+        return (void*)nt.OptionalHeader.ImageBase;
     }
 
     void* LoadShared(const char* lib, int32_t flags) {
@@ -565,7 +586,35 @@ namespace platform {
 
         return regions;
     }
+    void InitSymLink() {
+        static std::once_flag of;
+        std::call_once(of, [] {
+            SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+            SymInitialize(GetCurrentProcess(), NULL, TRUE);
+        });
+    }
     namespace {
+        bool ResolveFileLine(uintptr_t address, const char** file, DWORD* line) {
+            hook::error::ErrorConfig& cfg{ hook::error::GetErrorConfig() };
+            if (!cfg.debugDump) {
+                return false;
+            }
+
+            InitSymLink();
+
+            DWORD displacement{};
+            IMAGEHLP_LINE64 info{};
+            info.SizeOfStruct = sizeof(info);
+
+            if (SymGetLineFromAddr64(GetCurrentProcess(), address, &displacement, &info)) {
+                *file = info.FileName;
+                *line = info.LineNumber;
+                return true;
+            }
+
+            return false;
+        }
+
         const char* PtrInfo(void* location) {
             uintptr_t relativeLocation;
             const char* moduleName;
@@ -641,13 +690,27 @@ namespace platform {
                     ExceptionInfo->ExceptionRecord->ExceptionAddress
                 );
             } else {
-                LOG_ERROR(
-                    "Error code: 0x{:x} at {} ({} 0x{:x})",
-                    ExceptionInfo->ExceptionRecord->ExceptionCode,
-                    ExceptionInfo->ExceptionRecord->ExceptionAddress,
-                    moduleName,
-                    relativeLocation
-                );
+                const char* file;
+                DWORD line;
+                if (ResolveFileLine((uintptr_t)ExceptionInfo->ExceptionRecord->ExceptionAddress, &file, &line)) {
+                    LOG_ERROR(
+                        "Error code: 0x{:x} at {} ({} 0x{:x}) {}:{}",
+                        ExceptionInfo->ExceptionRecord->ExceptionCode,
+                        ExceptionInfo->ExceptionRecord->ExceptionAddress,
+                        moduleName,
+                        relativeLocation,
+                        file,
+                        line
+                    );
+                } else {
+                    LOG_ERROR(
+                        "Error code: 0x{:x} at {} ({} 0x{:x})",
+                        ExceptionInfo->ExceptionRecord->ExceptionCode,
+                        ExceptionInfo->ExceptionRecord->ExceptionAddress,
+                        moduleName,
+                        relativeLocation
+                    );
+                }
             }
             LOG_ERROR("Error type: {}", ExceptionName(ExceptionInfo->ExceptionRecord->ExceptionCode));
             DWORD threadId = GetCurrentThreadId();
@@ -696,7 +759,12 @@ namespace platform {
                     ss << "- " << name << " . 0x" << std::hex << val;
 
                     if (hook::error::GetLocInfo(reinterpret_cast<void*>(val), relativeLocation, moduleName)) {
+                        const char* file;
+                        DWORD line;
                         ss << " | " << moduleName << " 0x" << std::hex << relativeLocation;
+                        if (ResolveFileLine((uintptr_t)val, &file, &line)) {
+                            ss << " " << file << ":" << line;
+                        }
                     }
 
                     byte strBuff[0x100]{};
@@ -795,30 +863,6 @@ namespace platform {
         }
 
     } // namespace
-
-    static bool ResolveFileLine(uintptr_t address, const char** file, DWORD* line) {
-        hook::error::ErrorConfig& cfg{ hook::error::GetErrorConfig() };
-        if (!cfg.debugDump) {
-            return false;
-        }
-        static std::once_flag of;
-        std::call_once(of, [] {
-            SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
-            SymInitialize(GetCurrentProcess(), NULL, TRUE);
-        });
-
-        DWORD displacement{};
-        IMAGEHLP_LINE64 info{};
-        info.SizeOfStruct = sizeof(info);
-
-        if (SymGetLineFromAddr64(GetCurrentProcess(), address, &displacement, &info)) {
-            *file = info.FileName;
-            *line = info.LineNumber;
-            return true;
-        }
-
-        return false;
-    }
 
     void DumpStackTraceFrom(core::logs::loglevel level, const void* location) {
         if (!HAS_LOG_LEVEL(level))

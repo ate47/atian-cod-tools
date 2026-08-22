@@ -16,7 +16,13 @@ namespace hook::memory {
 
     bool Int32Distance(void* from, void* to) {
         constexpr size_t uint32dist = 1ull << 31;
-        return ((uintptr_t)from - (uintptr_t)to) < uint32dist;
+        uintptr_t a{ (uintptr_t)from };
+        uintptr_t b{ (uintptr_t)to };
+        if (a < b) {
+            return (b - a) < uint32dist;
+        } else {
+            return (a - b) < uint32dist;
+        }
     }
 
     bool IsInsideNearContainer(const void* location) { return platform::IsInsideNearContainer(location); }
@@ -41,6 +47,16 @@ namespace hook::memory {
                         location,
                         to,
                         (byte*)location - (byte*)to
+                    )
+                );
+            }
+            if (!Int32Distance(location, nearPtr)) {
+                throw std::exception(
+                    utils::va(
+                        actssec("Can't i32 jump from %p to %p: too far (0x%llx)"),
+                        location,
+                        nearPtr,
+                        (byte*)location - (byte*)nearPtr
                     )
                 );
             }

@@ -179,12 +179,13 @@ namespace fastfile::handlers::bo7 {
             uint32_t unk4;
             uint32_t unk8;
             uint32_t unkc;
-            uint64_t (*GetAssetName)(void* header);
-            uint64_t unk18;
-            void (*SetAssetName)(void* header, uint64_t name, const char* strName);
+            uint64_t(__fastcall* GetAssetName)(void* header);
+            const char*(__fastcall* GetAssetNameString)(void* header);
+            void(__fastcall* SetAssetName)(void* header, uint64_t name, const char* strName);
             byte unk28;
             byte unk29;
         };
+        static_assert(sizeof(AssetPoolInfo) == 0x30);
 
         bool
         LoadStreamImpl(LoadStreamObjectData* that, DBLoadCtx* context, bool* atStreamStart, void** data, int64_t* len);
@@ -576,6 +577,23 @@ namespace fastfile::handlers::bo7 {
 
                 if (scan.foundMissing) {
                     throw std::runtime_error("Can't find some patterns");
+                }
+                {
+                    std::filesystem::path assetNamesInfoPath{ opt.m_output / gamePath / "code" /
+                                                              std::format("{}_poolinfo.csv", gameDumpId) };
+                    utils::OutFileCE assetNamesInfo{ assetNamesInfoPath, true };
+                    assetNamesInfo << "id,name,size,GetAssetName,GetAssetNameString,SetAssetName";
+
+                    for (size_t i = 0; i < gcx.assetNames.TypesCount(); i++) {
+                        assetNamesInfo << "\n"
+                                       << std::dec << i << "," << gcx.assetNames.GetTypeName((HandlerAssetType)i)
+                                       << ",0x" << std::hex << gcx.poolInfo[i].itemSize << ","
+                                       << hook::library::CodePointer{ gcx.poolInfo[i].GetAssetName } << ","
+                                       << hook::library::CodePointer{ gcx.poolInfo[i].GetAssetNameString }
+                                       << ","
+                                       << hook::library::CodePointer{ gcx.poolInfo[i].SetAssetName };
+                    }
+                    LOG_DEBUG("dump poolinfo into {}", assetNamesInfoPath.string());
                 }
 
                 if (!opt.noWorkerPreload) {

@@ -34,6 +34,8 @@ namespace platform {
     void** GetImportAddrTableEntry(const char* lib, const char* entry);
     // get the address of a module function
     void* GetFunctionAddress(void* mod, const char* name);
+    // get a shared lib base
+    void* GetLibBase(const char* lib);
     // Load a shared lib
     void* LoadShared(const char* lib, int32_t flags = 0);
     // Load a shared lib (std::string)
@@ -107,6 +109,8 @@ namespace platform {
     void DumpStackTraceFrom(core::logs::loglevel level, const void* location);
     // install error hooks
     void InstallErrorHooks(bool clearSetFunction);
+    // init symlink
+    void InitSymLink();
     // last error
     uint32_t GetLastPlatformError();
 

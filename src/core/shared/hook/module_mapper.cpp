@@ -25,11 +25,14 @@ namespace hook::module_mapper {
         if (!lib)
             return false;
 
+        originBase = (uintptr_t)platform::GetLibBase(p.c_str());
+
         // patch lib
         if (patchIAT) {
             lib.PatchIAT();
         }
-        LOG_TRACE("Module loaded {}", lib);
+
+        LOG_TRACE("Module loaded {} [originBase={:x}]", *this, originBase);
 
         return true;
     }
@@ -41,6 +44,7 @@ namespace hook::module_mapper {
         lib.ClearModule();
         scanContainer.Load(lib);
         logger.Clean();
+        originBase = 0;
     }
 
     hook::scan_container::ScanContainer& Module::GetScanContainer() {
@@ -49,4 +53,14 @@ namespace hook::module_mapper {
     }
 
     hook::library::ScanLogger& Module::GetScanLogger() { return logger; }
+
+    void* Module::RebasePtr(uintptr_t origin) const {
+        if (originBase > origin || originBase + lib.ModuleInformation().SizeOfImage() < origin) {
+            return (void*)origin; // not in modue
+        }
+        return lib[origin - originBase];
+    }
+    std::ostream& operator<<(std::ostream& out, const Module& ptr) {
+        return out << ptr.lib;
+    }
 } // namespace hook::module_mapper

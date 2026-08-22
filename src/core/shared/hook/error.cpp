@@ -45,7 +45,7 @@ namespace hook::error {
     }
 
     void EnableHeavyDump() { cfg.heavyDump = true; }
-    void EnableDebugDump() { cfg.debugDump = true; }
+    void EnableDebugDump() { cfg.debugDump = true; platform::InitSymLink(); }
 
     void DumpVTable(void* object, size_t size) {
         uintptr_t vtable{};
