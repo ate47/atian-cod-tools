@@ -12,6 +12,7 @@ namespace compatibility::scobalula::csi {
         CG_MW4 = 0x3931524157444F4D,
         CG_MW5 = 0x3232524157444F4D,
         CG_MW6 = 0x4B4F4D41594D4159,
+        CG_MW7 = 0,
         CG_VANGUARD = 0x44524155474E4156,
         CG_BO3 = 0x33504f4b43414c42,
         CG_BO4 = 0x34504f4b43414c42,
