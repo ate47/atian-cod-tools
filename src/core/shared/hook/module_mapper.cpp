@@ -60,7 +60,5 @@ namespace hook::module_mapper {
         }
         return lib[origin - originBase];
     }
-    std::ostream& operator<<(std::ostream& out, const Module& ptr) {
-        return out << ptr.lib;
-    }
+    std::ostream& operator<<(std::ostream& out, const Module& ptr) { return out << ptr.lib; }
 } // namespace hook::module_mapper

@@ -589,8 +589,7 @@ namespace fastfile::handlers::bo7 {
                                        << std::dec << i << "," << gcx.assetNames.GetTypeName((HandlerAssetType)i)
                                        << ",0x" << std::hex << gcx.poolInfo[i].itemSize << ","
                                        << hook::library::CodePointer{ gcx.poolInfo[i].GetAssetName } << ","
-                                       << hook::library::CodePointer{ gcx.poolInfo[i].GetAssetNameString }
-                                       << ","
+                                       << hook::library::CodePointer{ gcx.poolInfo[i].GetAssetNameString } << ","
                                        << hook::library::CodePointer{ gcx.poolInfo[i].SetAssetName };
                     }
                     LOG_DEBUG("dump poolinfo into {}", assetNamesInfoPath.string());
