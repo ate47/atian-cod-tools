@@ -39,6 +39,13 @@ scripts/antlr4.jar
 src/acts/tools/gsc/vm/gsc_vm_private_*.cpp
 src/**/_private_*.cpp
 src/**/_private_*.hpp
+
+# latest game
+/config/data/games/mw4.json
+/src/core/acts/tools/fastfile/handlers/handler_game_mw4.hpp
+/src/core/acts/tools/fastfile/handlers/handler_game_mw4.cpp
+/src/core/acts/tools/fastfile/handlers/mw4/
+
 # VS
 /.vs/
 /.vscode/

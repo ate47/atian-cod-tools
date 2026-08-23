@@ -188,7 +188,7 @@ namespace fastfile::handlers::bo7::scriptbundle {
                 name[catcut] = '/';
             }
 
-            std::filesystem::path outFile{ opt.m_output / "bo7" / "source" / "scriptbundle" / name };
+            std::filesystem::path outFile{ opt.m_output / gamePath / "source" / "scriptbundle" / name };
 
             std::filesystem::create_directories(outFile.parent_path());
 
@@ -208,7 +208,7 @@ namespace fastfile::handlers::bo7::scriptbundle {
                 return;
 
             for (auto& [cat, vec] : bundles) {
-                std::filesystem::path outFile{ opt.m_output / "bo7" / "source" / "scriptbundle" /
+                std::filesystem::path outFile{ opt.m_output / gamePath / "source" / "scriptbundle" /
                                                (cat ? hashutils::ExtractTmp("hash", cat) : "default") / "hashed" /
                                                std::format("{}.json", ctx.ffname) };
 

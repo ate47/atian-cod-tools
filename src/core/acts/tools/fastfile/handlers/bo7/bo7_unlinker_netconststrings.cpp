@@ -2,8 +2,7 @@
 #include <core/config.hpp>
 #include <tools/fastfile/handlers/handler_game_bo7.hpp>
 
-namespace {
-    using namespace fastfile::handlers::bo7;
+namespace fastfile::handlers::bo7::netconststrings {
 
     union NetConstString {
         const char* str;
@@ -15,7 +14,7 @@ namespace {
         "level_entities",
     };
 
-    std::filesystem::path GetCfgDir() {
+    static std::filesystem::path GetCfgDir() {
         std::string scanpath{ core::config::GetString("data.dir", "") };
         if (scanpath.empty()) {
             return utils::GetProgDir() / "data" / "nsc_types.json";
@@ -23,17 +22,45 @@ namespace {
         return std::filesystem::path{ scanpath } / "nsc_types.json";
     }
 
-    const char* MapKnownKey(const char* keyname) {
-        static core::config::Config map{ [] {
-            core::config::Config c{ GetCfgDir() };
+    void InitHashes(const char* ffname) {
+        static core::config::Config nscTypes{ GetCfgDir() };
 
-            if (!c.SyncConfig(false)) {
-                LOG_WARNING("Can't read {}", c.configFile.string());
+        core::config::RapidJsonGeneric& keys{ nscTypes.GetVal("keys") };
+
+        if (keys.IsNull()) {
+            return; // not set
+        }
+        if (!keys.IsObject()) {
+            LOG_WARNING("Invalid keys field in {}, can't init hashes", GetCfgDir().string());
+            return;
+        }
+
+        if (!ffname) {
+            core::config::RapidJsonGeneric& suffixes{ nscTypes.GetVal("suffixes") };
+            if (suffixes.IsNull()) {
+                return; // not set
             }
-
-            return c;
-        }() };
-        return map.GetCString(keyname, keyname);
+            if (!suffixes.IsArray()) {
+                LOG_WARNING("Invalid suffixes field in {}, can't init hashes", GetCfgDir().string());
+                return;
+            }
+            // common ones
+            for (core::config::RapidJsonGeneric& valSuffix : suffixes.GetArray()) {
+                const char* nameSuffix{ valSuffix.GetString() };
+                for (auto& [valName, str] : keys.GetObj()) {
+                    const char* name{ valName.GetString() };
+                    const char* str{ utils::va("ncs_%s_%s", name, nameSuffix) };
+                    hashutils::AddPrecomputed(hash::HashIWAsset(str), str, true);
+                }
+            }
+        } else {
+            // ff specific
+            for (auto& [valName, str] : keys.GetObj()) {
+                const char* name{ valName.GetString() };
+                const char* str{ utils::va("ncs_%s_%s", name, ffname) };
+                hashutils::AddPrecomputed(hash::HashIWAsset(str), str, true);
+            }
+        }
     }
 
     typedef uint32_t NetConstStringsType;
@@ -65,152 +92,10 @@ namespace {
     };
     static_assert(sizeof(NetConstStrings) == 0x28);
 
-#define __STRUCTTXT(name, def) def constexpr const char* name = #def;
-
-    __STRUCTTXT(
-        NCSInfoStr,
-        struct NCSInfo {
-            const char* precache;
-            const char* name;
-            SatAssetType type;
-            const char* bundleCategory;
-            uint32_t unk20;
-            bool unk24;
-        };
-        static_assert(sizeof(NCSInfo) == 0x28);
-    )
-
-#undef __STRUCTTXT
-
-    class NetConstStringNameFinder {
-
-        NCSInfo* info{};
-        size_t infoCount{};
-
-      public:
-        void Init(fastfile::FastFileOption& opt) {
-            info = nullptr;
-            hook::module_mapper::Module& mod{ opt.GetGameModule() };
-
-            hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
-
-            void (*InitNCSInfo)(){};
-            NCSInfo* s_netConstStringTypeAssetData{};
-            try {
-
-                InitNCSInfo =
-                    scan.ScanSingle("48 89 5C 24 10 48 89 7C 24 18 55 48 8B EC 48 83 EC 20 48 8D", "InitNCSInfo")
-                        .GetPtr<void (*)()>();
-                s_netConstStringTypeAssetData = scan.ScanSingle(
-                                                        "48 89 05 ?? ?? ?? ?? C6 45 10 00 E8 ?? ?? ?? ?? 33 FF",
-                                                        "s_netConstStringTypeAssetData"
-                )
-                                                    .GetRelative<int32_t, NCSInfo*>(3);
-            } catch (std::runtime_error& err) {
-                LOG_WARNING("Can't load NSC string data: {}", err.what());
-                return;
-            }
-            if (scan.foundMissing) {
-                LOG_WARNING("Can't load NSC string data");
-                return;
-            }
-            LOG_TRACE("InitNCSInfo: {}", hook::library::CodePointer{ InitNCSInfo });
-            LOG_TRACE("s_netConstStringTypeAssetData: {}", hook::library::CodePointer{ s_netConstStringTypeAssetData });
-
-            try {
-                InitNCSInfo();
-            } catch (...) {
-                LOG_WARNING("Can't load NSC string data: severe error when calling InitNCSInfo()");
-                return;
-            }
-
-            info = s_netConstStringTypeAssetData;
-            std::filesystem::path dir{ opt.m_output / gamePath / "code" };
-            std::filesystem::create_directories(dir);
-            std::filesystem::path nscCsv{ dir / std::format("{}_ncs.csv", gameDumpId) };
-            std::filesystem::path nscCpp{ dir / std::format("{}_ncs.cpp", gameDumpId) };
-            std::filesystem::path nschpp{ dir / std::format("{}_ncs.hpp", gameDumpId) };
-            utils::OutFileCE nscCsvOs{ nscCsv, true };
-            utils::OutFileCE nscCppOs{ nscCpp, true };
-            utils::OutFileCE nschppOs{ nschpp, true };
-
-            auto& assetNames{ fastfile::handlers::bo7::GetAssetNames() };
-
-            nscCsvOs << "id,name,type,precache,bundleCategory,unk24";
-            nscCppOs << "#include \"" << gameDumpId << "_ncs.hpp\"\n\n"
-                     << "NCSInfo s_netConstStringTypeAssetData[] {";
-
-            nschppOs << "#include \"" << gameDumpId << "_ids.hpp\"\n\n"
-                     << NCSInfoStr << "\n\n"
-                     << "enum NetConstStringsType : uint32_t {";
-            size_t i;
-            for (i = 0;; i++) {
-                if (info[i].name <= **mod || info[i].name > (*mod)[0x20000000]) {
-                    break; // invalid name
-                }
-
-                nscCsvOs << "\n"
-                         << std::dec << i << "," << utils::PtrOrElse(info[i].name, "null") << ","
-                         << assetNames.GetTypeName(info[i].type) << "," << utils::PtrOrElse(info[i].precache, "null")
-                         << "," << utils::PtrOrElse(info[i].bundleCategory, "null") << ","
-                         << (info[i].unk24 ? "true" : "false");
-
-                nscCppOs << "\n    { .precache = \"" << info[i].precache << "\""
-                         << ", .name = \"" << info[i].name << "\""
-                         << ", .type = " << hppPrefix << assetNames.GetCppName(info[i].type) << ", .bundleCategory = \""
-                         << utils::PtrOrElse(info[i].bundleCategory, "null") << "\""
-                         << ", .unk20 = " << info[i].unk20 << ", .unk24 = " << (info[i].unk24 ? "true" : "false")
-                         << " },";
-                nschppOs << "\n    NCST_" << core::strings::GetCppIdentifier(MapKnownKey(info[i].name)) << " = 0x"
-                         << std::hex << i << ", // " << info[i].name << " " << std::dec << i << " "
-                         << assetNames.GetTypeName(info[i].type);
-            }
-            nschppOs << "\n    NCST_COUNT = 0x" << std::hex << i << ", // " << std::dec << i;
-            infoCount = i;
-            nschppOs << "\n};\n";
-            nscCppOs << "\n};\n";
-        }
-
-        const char* GetTypeName(NetConstStringsType type) {
-            if (info && type <= infoCount) {
-                if (type == infoCount) {
-                    return "void";
-                }
-                return MapKnownKey(info[type].name);
-            }
-            return utils::va("%d", (int)type);
-        }
-
-        void LoadHash(const char* ffname) {
-            if (!ffname) {
-                // common ones
-                for (const char* nameSuffix : nameSuffixes) {
-                    for (size_t i = 0; i < infoCount; i++) {
-                        const char* str{ utils::va("ncs_%s_%s", info[i].name, nameSuffix) };
-                        hashutils::AddPrecomputed(hash::HashIWAsset(str), str, true);
-                    }
-                }
-            } else {
-                // ff specific
-                for (size_t i = 0; i < infoCount; i++) {
-                    const char* str{ utils::va("ncs_%s_%s", info[i].name, ffname) };
-                    hashutils::AddPrecomputed(hash::HashIWAsset(str), str, true);
-                }
-            }
-        }
-    };
-
     class ImplWorker : public Worker {
         using Worker::Worker;
 
-        NetConstStringNameFinder finder{};
-
-        void PreLoadWorker(fastfile::FastFileContext* ctx) override {
-            if (!ctx) {
-                finder.Init(fastfile::GetCurrentOptions());
-            }
-            finder.LoadHash(ctx ? ctx->ffname : nullptr);
-        }
+        void PreLoadWorker(fastfile::FastFileContext* ctx) override { InitHashes(ctx ? ctx->ffname : nullptr); }
 
         void Unlink(fastfile::FastFileOption& opt, fastfile::FastFileContext& ctx, void* ptr) override {
             NetConstStrings* asset{ (NetConstStrings*)ptr };
@@ -219,7 +104,7 @@ namespace {
             json.BeginObject();
 
             json.WriteFieldValueXHash("name", asset->name);
-            json.WriteFieldValueString("type", finder.GetTypeName(asset->type));
+            json.WriteFieldValueNumber("type", asset->type);
             if (asset->source >= 0 && asset->source < ACTS_ARRAYSIZE(sourceNames)) {
                 json.WriteFieldValueString("source", sourceNames[asset->source]);
             } else {
@@ -262,4 +147,4 @@ namespace {
     utils::MapAdder<ImplWorker, SatHashAssetType, Worker> impl{ GetWorkers(),
                                                                 SatHashAssetType::SATH_ASSET_NETCONSTSTRINGS,
                                                                 sizeof(NetConstStrings) };
-} // namespace
+} // namespace fastfile::handlers::bo7::netconststrings
