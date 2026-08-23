@@ -107,9 +107,22 @@ See the wiki pages [*GSC Compiler*](https://github.com/ate47/atian-cod-tools/wik
 
 ## Hash Utilities
 
-Various games use hashes, the lookup is done using the [ate47/HashIndex](https://github.com/ate47/hashindex), it needs to be downloaded using `acts download_hash_index`, the [echo000/cod-name-db](https://github.com/echo000/cod-name-db) index can also be downloaded using `acts download_hash_index echo000-cndb`.
+Various games use hashes, the lookup is done using the loaded hashes.
 
-Atian Tools contains multiple utilities for brute forcing hashes, replace hashes in files or scan for them. A list can be obtained using `acts list hash`.
+It is suggested to run `acts download_hash_index` after installation to get all the default hashes.
+
+To add more hashes, it can be done manually:
+
+- Using a file named `strings.txt` with one hash per line
+- Using `.wni`/`.cdb` files in `bin/package_index`
+- By downloading a .zip file containing wni or cdb files with the `acts download_hash_index [url]` command.
+
+Or they can be downloaded from multiple sources
+
+- Using the [ate47/HashIndex](https://github.com/ate47/hashindex) with the command `acts download_hash_index acts`
+- Using the [echo000/cod-name-db](https://github.com/echo000/cod-name-db) with the command `acts download_hash_index echo000-cndb`
+
+Multiple utilities for brute forcing hashes, replace hashes in files, scan for them or compress are available. A list can be obtained using `acts list hash`.
 
 ## Game DLLs
 
@@ -154,26 +167,26 @@ This project is open for more features, see [CONTRIBUTING.md](.github\CONTRIBUTI
 **External tools**
 
 - `cmake` is required to setup the project.
-- `clang-format` is required to format the project, a formatter code is mandatory for pull requests.
+- `clang-format` is required to format the project, a formatted code is mandatory for pull requests.
 - `antlr4` is required to recompile the grammar files used by the different compilers. It can be downloaded using [`scripts/antlr.ps1`](scripts/antlr.ps1).
 
 **Path structure**
 
-- `/cmake` : cmake scripts
-- `/config` : config files, used by tools
-- `/config/data` : config files packages with acts
-- `/deps` : external projects
-- `/examples` : acts API examples
-- `/grammar` : grammar files used by antlr4
-- `/include` : includes for the acts API
-- `/licenses` : used licenses
-- `/scripts` : scripts used by the ci or developers
-- `/src` : source directory
-- `/tools` : source directory for the tools used to compile the files into the source directory
+- [`/cmake`](/cmake) : cmake scripts
+- [`/config`](/config) : config files, used by tools
+- [`/config/data`](/config/data) : config files packages with acts
+- [`/deps`](/deps) : external projects
+- [`/examples`](/examples) : acts API examples
+- [`/grammar`](/grammar) : grammar files used by antlr4
+- [`/include`](/include) : includes for the acts API
+- [`/licenses`](/licenses) : used licenses
+- [`/scripts`](/scripts) : scripts used by the ci or developers
+- [`/src`](/src) : source directory
+- [`/tools`](/tools) : source directory for the tools used to compile the files into the source directory
 
 ### Plugins and API
 
-Atian Tools supports plugin, see [ate47/atian-cod-tools-plugin-example](https://github.com/ate47/atian-cod-tools-plugin-example) for an example, the api can be obtained in the release zip or in the [`include/`](include/). 
+Atian Tools supports plugins, see [ate47/atian-cod-tools-plugin-example](https://github.com/ate47/atian-cod-tools-plugin-example) for an example, the api can be obtained in the release zip or in the [`include/`](include/). 
 
 API examples are available in [`examples/`](examples/).
 
