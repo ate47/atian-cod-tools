@@ -34,7 +34,7 @@ The dumpers extract the fast files assets.
 | Black Ops 3           | ✅      | `bo3`     | `rawfile`, `scriptparsetree` |
 | Black Ops 4           | ✅      | `bo4`     | `aitype`, `arenaseasons`, `bgcache`, `character`, `characterbodytype`, `cpu_occlusion_data`, `customization`, `ddl`, `entitlement`, `entitlementlist`, `firstpartyentitlement`, `firstpartyentitlementlist`, `gametypetable`, `hierarchical_task_network`, `keyvaluepairs`, `localize_entry`, `luafile`, `comworld`, `entity_list`, `gfxworld`, `maptable`, `maptable_list`, `maptable_preview_images`, `trigger_list`, `objective`, `player_outfit`, `player_role_category`, `player_role_category_table`, `player_role_template`, `playlists`, `playlist_global_settings`, `playlist_schedule`, `rank`, `ranktable`, `prestige`, `prestigetable`, `rawstring`, `scriptbundle`, `scriptbundlelist`, `scriptparsetree`, `scriptparsetreedbg`, `sound`, `sprayorgestureitem`, `sprayorgesturelist`, `storagefile`, `storagefilelist`, `storeproduct`, `storecategory`, `storecategorylist`, `labelstore`, `labelstorelist`, `sku`, `streamkey`, `stringtable`, `structured_table`, `unlockable_item`, `unlockable_item_table`, `weapon`, `weapon_camo`, `weapon_tunables`, `zbarrier` |
 | Modern Warfare 2019   | ✅      | `mw19`      | `rawfile`, `scriptfile` (gpl\*), `luafile`, `localize` |
-| Black Ops Cold War    | ✅      | `cw`      | `rawfile`, `scriptparsetree`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`|
+| Black Ops Cold War    | ✅      | `cw`      | `rawfile`, `scriptparsetree`, `using`, `scriptbundle`, `bgcache`, `ddl`, `localizeentry`, `keyvaluepairs`, `weapon_frontend`, `zbarrier` |
 | Vanguard              | ✅      | `vg`      | `rawfile`, `scriptfile` (gpl\*), `luafile`, `localize` |
 | Modern Warfare II     | ✅      | `mwii`    | `rawfile`, `scriptfile` (gpl\*), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
 | Modern Warfare II SP  | ✅      | `mwiisp`  | `rawfile`, `scriptfile` (gpl\*), `luafile`, `stringtable`, `ddl`, `scriptbundle`, `localize` |
@@ -60,7 +60,7 @@ The linkers create custom fast files.
 | --------------------- | --------- | ---------- |
 | Black Ops 3           | `bo3`     | `scriptparsetree` |
 | Black Ops 4           | `bo4`     | `aitype`, `character`, `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `scriptparsetreeforced`, `structuredtable`, `luafile`, `rawstring`, `scriptbundle`, `stringtable`, `image`, `keyvaluepairs`, `objective`,  `rank`, `ranktable`, `prestige`, `prestigetable`, `localize`, `ttf`, `bgcache`, `zbarrier` |
-| Black&nbsp;Ops&nbsp;Cold&nbsp;War    | `cw`     | `rawfile` |
+| Black&nbsp;Ops&nbsp;Cold&nbsp;War    | `cw`     | `rawfile`, `scriptparsetree`, `scriptparsetreedbg`, `using`, `bgcache`, `localize`, `keyvaluepairs`  |
 
 See the wiki page [*Fast Files Linker*](https://github.com/ate47/atian-cod-tools/wiki/Fast-Files---Linker).
 
@@ -105,6 +105,12 @@ The GSC file format contains the scripts used by the different games.
 
 See the wiki pages [*GSC Compiler*](https://github.com/ate47/atian-cod-tools/wiki/GSC---Compiler) or [*GSC Decompiler*](https://github.com/ate47/atian-cod-tools/wiki/GSC---Decompiler) for more information.
 
+## Hash Utilities
+
+Various games use hashes, the lookup is done using the [ate47/HashIndex](https://github.com/ate47/hashindex), it needs to be downloaded using `acts download_hash_index`, the [echo000/cod-name-db](https://github.com/echo000/cod-name-db) index can also be downloaded using `acts download_hash_index echo000-cndb`.
+
+Atian Tools contains multiple utilities for brute forcing hashes, replace hashes in files or scan for them. A list can be obtained using `acts list hash`.
+
 ## Game DLLs
 
 Different dlls were created to add features to existing games
@@ -138,6 +144,56 @@ Different dlls were created to add features to existing games
 **Features**:
 
 - Allow loading GSC lazy links
+
+### Developers
+
+This project is open for more features, see [CONTRIBUTING.md](.github\CONTRIBUTING.md) for more information.
+
+### Setup
+
+**External tools**
+
+- `cmake` is required to setup the project.
+- `clang-format` is required to format the project, a formatter code is mandatory for pull requests.
+- `antlr4` is required to recompile the grammar files used by the different compilers. It can be downloaded using [`scripts/antlr.ps1`](scripts/antlr.ps1).
+
+**Path structure**
+
+- `/cmake` : cmake scripts
+- `/config` : config files, used by tools
+- `/config/data` : config files packages with acts
+- `/deps` : external projects
+- `/examples` : acts API examples
+- `/grammar` : grammar files used by antlr4
+- `/include` : includes for the acts API
+- `/licenses` : used licenses
+- `/scripts` : scripts used by the ci or developers
+- `/src` : source directory
+- `/tools` : source directory for the tools used to compile the files into the source directory
+
+### Plugins and API
+
+Atian Tools supports plugin, see [ate47/atian-cod-tools-plugin-example](https://github.com/ate47/atian-cod-tools-plugin-example) for an example, the api can be obtained in the release zip or in the [`include/`](include/). 
+
+API examples are available in [`examples/`](examples/).
+
+### GitHub Actions
+
+To use the acts command in a GitHub workflow, the [ate47/setup-acts](https://github.com/ate47/setup-acts) action can be used.
+
+```yml
+- name: Install Atian Tools
+    uses: ate47/setup-acts@v1
+    with:
+    # Atian Tools version to install, latest for the latest version, latest_build 
+    # for the latest prerelease build.
+    # Default: latest
+    version: latest
+
+    # Download the hash index with Atian Tools
+    # Default: false
+    hashindex: false
+```
 
 ## Wiki
 
