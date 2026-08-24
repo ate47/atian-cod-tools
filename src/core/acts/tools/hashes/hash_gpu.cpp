@@ -500,21 +500,6 @@ namespace tool::hash::scanner {
                 LOG_ERROR("Empty dictionary");
                 return tool::BASIC_ERROR;
             }
-            constexpr size_t numBWords = maxLocalMem / 8;
-            constexpr uint64_t bwordsMask = numBWords * 64 - 1;
-            static_assert(bwordsMask == 0x3ffff && "invalid mask");
-            std::unique_ptr<cl_ulong[]> bwords{ std::make_unique<cl_ulong[]>(numBWords) };
-
-            std::memset(bwords.get(), 0, sizeof(bwords[0]) * numBWords);
-
-            for (uint64_t h : hashData.hashes) {
-                uint64_t idx{ h & bwordsMask }; // bitmap index
-
-                size_t word{ idx >> 6 };
-                size_t bit{ idx & 63 };
-
-                bwords[word] |= (1ull << bit);
-            }
 
             size_t maxLen{ std::string::npos };
             if (count != std::string::npos && count) {
@@ -531,8 +516,6 @@ namespace tool::hash::scanner {
             CLMem gpuMap{ gpu.CreateBuffer(CL_MEM_READ_ONLY, packedMap) };
             CLMem gpuDictIndex{ gpu.CreateBuffer(CL_MEM_READ_ONLY, packedDictIndex) };
             CLMem gpuDictData{ gpu.CreateBuffer(CL_MEM_READ_ONLY, packedDictData) };
-            constexpr size_t sizeBWords = numBWords * sizeof(bwords[0]);
-            CLMem groupLocalMap{ gpu.CreateBuffer(CL_MEM_READ_ONLY, bwords.get(), sizeBWords) };
 
             LOG_DEBUG("gpuMap: {}B ({} word(s))", utils::data::PrettyNumberSize(packedMap.size()), wordsCount);
             LOG_DEBUG("gpuDictIndex: {}B", utils::data::PrettyNumberSize(packedDictIndex.size()));
@@ -585,8 +568,6 @@ namespace tool::hash::scanner {
                 gpu.SetKernelArg(bruteKernel, 8, sizeof(wordsCount), &wordsCount);
                 // 9 indexSize
                 gpu.SetKernelArg(bruteKernel, 9, sizeof(indexSize), &indexSize);
-                // 10 lookup bitmap
-                gpu.SetKernelArg(bruteKernel, 10, sizeof(*groupLocalMap), &*groupLocalMap);
 
                 handlerData.emplace_back(std::move(p));
             }

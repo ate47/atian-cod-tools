@@ -205,8 +205,7 @@ do {                                                                            
 
 inline int check_hash(__global const ulong* mapBuf,
                                     uint indexSize,
-                                    ulong hval, 
-                      __local ulong* bitmap) {
+                                    ulong hval) {
    //ulong bidx = hval & 0x3ffff; // bitmap index
    //ulong bword = bidx >> 6;
    //ulong bbit = bidx & 63;
@@ -241,9 +240,8 @@ inline int check_hash(__global const ulong* mapBuf,
 // 7 startIndex
 // 8 wordsCount
 // 9 indexSize
-// 10 bitmap
 #define CREATE_HASH_KERNEL(kernelName, func, funcPost)                                               \
-__kernel void kernelName(                                                                            \
+__kernel void hash_brute_dict_##kernelName(                                                          \
     __global const ulong* hashMap,                                                                   \
     __global const ulong* dictOffsets,                                                               \
     __global const char*  dictData,                                                                  \
@@ -253,24 +251,39 @@ __kernel void kernelName(                                                       
     __global ulong*       outIndex,                                                                  \
     ulong                 startIndex,                                                                \
     uint                  wordsCount,                                                                \
-    uint                  indexSize,                                                                \
-    __local ulong*  bitmap) {                                                               \
+    uint                  indexSize) {                                                               \
     ulong i = startIndex + get_global_id(0);                                                         \
     BUILD_COMBINATOR_HASH(func, funcPost, i, wordsCount, dictOffsets, dictData, startVal, mid, suf); \
     /* Check all enabled hashes against map*/                                                        \
-    if (check_hash(hashMap, indexSize, startVal, bitmap)) {                                          \
+    if (check_hash(hashMap, indexSize, startVal)) {                                                  \
         __global uint *count = (__global uint*)outIndex;                                             \
                                                                                                      \
         outIndex[1 + atomic_inc(count)] = i;                                                         \
     }                                                                                                \
 }                                                                                                    \
 
-// one kernel per algorithm
+#define CREATE_PREHASH_KERNEL(kernelName, func)                                                      \
+__kernel void hash_pre_##kernelName(                                                                 \
+    __global ulong* outres,                                                                          \
+    __global const ulong* dictOffsets,                                                               \
+    __global const char*  dictData,                                                                  \
+    ulong startVal                                                                                   \
+) {                                                                                                  \
+    size_t idx = get_global_id(0);                                                                   \
+    outres[idx] = func(dictData + dictOffsets[idx], startVal);                                       \
+}
 
-CREATE_HASH_KERNEL(hash_brute_dict_x64, hash_HashX64, hash_EmptyPost)
-CREATE_HASH_KERNEL(hash_brute_dict_iw, hash_HashIWAsset, hash_EmptyPost)
-CREATE_HASH_KERNEL(hash_brute_dict_jup, hash_HashJupScr, hash_EmptyPost)
-CREATE_HASH_KERNEL(hash_brute_dict_dvar, hash_HashIWDVar, hash_EmptyPost)
-CREATE_HASH_KERNEL(hash_brute_dict_t10scr, hash_HashT10Scr, hash_EmptyPost)
-CREATE_HASH_KERNEL(hash_brute_dict_t10scrsp, hash_HashT10ScrPre, hash_HashT10ScrSPPost)
-CREATE_HASH_KERNEL(hash_brute_dict_t10omn, hash_HashT10OmnVar, hash_EmptyPost)
+#define CREATE_ALG_KERNEL(kernelName, func, funcPost) \
+CREATE_PREHASH_KERNEL(kernelName, func) \
+CREATE_HASH_KERNEL(kernelName, func, funcPost)
+
+// one kernel per algorithm
+// hash_pre_##alg -> pre hash
+// hash_brute_dict_##alg -> hash brute
+CREATE_ALG_KERNEL(x64, hash_HashX64, hash_EmptyPost)
+CREATE_ALG_KERNEL(iw, hash_HashIWAsset, hash_EmptyPost)
+CREATE_ALG_KERNEL(jup, hash_HashJupScr, hash_EmptyPost)
+CREATE_ALG_KERNEL(dvar, hash_HashIWDVar, hash_EmptyPost)
+CREATE_ALG_KERNEL(t10scr, hash_HashT10Scr, hash_EmptyPost)
+CREATE_ALG_KERNEL(t10scrsp, hash_HashT10ScrPre, hash_HashT10ScrSPPost)
+CREATE_ALG_KERNEL(t10omn, hash_HashT10OmnVar, hash_EmptyPost)
