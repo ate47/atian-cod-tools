@@ -35,6 +35,14 @@ source_group(
 )
 target_precompile_headers(AtianCodTools PRIVATE "${CMAKE_SOURCE_DIR}/src/core/acts/includes.hpp")
 append_common_defs(AtianCodTools)
+
+add_custom_target(AtianCodToolsCopyConfig ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory 
+        ${CMAKE_SOURCE_DIR}/config/data
+        $<TARGET_FILE_DIR:AtianCodTools>/data
+    COMMENT "Copy config data to $<TARGET_FILE_DIR:AtianCodTools>..."
+)
+
 target_include_directories(AtianCodTools PRIVATE
     "${CMAKE_SOURCE_DIR}/src/core/acts"
     "${CMAKE_SOURCE_DIR}/src/core/shared"
@@ -105,6 +113,7 @@ target_link_libraries(AtianCodTools PRIVATE
 add_dependencies(AtianCodTools
     detours
     antlr4-runtime
+    AtianCodToolsCopyConfig
     ACTSSharedLibrary
     ACTSLibrary
     ACTSVM
