@@ -286,8 +286,7 @@ namespace tool::exe_dump {
                             }
                         }
                     }
-                    if (patchs)
-                        LOG_DEBUG("patched {} IAT issue(s)", patchs);
+                    LOG_DEBUG("patched {} IAT issue(s) from {}", patchs, name);
                 }
             }
         }
@@ -513,7 +512,7 @@ namespace tool::exe_dump {
             { "mw3", "../cod23-cod.exe", "../oo2core_8_win64.dll\0", {} },
             { "mw3hq", "cod23-cod.exe", "oo2core_8_win64.dll\0", {} },
             { "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
-            { "mw4", "cod26-cod.exe", "oo2core_8_win64.dll\0", {} },
+            { "mw4", "cod26-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
             //{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
         };
 
