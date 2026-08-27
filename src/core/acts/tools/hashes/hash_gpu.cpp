@@ -371,7 +371,7 @@ namespace tool::hash::scanner {
         } HashBruteDictKernels[]{
             {
                 .alg = HASH_FNVA,
-                .kernel = "hash_brute_dict_x64",
+                .kernel = "x64",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashX64(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_DEFAULT);
@@ -379,7 +379,7 @@ namespace tool::hash::scanner {
             },
             {
                 .alg = HASH_RES,
-                .kernel = "hash_brute_dict_iw",
+                .kernel = "iw",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashIWAsset(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_DEFAULT);
@@ -387,7 +387,7 @@ namespace tool::hash::scanner {
             },
             {
                 .alg = HASH_SCR_JUP,
-                .kernel = "hash_brute_dict_jup",
+                .kernel = "jup",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashJupScr(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_TYPE2);
@@ -395,7 +395,7 @@ namespace tool::hash::scanner {
             },
             {
                 .alg = HASH_DVAR,
-                .kernel = "hash_brute_dict_dvar",
+                .kernel = "dvar",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashIWDVar(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_TYPE2);
@@ -403,7 +403,7 @@ namespace tool::hash::scanner {
             },
             {
                 .alg = HASH_SCR_T10,
-                .kernel = "hash_brute_dict_t10scr",
+                .kernel = "t10scr",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashT10Scr(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_TYPE2);
@@ -411,7 +411,7 @@ namespace tool::hash::scanner {
             },
             {
                 .alg = HASH_SCR_T10_SP,
-                .kernel = "hash_brute_dict_t10scrsp",
+                .kernel = "t10scrsp",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashT10ScrSPPre(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_TYPE2);
@@ -419,13 +419,14 @@ namespace tool::hash::scanner {
             },
             {
                 .alg = HASH_OMNVAR,
-                .kernel = "hash_brute_dict_t10omn",
+                .kernel = "t10omn",
                 .PrefixHash = [](const char* p) -> uint64_t { return ::hash::HashT10OmnVar(p); },
                 .SuffixReverse = [](uint64_t h, const char* suffix) -> uint64_t {
                     return core::hashes::lookup::LookupFNV1A64<60>(suffix, h, ::hash::IV_TYPE3);
                 },
             },
         };
+        constexpr size_t MAX_BRUTE_KERNELS = ACTS_ARRAYSIZE(HashBruteDictKernels);
 
         std::vector<HashBruteDictKernel*> FindKernels(uint64_t alg) {
             std::stringstream ss{};
@@ -439,6 +440,20 @@ namespace tool::hash::scanner {
             LOG_DEBUG("using {} kernel(s):{}", v.size(), ss.str());
             return v;
         }
+
+        class AlgorithmHandlerData {
+          public:
+            CLKernel bruteKernel;
+            CLKernel preHashKernel;
+            CLMem prehashedBuffer;
+            HashBruteDictKernel* kernelData;
+
+            AlgorithmHandlerData(GPUData& gpu, CLProg& prog, HashBruteDictKernel* kernelData, cl_uint wordsCount)
+                : kernelData(kernelData),
+                  bruteKernel(gpu.CreateKernel(prog, utils::va("hash_brute_dict_%s", kernelData->kernel))),
+                  preHashKernel(gpu.CreateKernel(prog, utils::va("hash_pre_%s", kernelData->kernel))),
+                  prehashedBuffer(gpu.CreateBuffer(CL_MEM_KERNEL_READ_AND_WRITE, sizeof(cl_ulong) * wordsCount)) {}
+        };
 
         int hashbrutedictgpu2(int argc, const char* argv[]) {
             constexpr size_t hashesPerWork = 0x800000;
@@ -520,6 +535,12 @@ namespace tool::hash::scanner {
             LOG_DEBUG("gpuMap: {}B ({} word(s))", utils::data::PrettyNumberSize(packedMap.size()), wordsCount);
             LOG_DEBUG("gpuDictIndex: {}B", utils::data::PrettyNumberSize(packedDictIndex.size()));
             LOG_DEBUG("gpuDictData: {}B", utils::data::PrettyNumberSize(packedDictData.size()));
+            LOG_DEBUG(
+                "prehashedBuffer: {}B (x{}={})",
+                utils::data::PrettyNumberSize(sizeof(cl_ulong) * wordsCount),
+                kers.size(),
+                utils::data::PrettyNumberSize(sizeof(cl_ulong) * wordsCount * kers.size())
+            );
 
             CLMem gpuOutBufferA{ gpu.CreateBuffer(CL_MEM_WRITE_ONLY, (hashesPerWork + 1) * sizeof(cl_ulong)) };
             CLMem gpuOutBufferB{ gpu.CreateBuffer(CL_MEM_WRITE_ONLY, (hashesPerWork + 1) * sizeof(cl_ulong)) };
@@ -532,22 +553,20 @@ namespace tool::hash::scanner {
             CLMem gpuSuffix{ suffix && *suffix ? gpu.CreateBuffer(CL_MEM_READ_ONLY, suffix) : nullptr };
             CLMem gpuMiddle{ mid && *mid ? gpu.CreateBuffer(CL_MEM_READ_ONLY, mid) : nullptr };
 
-            class AlgorithmHandlerData {
-              public:
-                CLKernel bruteKernel;
-                HashBruteDictKernel* kernelData;
-
-                AlgorithmHandlerData(GPUData& gpu, CLProg& prog, HashBruteDictKernel* kernelData)
-                    : kernelData(kernelData), bruteKernel(gpu.CreateKernel(prog, kernelData->kernel)) {}
-            };
             std::string progData{};
             ReadData("hashbrutegpu2", progData);
             CLProg prog{ gpu.CreateProgramWithSource(progData) };
 
             std::vector<std::unique_ptr<AlgorithmHandlerData>> handlerData{};
+            cl_event kersWaits[MAX_BRUTE_KERNELS]{};
+            cl_uint numKersWaits{};
 
+            actslib::profiler::Profiler profiler{ "hashbrutegpu" };
+            profiler.Reset();
             for (HashBruteDictKernel* k : kers) {
-                std::unique_ptr<AlgorithmHandlerData> p{ std::make_unique<AlgorithmHandlerData>(gpu, prog, k) };
+                std::unique_ptr<AlgorithmHandlerData> p{
+                    std::make_unique<AlgorithmHandlerData>(gpu, prog, k, wordsCount)
+                };
 
                 CLKernel& bruteKernel{ p->bruteKernel };
 
@@ -568,9 +587,44 @@ namespace tool::hash::scanner {
                 gpu.SetKernelArg(bruteKernel, 8, sizeof(wordsCount), &wordsCount);
                 // 9 indexSize
                 gpu.SetKernelArg(bruteKernel, 9, sizeof(indexSize), &indexSize);
+                // 10 indexSize
+                gpu.SetKernelArg(bruteKernel, 10, sizeof(*p->prehashedBuffer), &*p->prehashedBuffer);
+
+                CLKernel& preHashKernel{ p->preHashKernel };
+
+                // 0 out result
+                gpu.SetKernelArg(preHashKernel, 0, sizeof(*p->prehashedBuffer), &*p->prehashedBuffer);
+                // 1 dictionary offsets in dictData
+                gpu.SetKernelArg(preHashKernel, 1, sizeof(*gpuDictIndex), &*gpuDictIndex);
+                // 2 dictionary data
+                gpu.SetKernelArg(preHashKernel, 2, sizeof(*gpuDictData), &*gpuDictData);
+                // 3 start offset (computed from prefix)
+                gpu.SetKernelArg(preHashKernel, 3, sizeof(startVal), &startVal);
+
+                // precompute the (prefix + word[i]) for each word
+                size_t prehashSize{ wordsCount };
+                gpu.EnqueueNDRangeKernelEvent(
+                    preHashKernel,
+                    1,
+                    nullptr,
+                    &prehashSize,
+                    0,
+                    nullptr,
+                    &kersWaits[numKersWaits++]
+                );
 
                 handlerData.emplace_back(std::move(p));
             }
+            // wait for the prehash events
+            clWaitForEvents(numKersWaits, kersWaits);
+
+            profiler.Stop();
+            LOG_INFO(
+                "done prehashing {} word(s) for {} algorithms in {}",
+                wordsCount * numKersWaits,
+                numKersWaits,
+                utils::data::PrettyTime(profiler.GetMainSection().GetMillis() / 1000.0)
+            );
 
             cl_ulong startIndex{};
             bool useOutA{};
@@ -582,7 +636,6 @@ namespace tool::hash::scanner {
             AlgorithmHandlerData* prevData{};
 
             char wordBuff[0x200];
-            actslib::profiler::Profiler profiler{ "hashbrutegpu" };
             profiler.Reset();
             size_t total{};
 

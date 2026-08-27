@@ -178,11 +178,16 @@ inline long linear_search(__global const ulong* arr,
     return -1; // not found
 }
 
-#define BUILD_COMBINATOR_HASH(alg, funcPost, i, wordsCount, offsets, dictChars, start, middleStr, suffixStr) \
+#define BUILD_COMBINATOR_HASH(alg, funcPost, i, wordsCount, offsets, dictChars, start, middleStr, suffixStr, prehashedWords) \
 do {                                                                                   \
     uint pos = 0;                                                                      \
     bool first = true;                                                                 \
     ulong x = i;                                                                       \
+    if (x == 0) break;                                                                 \
+    ulong adj0 = x - 1UL;                                                              \
+    uint idx0 = (uint)(adj0 % wordsCount);                                             \
+    x = adj0 / (ulong)wordsCount;                                                      \
+    start = prehashedWords[idx0];                                                      \
                                                                                        \
     while (x > 0) {                                                                    \
         ulong adj = x - 1UL;                                                           \
@@ -190,10 +195,9 @@ do {                                                                            
         x = adj / (ulong)wordsCount;                                                   \
                                                                                        \
         /* Middle between parts */                                                     \
-        if (!first && middleStr) {                                                     \
+        if (middleStr) {                                                               \
             start = alg(middleStr, start);                                             \
         }                                                                              \
-        first = false;                                                                 \
         start = alg(dictChars + offsets[idx], start);                                  \
     }                                                                                  \
     if (suffixStr) {                                                                   \
@@ -240,37 +244,45 @@ inline int check_hash(__global const ulong* mapBuf,
 // 7 startIndex
 // 8 wordsCount
 // 9 indexSize
-#define CREATE_HASH_KERNEL(kernelName, func, funcPost)                                               \
-__kernel void hash_brute_dict_##kernelName(                                                          \
-    __global const ulong* hashMap,                                                                   \
-    __global const ulong* dictOffsets,                                                               \
-    __global const char*  dictData,                                                                  \
-    ulong startVal,                                                                                  \
-    __global const char* mid,                                                                        \
-    __global const char* suf,                                                                        \
-    __global ulong*       outIndex,                                                                  \
-    ulong                 startIndex,                                                                \
-    uint                  wordsCount,                                                                \
-    uint                  indexSize) {                                                               \
-    ulong i = startIndex + get_global_id(0);                                                         \
-    BUILD_COMBINATOR_HASH(func, funcPost, i, wordsCount, dictOffsets, dictData, startVal, mid, suf); \
-    /* Check all enabled hashes against map*/                                                        \
-    if (check_hash(hashMap, indexSize, startVal)) {                                                  \
-        __global uint *count = (__global uint*)outIndex;                                             \
-                                                                                                     \
-        outIndex[1 + atomic_inc(count)] = i;                                                         \
-    }                                                                                                \
-}                                                                                                    \
+// 9 prehashedWords
+#define CREATE_HASH_KERNEL(kernelName, func, funcPost)                                                               \
+__kernel void hash_brute_dict_##kernelName(                                                                          \
+    __global const ulong* hashMap,                                                                                   \
+    __global const ulong* dictOffsets,                                                                               \
+    __global const char*  dictData,                                                                                  \
+    ulong startVal,                                                                                                  \
+    __global const char* mid,                                                                                        \
+    __global const char* suf,                                                                                        \
+    __global ulong*       outIndex,                                                                                  \
+    ulong                 startIndex,                                                                                \
+    uint                  wordsCount,                                                                                \
+    uint                  indexSize,                                                                                 \
+    __global const ulong* prehashedWords                                                                             \
+) {                                                                                                                  \
+    ulong i = startIndex + get_global_id(0);                                                                         \
+    BUILD_COMBINATOR_HASH(func, funcPost, i, wordsCount, dictOffsets, dictData, startVal, mid, suf, prehashedWords); \
+    /* Check all enabled hashes against map*/                                                                        \
+    if (check_hash(hashMap, indexSize, startVal)) {                                                                  \
+        __global uint *count = (__global uint*)outIndex;                                                             \
+                                                                                                                     \
+        outIndex[1 + atomic_inc(count)] = i;                                                                         \
+    }                                                                                                                \
+}                                                                                                                    \
 
+// prehash in outres hashes
+// 0 out result
+// 1 dictionary offsets in dictData
+// 2 dictionary data
+// 3 start offset (computed from prefix)
 #define CREATE_PREHASH_KERNEL(kernelName, func)                                                      \
 __kernel void hash_pre_##kernelName(                                                                 \
-    __global ulong* outres,                                                                          \
+    __global ulong* prehashedWords,                                                                  \
     __global const ulong* dictOffsets,                                                               \
     __global const char*  dictData,                                                                  \
     ulong startVal                                                                                   \
 ) {                                                                                                  \
     size_t idx = get_global_id(0);                                                                   \
-    outres[idx] = func(dictData + dictOffsets[idx], startVal);                                       \
+    prehashedWords[idx] = func(dictData + dictOffsets[idx], startVal);                               \
 }
 
 #define CREATE_ALG_KERNEL(kernelName, func, funcPost) \
