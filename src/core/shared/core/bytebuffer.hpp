@@ -9,7 +9,7 @@ namespace core::bytebuffer {
         size_t pointer{};
 
       public:
-        ByteBuffer(byte* buffer, size_t len, size_t pointer = 0) : buffer(buffer), len(len), pointer(pointer) {}
+        ByteBuffer(void* buffer, size_t len, size_t pointer = 0) : buffer((byte*)buffer), len(len), pointer(pointer) {}
         ByteBuffer(std::string& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
         ByteBuffer(std::vector<byte>& buff) : buffer((byte*)buff.data()), len(buff.size()) {}
 
@@ -62,6 +62,22 @@ namespace core::bytebuffer {
             size_t _len{};
             if (end) {
                 while (AbstractByteBuffer::Read<char>() != end)
+                    _len++;
+            } else {
+                while (AbstractByteBuffer::Read<char>())
+                    _len++;
+            }
+            if (len)
+                *len = _len;
+            return str;
+        }
+
+        char* ReadStringOrCStr(char end, size_t* len = nullptr) {
+            char* str{ Ptr<char>() };
+            size_t _len{};
+            if (end) {
+                char c;
+                while ((c = AbstractByteBuffer::Read<char>()) != 0 && c != end)
                     _len++;
             } else {
                 while (AbstractByteBuffer::Read<char>())
