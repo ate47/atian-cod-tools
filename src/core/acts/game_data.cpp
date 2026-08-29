@@ -311,8 +311,12 @@ namespace acts::game_data {
         }
         if (cdeclsVal.IsArray()) {
             for (rapidjson::Value& cdeclVal : cdeclsVal.GetArray()) {
+                if (cdeclVal.IsString()) {
+                    builder.AddCDecl(cdeclVal.GetString());
+                    continue;
+                }
                 if (!cdeclVal.IsObject()) {
-                    LOG_WARNING("Invalid cdecl in {}: Not an object", dirname);
+                    LOG_WARNING("Invalid cdecl in {}: Not an object or string", dirname);
                     continue;
                 }
                 auto obj{ cdeclVal.GetObj() };
@@ -349,7 +353,22 @@ namespace acts::game_data {
         }
 
         for (auto& [k, v] : scansVal.GetObj()) {
-            ScanData data{ GetScan(k.GetString(), parent) };
+            const char* id{ k.GetString() };
+
+            if (!_strcmpi(id, "type") || !_strcmpi(id, "__comment__")) {
+                continue;
+            }
+
+            const char* type{ cfg.GetCString(std::format("{}.{}.type", parent, id)) };
+
+            if (type && !_strcmpi(type, "Group")) {
+                // group, we go deeper
+                std::string base{ std::format("{}.{}", parent, id) };
+                rapidjson::Value& group{ cfg.GetVal(base.data(), 0, cfg.main) };
+                ScanToIdc(builder, base.data());
+                continue;
+            }
+            ScanData data{ GetScan(id, parent) };
             if (data.name.empty() || data.name[0] == '$') {
                 continue; // unused
             }

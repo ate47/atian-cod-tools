@@ -17,6 +17,7 @@
 #include "tools/bo6/bo6.hpp"
 #include <core/memory_allocator.hpp>
 #include <decryptutils.hpp>
+#include <deps/idc_builder.hpp>
 
 namespace {
     using namespace tool::gsc::opcode;
@@ -745,10 +746,12 @@ namespace {
         bool help{};
         bool allGames{};
         const char* exeName{};
+        const char* idcFile{};
         cli::options::CliOptions opts{};
         opts.addOption(&help, "show help", "--help", "", "-h");
         opts.addOption(&exeName, "game exe", "--exec", "", "-e");
         opts.addOption(&allGames, "all games", "--all", "", "-a");
+        opts.addOption(&idcFile, "create idc", "--idc", " [file]", "-i");
 
         std::vector<std::string> names{};
 
@@ -789,6 +792,16 @@ namespace {
                 LOG_ERROR("Found error in {}", name);
                 r = tool::BASIC_ERROR;
                 continue;
+            }
+
+            if (idcFile) {
+                std::filesystem::path outIdc{ idcFile };
+                std::filesystem::create_directories(outIdc.parent_path());
+                deps::idc_builder::IdcBuilder idc{};
+                game.AddTypesToIdc(idc);
+                game.ScanAllToIdc(idc);
+                idc.WriteIdcFile(outIdc);
+                LOG_INFO("dump idc to {}", outIdc.string());
             }
 
             LOG_INFO("Game data ok");
