@@ -3,6 +3,7 @@ file(GLOB_RECURSE ACTS_BO4_SHIELD_PLUGIN_DLL_SOURCES
     "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin/*.hpp"
     "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin/*.h"
     "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin/*.cpp"
+    "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin/*.inl"
 )
 add_library(AtianCodToolsBO4ShieldPlugin SHARED)
 target_sources(AtianCodToolsBO4ShieldPlugin PRIVATE ${ACTS_BO4_SHIELD_PLUGIN_DLL_SOURCES})

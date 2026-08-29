@@ -34,8 +34,8 @@ int main(int argc, char** argv) {
     std::filesystem::path dir{ argv[1] };
     const char* gameId{ argv[2] };
     std::filesystem::path input{ argv[3] };
-    std::filesystem::path outHPPPath{ std::format("{}.hpp", argv[4]) };
-    std::filesystem::path outCPPPath{ std::format("{}.cpp", argv[4]) };
+    std::filesystem::path outHPPPath{ std::format("{}.hpp.inl", argv[4]) };
+    std::filesystem::path outCPPPath{ std::format("{}.cpp.inl", argv[4]) };
 
     std::ifstream in{ input };
 
@@ -73,7 +73,13 @@ int main(int argc, char** argv) {
     }
 
     nlohmann::json templateData;
-    in >> templateData;
+    try {
+        in >> templateData;
+    } catch (std::runtime_error& e) {
+        in.close();
+        std::cerr << "Can't read template data " << input << ": " << e.what() << "\n";
+        return -1;
+    }
     in.close();
 
     templateData["gameId"] = gameId;

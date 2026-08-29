@@ -21,11 +21,11 @@ target_include_directories(abp_game_config_packer PRIVATE
 # add a target to generated a packed sig reader
 # target: target to create
 # gameid: game to load in the config/data/games dir
-# out:    output files to generated, will create .hpp and .cpp
+# out:    output files to generated, will create .hpp.inl and .cpp.inl
 # example: add_game_pack_target(AtianCodToolsBO4ShieldPluginGame bo4 "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin/data/bo4_generated")
 macro(add_game_pack_target target gameid out)
     add_custom_command(
-        OUTPUT "${out}.hpp" "${out}.cpp"
+        OUTPUT "${out}.hpp.inl" "${out}.cpp.inl"
         COMMAND abp_game_config_packer
                 "${CMAKE_SOURCE_DIR}/tools/game_config_packer/"
                 "${gameid}"
@@ -35,13 +35,13 @@ macro(add_game_pack_target target gameid out)
                 "${CMAKE_SOURCE_DIR}/config/data/games/${gameid}.json"
                 "${CMAKE_SOURCE_DIR}/tools/game_config_packer/template.hpp.inja"
                 "${CMAKE_SOURCE_DIR}/tools/game_config_packer/template.cpp.inja"
-        COMMENT "Generating ${gameid} pack data into ${out}.cpp"
+        COMMENT "Generating ${gameid} pack data into ${out}.cpp.inl"
     )
-    add_custom_target(${target} DEPENDS "${out}.hpp" "${out}.cpp")
+    add_custom_target(${target} DEPENDS "${out}.hpp.inl" "${out}.cpp.inl")
     set_target_properties(${target} PROPERTIES
         OUTPUT_NAME "${target}"
         FOLDER "Tools/Generated"
     )
-    add_format_excluded("${out}.hpp")
-    add_format_excluded("${out}.cpp")
+    add_format_excluded("${out}.hpp.inl")
+    add_format_excluded("${out}.cpp.inl")
 endmacro(add_game_pack_target)

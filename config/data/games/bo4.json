@@ -23,7 +23,7 @@
     "scans": {
         "fastfile": {
             "type": "Group",
-            "__comment__": "Fast Files functions",
+            "__comment__": "Fast Files",
             "Load_XAsset": {
                 "scan": "E8 ?? ?? ?? ?? 48 83 C3 10 80 3D ?? ?? ?? ?? ?? 75 07",
                 "type": "Relative",
@@ -151,7 +151,834 @@
                 "type": "Relative",
                 "offset": 1,
                 "single": true,
+                "reftype": "XAssetHeader(XAssetType type, XHash* name, bool errorIfMissing, int waitTime)",
                 "__comment__": "Find a XAsset header"
+            },
+            "DB_DoesXAssetExist": {
+                "scan": "40 53 48 83 EC 30 0F 10 02 48 8D 54 24 20 0F B6",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "bool(XAssetType type, XHash* name)",
+                "__comment__": "Test if an XAsset exists"
+            },
+            "DB_Is4KEnabled": {
+                "scan": "E8 ?? ?? ?? ?? 33 D2 88 44 24 31",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "bool()",
+                "__comment__": "Are 4k fastfiles loaded"
+            },
+            "DB_GetXAssetName": {
+                "scan": "40 53 48 83 EC 30 0F B6 02",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "XHash*(XHash* hash, const XAsset* asset)",
+                "__comment__": "Get XAsset name"
+            },
+            "DB_FileExists": {
+                "scan": "40 53 48 81 EC 40 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 30 01 00 00 48 8B D9 E8",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "bool(const char* file)",
+                "__comment__": "Does a zone file exists"
+            },
+            "s_assetPools": {
+                "scan": "48 89 15 ?? ?? ?? ?? 89 35 ?? ?? ?? ?? C7 05 ?? ?? ?? ?? ?? ?? ?? ?? 48 8D 8A F0 00 00 00 44 88 3D ?? ?? ?? ?? 44 89 3D ?? ?? ?? ?? 44 8D 46 11 48 89 15",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "XAssetPool",
+                "__comment__": ""
+            }
+        },
+        "gsc": {
+            "type": "Group",
+            "__comment__": "Script Code",
+            "ScrVm_AddBool": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 63 D9 8B CB 48",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, int value)",
+                "__comment__": "Add a boolean"
+            },
+            "ScrVm_AddFloat": {
+                "scan": "40 53 48 83 EC 30 48 63 D9 8B",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, float value)",
+                "__comment__": "Add a float"
+            },
+            "ScrVm_AddHash": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 63 D9 48 8B FA 8B CB E8 ?? ?? ?? ?? 48 8B 0F",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, XHash* value)",
+                "__comment__": "Add a xhash"
+            },
+            "ScrVm_AddInt": {
+                "scan": "0F 84 ?? ?? ?? ?? 85 C9 74 0D",
+                "type": "Relative",
+                "offset": 2,
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, int64_t value)",
+                "__comment__": "Add an integer"
+            },
+            "ScrVm_AddString": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 63 D9 48 8B FA 8B CB E8 ?? ?? ?? ?? 48 69 DB",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, const char *value)",
+                "__comment__": "Add a string"
+            },
+            "ScrVm_AddConstString": {
+                "scan": "E8 ?? ?? ?? ?? 48 B8 F3 A4 48 44 19 AB D7 56",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, ScrString_t value)",
+                "__comment__": "Add a const string"
+            },
+            "ScrVm_AddUndefined": {
+                "scan": "40 53 48 83 EC 20 48 63 D9 8B CB E8 ?? ?? ?? ?? 48 69",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst)",
+                "__comment__": "Add undefined"
+            },
+            "ScrVm_AddScriptFunction": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 63 D9 48 8B FA 8B CB E8 ?? ?? ?? ?? 48 69 CB ?? ?? ?? ?? 48 8B 5C 24 30 48 8D 15 ?? ?? ?? ?? 48 8B 04 11 C7 40 08 0C",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, byte* codePos)",
+                "__comment__": "Add a script function"
+            },
+            "ScrVm_AddAPIFunction": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 63 D9 48 8B FA 8B CB E8 ?? ?? ?? ?? 48 69 CB ?? ?? ?? ?? 48 8B 5C 24 30 48 8D 15 ?? ?? ?? ?? 48 8B 04 11 C7 40 08 0B",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, void* func)",
+                "__comment__": "Add an API function"
+            },
+            "ScrVm_AddStruct": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 63 F9 8B CF E8 ?? ?? ?? ?? 8B",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "uint32_t(scriptInstance_t inst)",
+                "__comment__": "Add a structure"
+            },
+            "ScrVm_SetStructField": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 63 F1 8B CE E8 ?? ?? ?? ?? 48",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, uint32_t structId, uint32_t name)",
+                "__comment__": "Set a structure field"
+            },
+            "ScrVm_AddToArray": {
+                "scan": "E8 ?? ?? ?? ?? FF C7 3B 7D 20",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void(scriptInstance_t inst)",
+                "__comment__": "Add an element to array"
+            },
+            "ScrVm_AddToArrayStringIndexed": {
+                "scan": "E8 ?? ?? ?? ?? 8B 4C 1C 68",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, XHash* name)",
+                "__comment__": "Add an element to array with key name"
+            },
+            "ScrVm_AddVector": {
+                "scan": "40 57 48 83 EC 40 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 38",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, vec3_t* vec)",
+                "__comment__": "Add a vector"
+            },
+            "ScrVar_PushArray": {
+                "scan": "E8 ?? ?? ?? ?? 44 39 74 24 28",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void(scriptInstance_t inst)",
+                "__comment__": "Add an array"
+            },
+            "ScrVm_GetBool": {
+                "scan": "48 89 5C 24 10 48 89 74 24 18 57 48 81 EC B0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 A8 00 00 00 48 63 D9 48 8D 35 22",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "bool(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a bool param"
+            },
+            "ScrVm_GetFloat": {
+                "scan": "48 89 5C 24 18 55 57 41 56 48 81 EC B0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 A8 00 00 00 48 63 D9 48",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "float(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a float param"
+            },
+            "ScrVm_GetHash": {
+                "scan": "48 89 5C 24 08 55 56 57 41 56 41 57 48 81 EC C0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 B8 00 00 00 48 63 FA",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "XHash*(XHash* hash, scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a xhash param"
+            },
+            "ScrVm_GetInt": {
+                "scan": "48 89 5C 24 18 55 57 41 56 48 81 EC B0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 A8 00 00 00 48 63 D9 4C 8D 35 84",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "int64_t(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a integer param"
+            },
+            "ScrVm_GetString": {
+                "scan": "E8 ?? ?? ?? ?? B9 26 00 00 00",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "const char*(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a string param"
+            },
+            "ScrVm_GetVector": {
+                "scan": "40 53 55 57 48 81 EC B0",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, unsigned int index, vec3_t* vector)",
+                "__comment__": "Get a vector param"
+            },
+            "ScrVm_GetConstString": {
+                "scan": "48 89 5C 24 18 55 56 57 48 81 EC B0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 A8 00 00 00 48 63 D9 48 8D 2D C5",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "ScrVarIndex_t(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a const string param"
+            },
+            "ScrVm_GetNumParam": {
+                "scan": "E8 ?? ?? ?? ?? 3B C5 76 0E",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "uint32_t(scriptInstance_t inst)",
+                "__comment__": "Get the params count"
+            },
+            "ScrVm_GetPointerType": {
+                "scan": "48 89 5C 24 20 55 57 41 56 48 81 EC B0",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "ScrVarType_t(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a pointer param type"
+            },
+            "ScrVm_GetType": {
+                "scan": "48 89 5C 24 10 48 89 74 24 18 57 48 81 EC B0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 A8 00 00 00 48 63 D9 48 8D 35 B2",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "ScrVarType_t(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a param type"
+            },
+            "ScrVm_GetValue": {
+                "scan": "48 89 5C 24 10 48 89 74 24 18 57 48 81 EC B0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 A8 00 00 00 48 63 D9 48 8D 35 72",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "ScrVarValue_t*(scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get a param value"
+            },
+            "ScrStr_ConvertToString": {
+                "scan": "B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 8D 41 FF 3D ?? ?? ?? ?? 77 67",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "const char*(ScrVarIndex_t index)",
+                "__comment__": "Convert a ScrVarIndex_t to string"
+            },
+            "ScrVar_NewVariableByIndex": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 63 F1 44 8B CA 8B FA 8B CE BA 01",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId, ScrVarNameIndex_t index)",
+                "__comment__": "New variable by index"
+            },
+            "ScrVar_SetValue": {
+                "scan": "48 89 5C 24 18 48 89 6C 24 20 57 41 56 41 57 48 83 EC 30",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, ScrVarIndex_t id, ScrVarValue_t* value)",
+                "__comment__": "Set a value"
+            },
+            "ScrVm_GetEntityRef": {
+                "scan": "48 89 5C 24 08 55 56 57 41 56 41 57 48 81 EC C0 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 B8 00 00 00 48 63 DA",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "scr_entref_t*(scr_entref_t* ent, scriptInstance_t inst, unsigned int index)",
+                "__comment__": "Get an entity ref"
+            },
+            "ScrVm_AddEntityNum": {
+                "scan": "E8 ?? ?? ?? ?? E9 CE 41 00 00",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, EntRefUnion value, ClassNum classNum, LocalClientNum_t num)",
+                "__comment__": "Add an entity num"
+            }
+        },
+        "gscfuncs": {
+            "type": "Group",
+            "__comment__": "GSC API Functions",
+            "CScr_GetFunction": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 41 56 48 83 EC 20 4C 8B F2 8B D9 48 8D 15 ?? ?? ?? ?? 49 8B F9 48 8B CA 49 8B F0 33 C0 0F 1F 40 00 3B 19 0F 84 EA 00 00 00 FF C0 48 83 C1 20 3D 5F",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)",
+                "__comment__": "Get an API client function"
+            },
+            "Scr_GetFunction": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 49 8B F8 C7",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)",
+                "__comment__": "Get an API server function"
+            },
+            "CScr_GetMethod": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 41 56 48 83 EC 20 4C 8B F2 8B D9 48 8D 15 ?? ?? ?? ?? 49 8B F9 48 8B CA 49 8B F0 33 C0 0F 1F 40 00 3B 19 0F 84 EA 00 00 00 FF C0 48 83 C1 20 3D 45",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void*(uint32_t canonId, int* type, int* min_args, int* max_args)",
+                "__comment__": "Get an API client method"
+            },
+            "Scr_GetMethod": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 18 56 57 41 56 48 83 EC 30 49 8B F1",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void*(uint32_t canonId, int* type, int* min_args, int* max_args)",
+                "__comment__": "Get an API server method"
+            },
+            "Scr_GetFunctionReverseLookup": {
+                "scan": "48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 20 49 8B F8 48 8B F2 48 8B D9 48 85 D2 0F 84 9F",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "bool(byte* func, uint32_t* name, bool* isFunction)",
+                "__comment__": "Lookup an API server function"
+            },
+            "CScr_GetFunctionReverseLookup": {
+                "scan": "48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 20 49 8B F8 48 8B F2 48 8B D9 48 85 D2 0F 84 9B",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "bool(byte* func, uint32_t* name, bool* isFunction)",
+                "__comment__": "Lookup an API client function"
+            },
+            "ScrEvent_FireCallbackEventEnt": {
+                "scan": "40 53 55 56 57 41 54 41 55 41 56 41 57 48 81 EC 68 02 00 00 48 C7 44 24 40 FE FF FF FF 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 50 02 00 00 4D 63 E9 49",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)",
+                "__comment__": "Fire an event"
+            },
+            "ScrVar_AddClassFields": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 56 41 57 48 83 EC 20 48 63 F1 4C",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)",
+                "__comment__": "Add class fields to a class"
+            },
+            "Scr_GetGenericField": {
+                "scan": "41 83 F8 18 0F 87 F1 01 00 00 48 89",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, const byte* b, fieldtype_t type, int ofs)",
+                "__comment__": "Get generic field from data"
+            },
+            "Scr_SetGenericField": {
+                "scan": "41 83 F8 16 0F 87 4C 01 00 00 48 89",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)",
+                "__comment__": "Set generic field to data"
+            },
+            "Scr_ConstructMessageString": {
+                "scan": "40 53 55 57 41 56 41 57 48 81 EC A0",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, MessageString* string, signed int startIndex, int endIndex)",
+                "__comment__": "Construct a message string for network"
+            },
+            "Scr_GetGscExportInfo": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 4C 89 74 24 20 41 57 48 83 EC 30 4D 8B F8",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)",
+                "__comment__": "Get the export information of a bytecode position"
+            },
+            "ScrVm_Error": {
+                "scan": "48 89 5C 24 20 55 56 57 48 81 EC B0 00 00 00 48",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)",
+                "__comment__": "Throw a script error"
+            },
+            "SL_GetStringOfSize": {
+                "scan": "40 55 56 57 41 54 41 55 41 56 41 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 C7 44 24 20 FE FF FF FF 48 89 9C 24 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 45 0F B6 F9 45 8B E8",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "ScrString_t(const char* str, unsigned int user, ScrStringType type, bool decrypt)",
+                "__comment__": "Allocate a string into the MT buffer"
+            },
+            "SL_TransferRefToUser": {
+                "scan": "8D 0C 89 C1 E1 02 48 03 0D ?? ?? ?? ?? 0F B6 41 02 22 C2 A8 3F 74",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(ScrString_t stringValue, unsigned int user)",
+                "__comment__": "Transfer a string reference to a user"
+            }
+        },
+        "gscstrucs": {
+            "type": "Group",
+            "__comment__": "GSC Stuctures",
+            "scrVarPub": {
+                "scan": "4C 8D 05 ?? ?? ?? ?? 48 63 C1 48 69 C8 10 01 00 00 42 8B 84 01 F8 00 00 00 89 02",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "BO4_scrVarPub",
+                "__comment__": "script public variables"
+            },
+            "scrVarGlob": {
+                "scan": "48 8D 1D ?? ?? ?? ?? 48 03 D2 49 8B 4C 19 20 45 33 DB C7 44 D1 08 15 00 00 00 49 8B 4C 19 20",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "scrVarGlob_t",
+                "__comment__": "script global variables"
+            },
+            "scrVmPub": {
+                "scan": "48 8D 15 ?? ?? ?? ?? 66 89 70 08 48 89 38 48 01 8C 2A ?? ?? ?? ?? 48 63 CE 48 8D 59 02 48 8D 1C D8",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "scrVmPub_t",
+                "__comment__": "script vm data"
+            },
+            "gVmOpJumpTable": {
+                "scan": "41 FF 94 C5 ?? ?? ?? ?? 80 7C 24 20 00 0F 84 30 FF FF FF 48 8B 4C 24 38 48 69 D6",
+                "type": "GetOffset32",
+                "offset": 4,
+                "single": true,
+                "reftype": "VM_OP_FUNC",
+                "__comment__": "script opcodes table"
+            },
+            "gVmOpJumpTableModTool": {
+                "scan": "41 FF 94 C5 ?? ?? ?? ?? EB 08 41 FF 94 C5 ?? ?? ?? ?? 80 7C 24 20 00 0F 84 30 FF FF FF",
+                "type": "GetOffset32",
+                "offset": 4,
+                "single": true,
+                "reftype": "VM_OP_FUNC",
+                "__comment__": "script modtool opcodes table"
+            },
+            "gVmOpJumpTableError": {
+                "scan": "41 FF 94 C5 ?? ?? ?? ?? 33 FF E9 F7 FE FF FF 80 7C 24 20 00 48 8B 5C 24 30 48 63 74 24 28",
+                "type": "GetOffset32",
+                "offset": 4,
+                "single": true,
+                "reftype": "VM_OP_ERR_FUNC",
+                "__comment__": "script error opcodes table"
+            },
+            "gVmOpJumpTableErrorModTool": {
+                "scan": "41 FF 94 C5 ?? ?? ?? ?? 33 FF E9 06 FF FF FF 41 FF 94 C5 ?? ?? ?? ?? 33 FF E9 F7 FE FF FF 80 7C 24 20 00",
+                "type": "GetOffset32",
+                "offset": 4,
+                "single": true,
+                "reftype": "VM_OP_ERR_FUNC",
+                "__comment__": "script modtool error opcodes table"
+            },
+            "gObjFileInfoCount": {
+                "scan": "48 8D 0D ?? ?? ?? ?? 33 FF 89 3C 99 48 8D 05 ?? ?? ?? ?? 48 69 CB ?? ?? ?? ?? 33 D2 41 B8 ?? ?? ?? ?? 48 03 C8 E8 ?? ?? ?? ?? 33 D2",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "uint32_t",
+                "__comment__": "linked scripts count"
+            },
+            "gObjFileInfo": {
+                "scan": "48 8D 05 ?? ?? ?? ?? 48 69 CB ?? ?? ?? ?? 33 D2 41 B8 ?? ?? ?? ?? 48 03 C8 E8 ?? ?? ?? ?? 33 D2 44 8D 47 58 48 8D 0D",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "objFileInfo_t[scriptInstance_t::SI_COUNT][650]",
+                "__comment__": "linker scripts information"
+            },
+            "scrVarTypeNames": {
+                "scan": "49 8B 94 C6 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B C8 48 69 C6 10 01 00 00",
+                "type": "GetOffset32",
+                "offset": 4,
+                "single": true,
+                "reftype": "const char*",
+                "__comment__": "script VM var type names"
+            },
+            "scrVmInvalidFuncs": {
+                "scan": "48 0F 44 05 ?? ?? ?? ?? 48 8B 5C 24 40 48 8B 6C 24 48 48 8B 74 24 50 48 8B 7C 24 58 48 83 C4 30 41 5E C3",
+                "type": "Relative",
+                "offset": 4,
+                "single": true,
+                "reftype": "void*",
+                "__comment__": "Invalid gsc functions array"
+            }
+        },
+        "lua": {
+            "type": "Group",
+            "__comment__": "Lua",
+            "Lua_CoD_LoadLuaFile": {
+                "scan": "48 8B C4 57 48 81 EC 80 00 00 00 48 C7 40 98 FE FF FF FF 48 89 58 08 48 89 70",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "bool(lua_State* luaVM, const char* file)",
+                "__comment__": "script public variables"
+            },
+            "Lua_BeginTableReadOnly": {
+                "scan": "E8 ?? ?? ?? ?? 48 8B 83 A0 00 00 00 48 85 C0 74 04 8B 38",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void(const char* tname, lua_State* luaVM)",
+                "__comment__": "script public variables"
+            },
+            "Lua_EndTableReadOnly": {
+                "scan": "40 53 48 83 EC 20 48 8D 15 ?? ?? ?? ?? 48 8B D9 E8 ?? ?? ?? ?? 48 8B 53 48 48 8D 42 E0 48 3B 43 50 72 18 4C 8D 42 F0 48 8B CB 48 8B D0 E8 ?? ?? ?? ?? 48 83 43 48 F0 48 8B 53 48 4C 8D 4A F0 48 8B CB 4C 8D 42 E0 48 83 C2 D0 E8 ?? ?? ?? ?? 48 83 43 48 E0 4C",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(lua_State* luaVM)",
+                "__comment__": "script public variables"
+            },
+            "Lua_Cod_RegisterFunction": {
+                "scan": "40 53 48 83 EC 30 4C 8B 49 48 48 8B D9 48 8B 02 4D ",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(lua_State* luaVM, XHash* name, int (*func)(lua_State* s))",
+                "__comment__": "script public variables"
+            },
+            "hks_obj_tolstring": {
+                "scan": "40 53 57 41 56 48 81 EC 50 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "const char*(lua_State* luaVM, HksObject* obj, size_t* len)",
+                "__comment__": "script public variables"
+            },
+            "hks_obj_tonumber": {
+                "scan": "48 83 EC 28 8B 02 83 E0 0F 83 F8 03 75 0A F3",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "float(lua_State* luaVM, const HksObject* obj)",
+                "__comment__": "script public variables"
+            },
+            "hks_obj_tolhash": {
+                "scan": "48 83 EC 18 4C 8B D1 41",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "XHash*(XHash* retval, lua_State* luaVM, int idx)",
+                "__comment__": "script public variables"
+            },
+            "hksi_lua_setfield": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B D9 49 8B F0",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(lua_State* s, int index, const char* k)",
+                "__comment__": "script public variables"
+            },
+            "hksi_lua_pushlstring": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 BF",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(lua_State* s, const char* str, size_t l)",
+                "__comment__": "script public variables"
+            },
+            "hksi_lua_pushxhash": {
+                "scan": "48 83 EC 08 4C 8B CA 4C 8B D1 49 BB FF FF FF",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(lua_State* s, const char* str)",
+                "__comment__": "script public variables"
+            }
+        },
+        "fs": {
+            "type": "Group",
+            "__comment__": "File System",
+            "Stream_OpenFile49": {
+                "scan": "E8 ?? ?? ?? ?? 44 8B F8 83 F8 FF 75 6E",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "int32_t(const char* file)",
+                "__comment__": ""
+            },
+            "Stream_CloseFile": {
+                "scan": "40 53 48 83 EC 40 48 C7 44 24 20 FE FF FF FF 48 63 D9 83",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(int32_t fileid)",
+                "__comment__": ""
+            }
+        },
+        "dvar": {
+            "type": "Group",
+            "__comment__": "Dvar",
+            "dvar_loc_language": {
+                "scan": "48 8B 0D ?? ?? ?? ?? 45 33 C0 8B D3 E8 ?? ?? ?? ?? 48 8D 0C 9B 48 8B C3 48 8D 15 ?? ?? ?? ?? 49 C7 C0 FF FF FF FF",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "const dvar_t*",
+                "__comment__": "dvar_loc_language dvar"
+            },
+            "s_dvarHashTable": {
+                "scan": "48 8D 3D ?? ?? ?? ?? 66 48 0F 7E C0 0F 29 44 24 20 25 FF 03 00 00 48 8B 3C C7 48 85 FF 74 24 48 8B 0E 48 BA FF FF FF FF FF FF FF 7F 48 23 CA",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "const dvar_t* [0x400]",
+                "__comment__": "hash table index"
+            },
+            "s_dvarPool": {
+                "scan": "48 8D 35 ?? ?? ?? ?? 4C 89 74 24 48 48 8B 2E 8B 4D 24 8B C1 C1 E8 0F A8 01",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "const dvar_t[0x1000]",
+                "__comment__": "dvar pool"
+            },
+            "Dvar_Register": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 18 48 89 74 24 20 57 41 54 41 55 41 56 41 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 4C 8B B4",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "dvar_t*(XHash* name, const char* desc, dvarType_t type, int flags, DvarValue* value, DvarLimits* domain)",
+                "__comment__": "Register dvar"
+            }
+        },
+        "system": {
+            "type": "Group",
+            "__comment__": "System",
+            "Sys_GetParamSafe": {
+                "scan": "40 53 48 83 EC 20 48 63 D9 E8 ?? ?? ?? ?? 48 8B 40",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "const char*(int32_t index)",
+                "__comment__": "Get command params"
+            },
+            "Sys_GetTLS": {
+                "scan": "8B 0D ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 BA 28",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "TLSData*()",
+                "__comment__": "Get TLS data"
+            },
+            "SV_SendServerCommand": {
+                "scan": "4C 89 44 24 18 4C 89 4C 24 20 53 56 48 83 EC 28",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(client_t* cl_0, svscmd_type type, const char* fmt, ...)",
+                "__comment__": "Send a server command"
+            },
+            "Cmd_AddCommandInternal": {
+                "scan": "48 83 EC 18 0F 10 01 48 8B 05 ?? ?? ?? ?? 0F 29 04 24 48 85 C0 74 2D 4C 8B 0C 24 49 BB",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)",
+                "__comment__": "Register an internal function"
+            },
+            "SEH_GetLanguageNameAbbr": {
+                "scan": "E8 ?? ?? ?? ?? 8D 53 2F",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "const char*(int32_t lang)",
+                "__comment__": "Get the language name abbreviation"
+            }
+        },
+        "ui": {
+            "type": "Group",
+            "__comment__": "UI",
+            "sharedUiInfo": {
+                "scan": "48 89 05 ?? ?? ?? ?? 48 8D 4D F0 48 B8 8E 4C 9E 0F 27 52 F4 5D B2 01 48 89 45 F0 0F 28 45 F0 66 0F 7F 45 F0",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "sharedUiInfo_t",
+                "__comment__": "Shared ui data"
+            },
+            "R_AddCmdBeginView": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 BA 08 00 00 00 44 8D 42 20",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(const void* sceneDef, const void* viewParms)",
+                "__comment__": "Add begin view command"
+            },
+            "R_AddCmdClearScreen": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 30 48 8B F2 0F",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void",
+                "__comment__": "Add clear screen command"
+            },
+            "R_AddCmdDrawEmblemLayer": {
+                "scan": "40 53 48 83 EC 20 BA 08 00 00 00 48 8B D9 41",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(const void* emblemLayer)",
+                "__comment__": "Add draw emblem layer command"
+            },
+            "R_AddCmdDrawQuadPic": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B F2 49 8B F8 BA",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(const vec_t* verts, const vec_t* color, Material* material)",
+                "__comment__": "Add command"
+            },
+            "R_AddCmdDrawQuadPicW": {
+                "scan": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 30 BA 08",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void",
+                "__comment__": "Add command"
+            },
+            "R_AddCmdDrawStretchPic": {
+                "scan": "40 53 48 83 EC 60 48 8B 84",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(float x, float y, float w, float h, float s0, float t0, float s1, float t1, float* color, Material* material)",
+                "__comment__": "Add command"
+            },
+            "R_AddCmdDrawTextInSpace": {
+                "scan": "48 89 6C 24 18 57 41 56 41 57 48 83 EC 20 80 39",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(const char* text, Font* font, const vec_t* org, const vec_t* xPixelStep, const vec_t* color, const vec_t* yPixelStep)",
+                "__comment__": "Add command"
+            },
+            "R_AddCmdDrawUIQuads": {
+                "scan": "4C 89 4C 24 20 4C 89 44 24 18 53 57 41 57",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void",
+                "__comment__": "Add command"
+            },
+            "R_AddCmdDrawUIQuadsReplaceImage": {
+                "scan": "4C 89 4C 24 20 48 89 54 24 10 53 57 41",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void",
+                "__comment__": "Add command"
+            },
+            "R_AddCmdEndOfList": {
+                "scan": "E8 ?? ?? ?? ?? BA 02 00 00 00 EB 1C",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "void()",
+                "__comment__": "Add end of list command"
+            },
+            "R_AddCmdProjectionSet2D": {
+                "scan": "48 83 EC 28 BA 04 00 00 00 44 8D 42 08 8D 4A 10 E8 ?? ?? ?? ?? 48 85 C0 74 07 C7 40 08 00",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void()",
+                "__comment__": "Add projection set 2d command"
+            },
+            "R_AddCmdProjectionSet3D": {
+                "scan": "48 83 EC 28 BA 04 00 00 00 44 8D 42 08 8D 4A 10 E8 ?? ?? ?? ?? 48 85 C0 74 07 C7 40 08 01",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void()",
+                "__comment__": "Add projection set 3d command"
+            },
+            "R_AddCmdResolveComposite": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 BA 08 00 00 00 44 8D 42 10",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(GfxImage* image, void* callback)",
+                "__comment__": "Add resolve composite command"
+            },
+            "R_AddCmdSetImageRenderTarget": {
+                "scan": "40 53 48 83 EC 20 BA 08 00 00 00 48 8B D9 44",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(const GfxImage* rt)",
+                "__comment__": "Add set image render command"
+            },
+            "R_AddCmdSetScissorValues": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 0F B6 FA",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(bool enabled, int x, int y, int width, int height)",
+                "__comment__": "Add set scissor values command"
+            },
+            "R_AddCmdSetUITextureSources": {
+                "scan": "40 53 48 83 EC 20 BA 04 00 00 00 0F",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(bool forceBlack)",
+                "__comment__": "Add set ui texture sources command"
+            },
+            "R_AddCmdSetViewportValues": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 8B FA 41 8B F0",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(int x, int y, int width, int height)",
+                "__comment__": "Add set viewport values command"
+            },
+            "AddBaseDrawTextCmd": {
+                "scan": "48 89 6C 24 20 41 54 41 56 41 57 48 83 EC 30 80",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor, float padding)",
+                "__comment__": "Add draw command"
+            },
+            "R_TextHeight": {
+                "scan": "E8 ?? ?? ?? ?? F3 0F 10 0D ?? ?? ?? ?? 44 8B C0",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "uint32_t(Font* font)",
+                "__comment__": "Get text height"
+            },
+            "UI_TextHeight": {
+                "scan": "40 53 48 83 EC 30 0F 29 74 24 20 48 8B D9 E8 ?? ?? ?? ?? 48 8B CB",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "uint32_t(Font* font, float scale)",
+                "__comment__": "Get scaled text height"
+            },
+            "R_TextWidth": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 8B E9 49 8B D9 49 8B C9",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "float(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font)",
+                "__comment__": "Get text width"
+            },
+            "UI_TextWidth": {
+                "scan": "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 30 F3 0F 10 4C",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "uint32_t(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font, float scale)",
+                "__comment__": "Get text scaled width"
+            },
+            "ScrPlace_GetView": {
+                "scan": "E8 ?? ?? ?? ?? 48 69 F5",
+                "type": "Relative",
+                "offset": 1,
+                "single": true,
+                "reftype": "const ScreenPlacement*(const LocalClientNum_t localClientNum)",
+                "__comment__": "Get screen for a local client"
+            },
+            "ScopedCriticalSectionConstructor": {
+                "scan": "40 53 48 83 EC 20 89 11 48 8B D9 C6",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)",
+                "__comment__": "ScopedCriticalSection::ScopedCriticalSection"
+            },
+            "ScopedCriticalSectionDestructor": {
+                "scan": "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 8B D9 8B",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void(ScopedCriticalSection* sec)",
+                "__comment__": "ScopedCriticalSection::~ScopedCriticalSection"
             }
         }
     },

@@ -9,6 +9,9 @@ namespace bo4 {
     using BGCacheTypes = games::bo4::pool::BGCacheTypes;
     using scriptInstance_t = games::bo4::scriptinstance::ScriptInstance;
 
+    struct XBlock;
+    struct XAssetEntryPoolEntry;
+
     struct XAsset {
         XAssetType type;
         byte unk1;

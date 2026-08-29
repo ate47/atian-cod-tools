@@ -4,6 +4,7 @@
 #include <core/system.hpp>
 #include <hook/error.hpp>
 #include <hook/library.hpp>
+#include <data/bo4_generated.hpp>
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
     return TRUE; // Nothing by default
@@ -43,12 +44,28 @@ EXPORT void PBO4_PreStart() {
         GetCurrentProcessId(),
         main.GetName()
     );
-    core::system::Init();
+    try {
+        core::system::Init();
+    } catch (std::exception& e) {
+        LOG_ERROR("Error at ACTS DLL init {}", e.what());
+        MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL init", MB_ICONERROR);
+        *reinterpret_cast<byte*>(0x123456789) = 2;
+    }
 }
 
 EXPORT void PBO4_PostUnpack() {
     LOG_INFO("post unpack acts plugin");
-    core::system::PostInit();
+    try {
+        {
+            hook::scan_container::ScanContainer scan{ {}, true };
+            bo4::LoadScans(scan);
+        }
+        core::system::PostInit();
+    } catch (std::exception& e) {
+        LOG_ERROR("Error at ACTS DLL post init {}", e.what());
+        MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
+        *reinterpret_cast<byte*>(0x123456789) = 2;
+    }
 }
 
 EXPORT void PBO4_PreDestroy() {} // nothing

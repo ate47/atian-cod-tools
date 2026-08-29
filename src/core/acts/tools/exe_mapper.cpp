@@ -742,20 +742,38 @@ namespace {
     }
 
     int game_validate(int argc, const char* argv[]) {
+        bool help{};
+        bool allGames{};
+        const char* exeName{};
+        cli::options::CliOptions opts{};
+        opts.addOption(&help, "show help", "--help", "", "-h");
+        opts.addOption(&exeName, "game exe", "--exec", "", "-e");
+        opts.addOption(&allGames, "all games", "--all", "", "-a");
+
         std::vector<std::string> names{};
 
-        if (tool::NotEnoughParam(argc, 1) || !_strcmpi("all", argv[2])) {
+        if (!opts.ComputeOptions(2, argc, argv) || help || (opts.NotEnoughParam(1) && !allGames)) {
+            opts.PrintOptions();
+            return tool::BAD_USAGE;
+        }
+
+        if (allGames || !_strcmpi("all", opts[0])) {
             names = acts::game_data::GetAllGameData();
         } else {
-            names.push_back(argv[2]);
+            names.push_back(opts[0]);
         }
         int r{ tool::OK };
         for (const std::string& name : names) {
             acts::game_data::GameData game{ name.data() };
             hook::module_mapper::Module mod{ true };
-            const char* exe{ game.GetModuleName() };
-            std::filesystem::path path{ utils::GetProgDir() / "deps" / exe };
-            LOG_INFO("Loading {} - {}", name, exe);
+            std::filesystem::path path;
+
+            if (exeName) {
+                path = exeName;
+            } else {
+                path = utils::GetProgDir() / "deps" / game.GetModuleName();
+            }
+            LOG_INFO("Loading {} - {}", name, path.string());
 
             if (!mod.Load(path)) {
                 LOG_ERROR("Can't load module");
@@ -787,7 +805,7 @@ namespace {
         exe_rcx_find, "dev", "[exe] [rva] [len] (output tsv)", "Find all call for a rva with a param", exe_rcx_find
     );
     ADD_TOOL(exe_ret_string, "dev", "[exe] [rva]", "Load a string from an exe", exe_ret_string);
-    ADD_TOOL(game_validate, "dev", " [game=all]", "Validate scans for an exe", game_validate);
+    ADD_TOOL(game_validate, "dev", " [game]", "Validate scans for an exe", game_validate);
     ADD_TOOL(read_strings, "dev", "[file] [output] (min size=4)", "Dump file strings", read_strings);
     ADD_TOOL(exe_pool_dumper, "common", "[exe] [start] [end] (outfile) (prefix)", "Dump pool names", exe_pool_dumper);
     ADD_TOOL(sp24_data_dump, "bo6", "[exe]", "Dump common data from an exe dump", sp24_data_dump);
