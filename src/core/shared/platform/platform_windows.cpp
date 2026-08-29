@@ -108,7 +108,7 @@ namespace platform {
     }
 
     void* GetLibBase(const char* lib) {
-        utils::InFileCE is{ lib };
+        utils::InFileCE is{ lib, false, std::ios::in | std::ios::binary };
         if (!is) {
             return 0;
         }
