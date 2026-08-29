@@ -59,6 +59,8 @@ namespace core::logs {
     void setlevel(loglevel lvl) { core::shared_cfg::GetSharedConfig().log.loglevel = lvl; }
     loglevel getlevel() { return core::shared_cfg::GetSharedConfig().log.loglevel; }
     void setbasiclog(bool basiclog) { core::shared_cfg::GetSharedConfig().log.basiclog = basiclog; }
+    void setjsontrace(bool json) { core::shared_cfg::GetSharedConfig().log.jsonTrace = json; }
+    bool isjsontrace() { return core::shared_cfg::GetSharedConfig().log.jsonTrace; }
 
     void setfile(const char* filename) { core::shared_cfg::GetSharedConfig().log.logfile = filename; }
     void addoutstream(std::ostream* outStream) { core::shared_cfg::GetSharedConfig().log.outStream = outStream; }

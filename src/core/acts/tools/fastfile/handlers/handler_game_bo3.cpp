@@ -9,6 +9,10 @@
 #include <hook/error.hpp>
 #include <tools/fastfile/fastfile_asset_pool.hpp>
 #include <tools/fastfile/handlers/handler_game_bo3.hpp>
+#include <rapidjson/document.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
+#include <optional>
 
 namespace fastfile::handlers::bo3 {
     std::unordered_map<::bo3::pool::T7XAssetType, Worker*>& GetWorkers() {
@@ -181,14 +185,75 @@ namespace {
 
 #define ThrowFastFileError(...) ThrowFastFileError_(std::format(__VA_ARGS__))
 
+    // JSON trace support for this handler's load-trace sites, selected via --json-trace.
+    constexpr size_t JSON_TRACE_MAX_BYTES{ 0x40 * 8 }; // matches the text hex-dump's cap
+
+    void JsonAddCodePointer(
+        rapidjson::Value& obj, const char* key, void* location, rapidjson::Document::AllocatorType& alloc
+    ) {
+        rapidjson::Value cp{ rapidjson::kObjectType };
+        if (!location) {
+            cp.AddMember("module", rapidjson::Value{ rapidjson::kNullType }, alloc);
+            cp.AddMember("moduleBase", rapidjson::Value{ rapidjson::kNullType }, alloc);
+            cp.AddMember("offset", rapidjson::Value{ rapidjson::kNullType }, alloc);
+        } else {
+            hook::library::Library library{ hook::library::GetLibraryInfo(location) };
+            if (library) {
+                cp.AddMember("module", rapidjson::Value(library.GetName(), alloc), alloc);
+                cp.AddMember("moduleBase", (uint64_t)(uintptr_t)*library, alloc);
+                cp.AddMember("offset", (uint64_t)((byte*)location - (byte*)*library), alloc);
+            } else {
+                cp.AddMember("module", rapidjson::Value{ rapidjson::kNullType }, alloc);
+                cp.AddMember("moduleBase", rapidjson::Value{ rapidjson::kNullType }, alloc);
+                cp.AddMember("offset", (uint64_t)(uintptr_t)location, alloc);
+            }
+        }
+        obj.AddMember(rapidjson::StringRef(key), cp, alloc);
+    }
+
+    void JsonAddBytes(
+        rapidjson::Value& obj, const char* key, const void* ptr, size_t size, rapidjson::Document::AllocatorType& alloc
+    ) {
+        size_t capped{ std::min<size_t>(size, JSON_TRACE_MAX_BYTES) };
+        static constexpr char hexchars[]{ "0123456789abcdef" };
+        std::string hex(capped * 2, '0');
+        const byte* p{ (const byte*)ptr };
+        for (size_t i = 0; i < capped; i++) {
+            hex[i * 2] = hexchars[p[i] >> 4];
+            hex[i * 2 + 1] = hexchars[p[i] & 0xF];
+        }
+        obj.AddMember(rapidjson::StringRef(key), rapidjson::Value(hex.c_str(), (rapidjson::SizeType)hex.size(), alloc), alloc);
+        obj.AddMember("bytesTruncated", size > JSON_TRACE_MAX_BYTES, alloc);
+    }
+
+    void EmitJsonTrace(core::logs::loglevel lvl, rapidjson::Document& doc) {
+        rapidjson::StringBuffer buff;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ buff };
+        doc.Accept(writer);
+        LOG_LVL(lvl, buff.GetString());
+    }
+
     void DB_LoadXFileData(void* ptr, int64_t len) {
-        LOG_TRACE(
-            "DB_LoadXFileData({}, 0x{:x}/0x{:x}) {}",
-            ptr,
-            len,
-            gcx.reader->Remaining(),
-            hook::library::CodePointer{ _ReturnAddress() }
-        );
+        if (core::logs::isjsontrace()) {
+            if (HAS_LOG_LEVEL(core::logs::LVL_TRACE)) {
+                rapidjson::Document doc{ rapidjson::kObjectType };
+                auto& alloc{ doc.GetAllocator() };
+                doc.AddMember("event", rapidjson::StringRef("DB_LoadXFileData"), alloc);
+                doc.AddMember("ptr", (uint64_t)(uintptr_t)ptr, alloc);
+                doc.AddMember("len", (int64_t)len, alloc);
+                doc.AddMember("remaining", (uint64_t)gcx.reader->Remaining(), alloc);
+                JsonAddCodePointer(doc, "caller", _ReturnAddress(), alloc);
+                EmitJsonTrace(core::logs::LVL_TRACE, doc);
+            }
+        } else {
+            LOG_TRACE(
+                "DB_LoadXFileData({}, 0x{:x}/0x{:x}) {}",
+                ptr,
+                len,
+                gcx.reader->Remaining(),
+                hook::library::CodePointer{ _ReturnAddress() }
+            );
+        }
         if (!ptr) {
             ThrowFastFileError("Can't read empty pointer idx:{}", (int)*gcx.g_streamPosIndex);
         }
@@ -199,14 +264,29 @@ namespace {
     }
 
     bool Load_Stream(bool atStreamStart, void* ptr, uint32_t size) {
-        LOG_TRACE(
-            "{} Load_Stream({}, {}, 0x{:x}) {}",
-            hook::library::CodePointer{ _ReturnAddress() },
-            atStreamStart ? "true" : "false",
-            ptr,
-            size,
-            (int)*gcx.g_streamPosIndex
-        );
+        const bool jsonMode{ core::logs::isjsontrace() };
+        std::optional<rapidjson::Document> jdoc{};
+        if (jsonMode) {
+            if (HAS_LOG_LEVEL(core::logs::LVL_TRACE)) {
+                jdoc.emplace(rapidjson::kObjectType);
+                auto& alloc{ jdoc->GetAllocator() };
+                jdoc->AddMember("event", rapidjson::StringRef("Load_Stream"), alloc);
+                JsonAddCodePointer(*jdoc, "caller", _ReturnAddress(), alloc);
+                jdoc->AddMember("atStreamStart", atStreamStart, alloc);
+                jdoc->AddMember("ptr", (uint64_t)(uintptr_t)ptr, alloc);
+                jdoc->AddMember("size", (uint64_t)size, alloc);
+                jdoc->AddMember("streamIndex", (int)*gcx.g_streamPosIndex, alloc);
+            }
+        } else {
+            LOG_TRACE(
+                "{} Load_Stream({}, {}, 0x{:x}) {}",
+                hook::library::CodePointer{ _ReturnAddress() },
+                atStreamStart ? "true" : "false",
+                ptr,
+                size,
+                (int)*gcx.g_streamPosIndex
+            );
+        }
 
         bool ret;
         if (atStreamStart && size) {
@@ -239,13 +319,20 @@ namespace {
             ret = true;
         }
 
-        byte* p{ (byte*)ptr };
-        size_t s{ std::min<size_t>(size, 0x40 * 8) };
-        while (s > 0) {
-            size_t ss{ std::min<size_t>(s, 0x40) };
-            LOG_TRACE("{:03x} : {}", p - (byte*)ptr, utils::data::AsHex(p, ss));
-            p += ss;
-            s -= ss;
+        if (jsonMode) {
+            if (jdoc) {
+                JsonAddBytes(*jdoc, "data", ptr, size, jdoc->GetAllocator());
+                EmitJsonTrace(core::logs::LVL_TRACE, *jdoc);
+            }
+        } else {
+            byte* p{ (byte*)ptr };
+            size_t s{ std::min<size_t>(size, 0x40 * 8) };
+            while (s > 0) {
+                size_t ss{ std::min<size_t>(s, 0x40) };
+                LOG_TRACE("{:03x} : {}", p - (byte*)ptr, utils::data::AsHex(p, ss));
+                p += ss;
+                s -= ss;
+            }
         }
         return ret;
     }
@@ -286,10 +373,26 @@ namespace {
     }
 
     void Load_XStringCustom(char** str) {
-        LOG_TRACE("{} Load_XStringCustom({})", hook::library::CodePointer{ _ReturnAddress() }, (void*)str);
+        const bool jsonMode{ core::logs::isjsontrace() };
+        void* retAddr{ _ReturnAddress() };
+        if (!jsonMode) {
+            LOG_TRACE("{} Load_XStringCustom({})", hook::library::CodePointer{ retAddr }, (void*)str);
+        }
         size_t len;
         char* ptr{ gcx.reader->ReadString(&len) };
-        LOG_TRACE("Load_XStringCustom() -> {}", ptr);
+        if (jsonMode) {
+            if (HAS_LOG_LEVEL(core::logs::LVL_TRACE)) {
+                rapidjson::Document doc{ rapidjson::kObjectType };
+                auto& alloc{ doc.GetAllocator() };
+                doc.AddMember("event", rapidjson::StringRef("Load_XStringCustom"), alloc);
+                JsonAddCodePointer(doc, "caller", retAddr, alloc);
+                doc.AddMember("str", (uint64_t)(uintptr_t)str, alloc);
+                doc.AddMember("value", rapidjson::Value(ptr, alloc), alloc);
+                EmitJsonTrace(core::logs::LVL_TRACE, doc);
+            }
+        } else {
+            LOG_TRACE("Load_XStringCustom() -> {}", ptr);
+        }
         std::memcpy(*str, ptr, len + 1);
         gcx.DB_IncStreamPos((int)(len + 1));
         hashutils::Add(ptr, true, true);
@@ -421,7 +524,22 @@ namespace {
                     XAsset_0& asset{ gcx.assetList.assets[i] };
 
                     const char* assType{ T7XAssetName(asset.type) };
-                    LOG_DEBUG("Load asset {} (0x{:x}) {} / {}", assType, (int)asset.type, i, gcx.assetList.assetCount);
+                    if (core::logs::isjsontrace()) {
+                        if (HAS_LOG_LEVEL(core::logs::LVL_DEBUG)) {
+                            rapidjson::Document doc{ rapidjson::kObjectType };
+                            auto& alloc{ doc.GetAllocator() };
+                            doc.AddMember("event", rapidjson::StringRef("LoadAsset"), alloc);
+                            doc.AddMember("assetType", rapidjson::Value(assType, alloc), alloc);
+                            doc.AddMember("assetTypeId", (int)asset.type, alloc);
+                            doc.AddMember("index", (uint64_t)i, alloc);
+                            doc.AddMember("count", (uint64_t)gcx.assetList.assetCount, alloc);
+                            EmitJsonTrace(core::logs::LVL_DEBUG, doc);
+                        }
+                    } else {
+                        LOG_DEBUG(
+                            "Load asset {} (0x{:x}) {} / {}", assType, (int)asset.type, i, gcx.assetList.assetCount
+                        );
+                    }
 
                     *gcx.varXAsset = &asset;
                     gcx.Load_XAsset(false);

@@ -74,6 +74,9 @@ namespace core::logs {
     void addlogpath(const std::string& path);
     void cleanuplogpaths();
 
+    void setjsontrace(bool json);
+    bool isjsontrace();
+
     void setfile(const char* filename);
     const char* logfile();
 

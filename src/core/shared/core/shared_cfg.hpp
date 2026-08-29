@@ -10,6 +10,7 @@ namespace core::shared_cfg {
         const char* logfile{};
         bool basiclog{};
         bool noStdLogs{};
+        bool jsonTrace{};
         std::ostream* outStream{};
         std::ostream* cout{};
         std::ostream* cerr{};
