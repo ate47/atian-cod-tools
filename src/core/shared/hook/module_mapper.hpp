@@ -27,7 +27,7 @@ namespace hook::module_mapper {
 
         constexpr const hook::library::Library& GetLibrary() const { return lib; }
 
-        hook::scan_container::ScanContainer& GetScanContainer();
+        hook::scan_container::ScanContainer& GetScanContainer(bool forceReload = false);
         hook::library::ScanLogger& GetScanLogger();
 
         void* RebasePtr(uintptr_t origin) const;

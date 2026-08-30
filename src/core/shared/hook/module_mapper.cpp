@@ -47,7 +47,10 @@ namespace hook::module_mapper {
         originBase = 0;
     }
 
-    hook::scan_container::ScanContainer& Module::GetScanContainer() {
+    hook::scan_container::ScanContainer& Module::GetScanContainer(bool forceReload) {
+        if (forceReload) {
+            scanContainer.ForceReload();
+        }
         scanContainer.Sync(false);
         return scanContainer;
     }

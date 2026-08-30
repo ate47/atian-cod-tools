@@ -40,6 +40,7 @@ namespace hook::scan_container {
         }
 
         void Load(hook::library::Library lib);
+        void ForceReload();
         void Sync(bool force = false);
         void Save();
 

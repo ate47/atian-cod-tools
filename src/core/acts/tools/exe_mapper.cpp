@@ -745,12 +745,14 @@ namespace {
     int game_validate(int argc, const char* argv[]) {
         bool help{};
         bool allGames{};
+        bool forceReload{};
         const char* exeName{};
         const char* idcFile{};
         cli::options::CliOptions opts{};
         opts.addOption(&help, "show help", "--help", "", "-h");
         opts.addOption(&exeName, "game exe", "--exec", "", "-e");
         opts.addOption(&allGames, "all games", "--all", "", "-a");
+        opts.addOption(&forceReload, "force reload", "--force", "", "-f");
         opts.addOption(&idcFile, "create idc", "--idc", " [file]", "-i");
 
         std::vector<std::string> names{};
@@ -784,7 +786,7 @@ namespace {
                 continue;
             }
 
-            hook::scan_container::ScanContainer& scan{ mod.GetScanContainer() };
+            hook::scan_container::ScanContainer& scan{ mod.GetScanContainer(forceReload) };
             game.SetScanContainer(&scan);
             bool err{ !game.ValidateScans() };
 

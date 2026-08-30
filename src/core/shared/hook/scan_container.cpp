@@ -37,6 +37,10 @@ namespace hook::scan_container {
         uid = lib.GetUID();
         scanPath = GetContainerPath(uid);
     }
+    void ScanContainer::ForceReload() {
+        sync = true;
+        results.clear();
+    }
 
     void ScanContainer::Sync(bool force) {
         if (!lib || (sync && !force))
