@@ -140,10 +140,10 @@ namespace systems::errors {
         }
 
         void PostInit(uint64_t uid) {
-            Sys_ErrorDetour.Create(0x3D36CC0_a, Sys_ErrorStub);
-            Com_ErrorDetour.Create(0x288B110_a, Com_ErrorStub);
-            ScrVm_Error_Detour.Create(bo4::ScrVm_Error.ptr, ScrVm_Error_Stub);
-            ScrVm_LogCompilerError_Detour.Create(0x2890470_a, ScrVm_LogCompilerError_Stub);
+            Sys_ErrorDetour.Create(bo4::Sys_Error.Get(), Sys_ErrorStub);
+            Com_ErrorDetour.Create(bo4::Com_Error.Get(), Com_ErrorStub);
+            ScrVm_Error_Detour.Create(bo4::ScrVm_Error.Get(), ScrVm_Error_Stub);
+            ScrVm_LogCompilerError_Detour.Create(bo4::ScrVm_LogCompilerError.Get(), ScrVm_LogCompilerError_Stub);
         }
 
         REGISTER_SYSTEM(errors, Init, PostInit);

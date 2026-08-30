@@ -773,19 +773,19 @@ namespace systems::mods {
             return r;
         }
         void ModsPostInit(uint64_t uid) {
-            DB_LoadXAssets_Detour.Create(0x2EB8BC0_a, DB_LoadXAssets);
-            DB_LoadXFile_Detour.Create(0x2E0CC10_a, DB_LoadXFile);
-            DB_AllocXBlocks_Detour.Create(0x2EB5870_a, DB_AllocXBlocksStub);
-            DB_ValidateFileHeader_Detour.Create(0x2E0EBE0_a, DB_ValidateFileHeader_Stub);
-            DB_AuthLoad_AnalyzeData_Detour.Create(0x28B5F40_a, DB_AuthLoad_AnalyzeData_Stub);
-            DB_LinkXAssetEntry_Detour.Create(0x2EB84F0_a, DB_LinkXAssetEntry_Stub);
-            DB_AuthLoad_End_Detour.Create(0x28B5FA0_a, DB_AuthLoad_End_Stub);
-            DB_FindXAssetHeader_Detour.Create(0x2EB75B0_a, DB_FindXAssetHeader_Stub);
-            DB_DoesXAssetExist_Detour.Create(0x2EB6C90_a, DB_DoesXAssetExist_Stub);
-            Stream_OpenFileInternal_Detour.Create(0x3C4CE00_a, Stream_OpenFileInternal_Stub);
+            DB_LoadXAssets_Detour.Create(bo4::DB_LoadXAssets.Get(), DB_LoadXAssets);
+            DB_LoadXFile_Detour.Create(bo4::DB_LoadXFile.Get(), DB_LoadXFile);
+            DB_AllocXBlocks_Detour.Create(bo4::DB_AllocXBlocks.Get(), DB_AllocXBlocksStub);
+            DB_ValidateFileHeader_Detour.Create(bo4::DB_ValidateFileHeader.Get(), DB_ValidateFileHeader_Stub);
+            DB_AuthLoad_AnalyzeData_Detour.Create(bo4::DB_AuthLoad_AnalyzeData.Get(), DB_AuthLoad_AnalyzeData_Stub);
+            DB_LinkXAssetEntry_Detour.Create(bo4::DB_LinkXAssetEntry.Get(), DB_LinkXAssetEntry_Stub);
+            DB_AuthLoad_End_Detour.Create(bo4::DB_AuthLoad_End.Get(), DB_AuthLoad_End_Stub);
+            DB_FindXAssetHeader_Detour.Create(bo4::DB_FindXAssetHeader.Get(), DB_FindXAssetHeader_Stub);
+            DB_DoesXAssetExist_Detour.Create(bo4::DB_DoesXAssetExist.Get(), DB_DoesXAssetExist_Stub);
+            Stream_OpenFileInternal_Detour.Create(bo4::Stream_OpenFileInternal.Get(), Stream_OpenFileInternal_Stub);
             // PMem_EndAlloc2_Detour.Create(0x3C403D0_a, PMem_EndAlloc2_Stub);
             // PMem_BeginAlloc_Detour.Create(0x3C40150_a, PMem_BeginAlloc_Stub);
-            DB_ExpandZoneList_Detour.Create(0x2EBC690_a, DB_ExpandZoneList_Stub);
+            DB_ExpandZoneList_Detour.Create(bo4::DB_ExpandZoneList.Get(), DB_ExpandZoneList_Stub);
         }
 
         REGISTER_SYSTEM(mods, ModsInit, ModsPostInit);

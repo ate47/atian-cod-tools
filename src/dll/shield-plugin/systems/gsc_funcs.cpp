@@ -385,12 +385,18 @@ namespace systems::gsc::funcs {
             ScrVm_RegisterFunctionContainer(bo4::scriptInstance_t::SI_SERVER, false, actsBaseGscFunctions);
             ScrVm_RegisterFunctionContainer(bo4::scriptInstance_t::SI_CLIENT, false, actsBaseCscFunctions);
 
-            Scr_GetFunctionReverseLookup_Detour.Create(0x33AF8A0_a, Scr_GetFunctionReverseLookup_Stub);
-            CScr_GetFunctionReverseLookup_Detour.Create(0x1F132A0_a, CScr_GetFunctionReverseLookup_Stub);
-            Scr_GetFunction_Detour.Create(0x33AF840_a, Scr_GetFunction_Stub);
-            CScr_GetFunction_Detour.Create(0x1F13140_a, CScr_GetFunction_Stub);
-            CScr_GetMethod_Detour.Create(0x1F13650_a, CScr_GetMethod_Stub);
-            Scr_GetMethod_Detour.Create(0x33AFC20_a, Scr_GetMethod_Stub);
+            Scr_GetFunctionReverseLookup_Detour.Create(
+                bo4::Scr_GetFunctionReverseLookup.Get(),
+                Scr_GetFunctionReverseLookup_Stub
+            );
+            CScr_GetFunctionReverseLookup_Detour.Create(
+                bo4::CScr_GetFunctionReverseLookup.Get(),
+                CScr_GetFunctionReverseLookup_Stub
+            );
+            Scr_GetFunction_Detour.Create(bo4::Scr_GetFunction.Get(), Scr_GetFunction_Stub);
+            CScr_GetFunction_Detour.Create(bo4::CScr_GetFunction.Get(), CScr_GetFunction_Stub);
+            CScr_GetMethod_Detour.Create(bo4::CScr_GetMethod.Get(), CScr_GetMethod_Stub);
+            Scr_GetMethod_Detour.Create(bo4::Scr_GetMethod.Get(), Scr_GetMethod_Stub);
         }
 
         REGISTER_SYSTEM(gsc_funcs, nullptr, PostInit);

@@ -796,9 +796,9 @@ namespace systems::gsc::link {
             enableDevBlocks = core::config::GetBool("gsc.enableDevBlocks");
             traceDetours = core::config::GetBool("test.tracedetours");
 
-            Scr_GscLink_Detour.Create(0x2748BB0_a, Scr_GscLink_Stub);
-            hook::memory::RedirectJmp(0x2748550_a, Scr_GetGscExportInfo_Stub);
-            hook::memory::RedirectJmp(0x2746A30_a, GscObjResolve);
+            Scr_GscLink_Detour.Create(bo4::Scr_GscLink.Get(), Scr_GscLink_Stub);
+            hook::memory::RedirectJmp(bo4::Scr_GetGscExportInfo.Get(), Scr_GetGscExportInfo_Stub);
+            hook::memory::RedirectJmp(bo4::GscObjResolve.Get(), GscObjResolve);
             events::EVENT_RESET_LINKS.Callback(Scr_ResetLinkInfo_Stub);
         }
 

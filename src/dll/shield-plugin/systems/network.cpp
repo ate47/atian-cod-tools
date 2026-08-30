@@ -37,7 +37,7 @@ namespace systems::network {
         }
 
         void HashPostInit(uint64_t uid) {
-            CG_DeployServerCommand_Detour.Create(0xCC5920_a, CG_DeployServerCommand_Stub);
+            CG_DeployServerCommand_Detour.Create(bo4::CG_DeployServerCommand.Get(), CG_DeployServerCommand_Stub);
         }
 
         REGISTER_SYSTEM(network, nullptr, HashPostInit);

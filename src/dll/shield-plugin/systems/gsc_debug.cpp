@@ -818,9 +818,9 @@ namespace systems::gsc::debug {
                 actsGscDebugMethods
             );
 
-            ScrVar_InitClassMap_Detour.Create(0x275FF10_a, ScrVar_InitClassMap_Stub);
-            Scr_SetObjectField_Detour.Create(0x2D72140_a, Scr_SetObjectField_Stub);
-            Scr_GetObjectField_Detour.Create(0x2D6FBC0_a, Scr_GetObjectField_Stub);
+            ScrVar_InitClassMap_Detour.Create(bo4::ScrVar_InitClassMap.Get(), ScrVar_InitClassMap_Stub);
+            Scr_SetObjectField_Detour.Create(bo4::Scr_SetObjectField.Get(), Scr_SetObjectField_Stub);
+            Scr_GetObjectField_Detour.Create(bo4::Scr_GetObjectField.Get(), Scr_GetObjectField_Stub);
 
             systems::events::EVENT_RESET_LINKS.Callback(Scr_ResetLinkInfo);
             systems::events::EVENT_RENDERER_ENDFRAME.Callback(RenderFrame);

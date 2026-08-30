@@ -32,12 +32,18 @@ hook::refs::Ref<const dvar_t[0x1000]> s_dvarPool{ nullptr };
 hook::refs::Ref<void* (int alignment)> DB_AllocStreamPos{ nullptr };
 // DB_AllocXBlocks
 hook::refs::Ref<void (size_t *blockSize, const char *filename, const char *filename2, XBlock *blocks, int side, int *loaded)> DB_AllocXBlocks{ nullptr };
+// DB_AuthLoad_AnalyzeData
+hook::refs::Ref<void> DB_AuthLoad_AnalyzeData{ nullptr };
+// DB_AuthLoad_End
+hook::refs::Ref<void> DB_AuthLoad_End{ nullptr };
 // DB_ConvertOffsetToAlias
 hook::refs::Ref<void (void** data)> DB_ConvertOffsetToAlias{ nullptr };
 // DB_ConvertOffsetToPointer
 hook::refs::Ref<void (void** data)> DB_ConvertOffsetToPointer{ nullptr };
 // DB_DoesXAssetExist
 hook::refs::Ref<bool(XAssetType type, XHash* name)> DB_DoesXAssetExist{ nullptr };
+// DB_ExpandZoneList
+hook::refs::Ref<void> DB_ExpandZoneList{ nullptr };
 // DB_FileExists
 hook::refs::Ref<bool(const char* file)> DB_FileExists{ nullptr };
 // DB_FindXAssetHeader
@@ -56,12 +62,18 @@ hook::refs::Ref<const void** ()> DB_InsertPointer{ nullptr };
 hook::refs::Ref<bool()> DB_Is4KEnabled{ nullptr };
 // DB_LinkXAssetEntry
 hook::refs::Ref<XAssetEntryPoolEntry* (XAsset *newEntry, bool allowOverride)> DB_LinkXAssetEntry{ nullptr };
+// DB_LoadXAssets
+hook::refs::Ref<void> DB_LoadXAssets{ nullptr };
+// DB_LoadXFile
+hook::refs::Ref<void> DB_LoadXFile{ nullptr };
 // DB_LoadXFileData
 hook::refs::Ref<void (byte *pos, int size)> DB_LoadXFileData{ nullptr };
 // DB_PopStreamPos
 hook::refs::Ref<void ()> DB_PopStreamPos{ nullptr };
 // DB_PushStreamPos
 hook::refs::Ref<void (int index)> DB_PushStreamPos{ nullptr };
+// DB_ValidateFileHeader
+hook::refs::Ref<void> DB_ValidateFileHeader{ nullptr };
 // Load_Stream
 hook::refs::Ref<bool (bool atStreamStart, void *ptr, size_t size)> Load_Stream{ nullptr };
 // Load_XAsset
@@ -70,6 +82,8 @@ hook::refs::Ref<void (bool atStreamStart, XAsset *asset)> Load_XAsset{ nullptr }
 hook::refs::Ref<void (XHash* hash)> Load_XHash{ nullptr };
 // Load_XStringCustom
 hook::refs::Ref<void (const char** str)> Load_XStringCustom{ nullptr };
+// Stream_OpenFileInternal
+hook::refs::Ref<void> Stream_OpenFileInternal{ nullptr };
 // s_assetPools
 hook::refs::Ref<XAssetPool> s_assetPools{ nullptr };
 
@@ -147,6 +161,8 @@ hook::refs::Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int*
 hook::refs::Ref<bool(byte* func, uint32_t* name, bool* isFunction)> CScr_GetFunctionReverseLookup{ nullptr };
 // CScr_GetMethod
 hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetMethod{ nullptr };
+// GscObjResolve
+hook::refs::Ref<int(scriptInstance_t inst, GSC_OBJ *prime_obj)> GscObjResolve{ nullptr };
 // SL_GetStringOfSize
 hook::refs::Ref<ScrString_t(const char* str, unsigned int user, ScrStringType type, bool decrypt)> SL_GetStringOfSize{ nullptr };
 // SL_TransferRefToUser
@@ -155,6 +171,8 @@ hook::refs::Ref<void(ScrString_t stringValue, unsigned int user)> SL_TransferRef
 hook::refs::Ref<void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)> ScrEvent_FireCallbackEventEnt{ nullptr };
 // ScrVar_AddClassFields
 hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)> ScrVar_AddClassFields{ nullptr };
+// ScrVar_InitClassMap
+hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum)> ScrVar_InitClassMap{ nullptr };
 // ScrVm_Error
 hook::refs::Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error{ nullptr };
 // Scr_ConstructMessageString
@@ -169,8 +187,16 @@ hook::refs::Ref<void(scriptInstance_t inst, const byte* b, fieldtype_t type, int
 hook::refs::Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo{ nullptr };
 // Scr_GetMethod
 hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetMethod{ nullptr };
+// Scr_GetObjectField
+hook::refs::Ref<void(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_GetObjectField{ nullptr };
+// Scr_GscLink
+hook::refs::Ref<void (scriptInstance_t inst, XHash* filename, bool runScript)> Scr_GscLink{ nullptr };
+// Scr_ResetLinkInfo
+hook::refs::Ref<void(scriptInstance_t inst)> Scr_ResetLinkInfo{ nullptr };
 // Scr_SetGenericField
 hook::refs::Ref<void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)> Scr_SetGenericField{ nullptr };
+// Scr_SetObjectField
+hook::refs::Ref<bool(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_SetObjectField{ nullptr };
 
 // gObjFileInfo
 hook::refs::Ref<objFileInfo_t[scriptInstance_t::SI_COUNT][650]> gObjFileInfo{ nullptr };
@@ -199,6 +225,8 @@ hook::refs::Ref<scrVmPub_t> scrVmPub{ nullptr };
 hook::refs::Ref<void(const char* tname, lua_State* luaVM)> Lua_BeginTableReadOnly{ nullptr };
 // Lua_CoD_LoadLuaFile
 hook::refs::Ref<bool(lua_State* luaVM, const char* file)> Lua_CoD_LoadLuaFile{ nullptr };
+// Lua_CoD_RegisterEngineFunctions
+hook::refs::Ref<void(lua_State* state)> Lua_CoD_RegisterEngineFunctions{ nullptr };
 // Lua_Cod_RegisterFunction
 hook::refs::Ref<void(lua_State* luaVM, XHash* name, int (*func)(lua_State* s))> Lua_Cod_RegisterFunction{ nullptr };
 // Lua_EndTableReadOnly
@@ -209,19 +237,37 @@ hook::refs::Ref<XHash*(XHash* retval, lua_State* luaVM, int idx)> hks_obj_tolhas
 hook::refs::Ref<const char*(lua_State* luaVM, HksObject* obj, size_t* len)> hks_obj_tolstring{ nullptr };
 // hks_obj_tonumber
 hook::refs::Ref<float(lua_State* luaVM, const HksObject* obj)> hks_obj_tonumber{ nullptr };
+// hksi_hks_error
+hook::refs::Ref<int(lua_State* s, HksError errorCode)> hksi_hks_error{ nullptr };
+// hksi_lua_getclosureinfo
+hook::refs::Ref<bool(lua_State* s, HksClosure* closure, lua_Debug* ar, const char* what)> hksi_lua_getclosureinfo{ nullptr };
 // hksi_lua_pushlstring
 hook::refs::Ref<void(lua_State* s, const char* str, size_t l)> hksi_lua_pushlstring{ nullptr };
 // hksi_lua_pushxhash
 hook::refs::Ref<void(lua_State* s, const char* str)> hksi_lua_pushxhash{ nullptr };
 // hksi_lua_setfield
 hook::refs::Ref<void(lua_State* s, int index, const char* k)> hksi_lua_setfield{ nullptr };
+// hksl_loadfile
+hook::refs::Ref<int(lua_State* state, const char* filename)> hksl_loadfile{ nullptr };
 
+// CG_DeployServerCommand
+hook::refs::Ref<void(LocalClientNum_t localClientNum)> CG_DeployServerCommand{ nullptr };
 // Cmd_AddCommandInternal
 hook::refs::Ref<void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)> Cmd_AddCommandInternal{ nullptr };
+// Com_Error
+hook::refs::Ref<void(uint32_t code)> Com_Error{ nullptr };
 // SEH_GetLanguageNameAbbr
 hook::refs::Ref<const char*(int32_t lang)> SEH_GetLanguageNameAbbr{ nullptr };
 // SV_SendServerCommand
 hook::refs::Ref<void(client_t* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{ nullptr };
+// ScopedCriticalSectionConstructor
+hook::refs::Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor{ nullptr };
+// ScopedCriticalSectionDestructor
+hook::refs::Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor{ nullptr };
+// ScrVm_LogCompilerError
+hook::refs::Ref<void(const char* fmt, ...)> ScrVm_LogCompilerError{ nullptr };
+// Sys_Error
+hook::refs::Ref<void(uint32_t code, const char* msg)> Sys_Error{ nullptr };
 // Sys_GetParamSafe
 hook::refs::Ref<const char*(int32_t index)> Sys_GetParamSafe{ nullptr };
 // Sys_GetTLS
@@ -263,14 +309,12 @@ hook::refs::Ref<void(bool enabled, int x, int y, int width, int height)> R_AddCm
 hook::refs::Ref<void(bool forceBlack)> R_AddCmdSetUITextureSources{ nullptr };
 // R_AddCmdSetViewportValues
 hook::refs::Ref<void(int x, int y, int width, int height)> R_AddCmdSetViewportValues{ nullptr };
+// R_EndFrame
+hook::refs::Ref<void()> R_EndFrame{ nullptr };
 // R_TextHeight
 hook::refs::Ref<uint32_t(Font* font)> R_TextHeight{ nullptr };
 // R_TextWidth
 hook::refs::Ref<float(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font)> R_TextWidth{ nullptr };
-// ScopedCriticalSectionConstructor
-hook::refs::Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor{ nullptr };
-// ScopedCriticalSectionDestructor
-hook::refs::Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor{ nullptr };
 // ScrPlace_GetView
 hook::refs::Ref<const ScreenPlacement*(const LocalClientNum_t localClientNum)> ScrPlace_GetView{ nullptr };
 // UI_TextHeight
@@ -336,6 +380,24 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&DB_AllocXBlocks.ptr
     },
     {
+        .id = "fastfile.DB_AuthLoad_AnalyzeData",
+        .scan = "48 89 5C 24 08 48 89 74 24 18 57 48 83 EC 30 48 8B F9",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&DB_AuthLoad_AnalyzeData.ptr
+    },
+    {
+        .id = "fastfile.DB_AuthLoad_End",
+        .scan = "40 53 48 81 EC D0 01 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 C0 01 00 00 48",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&DB_AuthLoad_End.ptr
+    },
+    {
         .id = "fastfile.DB_ConvertOffsetToAlias",
         .scan = "4C 8B 01 49 FF C8 49 8B C0 48 C1 E8 3C 48 8D 14 40 48 B8 FF FF FF FF FF FF FF 0F 4C 23 C0 48 8B 05 ?? ?? ?? ?? 48",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -361,6 +423,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&DB_DoesXAssetExist.ptr
+    },
+    {
+        .id = "fastfile.DB_ExpandZoneList",
+        .scan = "4C 89 44 24 18 55 53 41 54 41 55 41 56 48 8D",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&DB_ExpandZoneList.ptr
     },
     {
         .id = "fastfile.DB_FileExists",
@@ -444,6 +515,24 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&DB_LinkXAssetEntry.ptr
     },
     {
+        .id = "fastfile.DB_LoadXAssets",
+        .scan = "40 55 41 57 48 8D AC 24 B8 E8 FF FF B8",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&DB_LoadXAssets.ptr
+    },
+    {
+        .id = "fastfile.DB_LoadXFile",
+        .scan = "48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D A8 F8 F8",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&DB_LoadXFile.ptr
+    },
+    {
         .id = "fastfile.DB_LoadXFileData",
         .scan = "85 D2 0F 8E 56 01 00 00 41 54 41 56 48 83 EC 38 48 89 5C 24",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -469,6 +558,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&DB_PushStreamPos.ptr
+    },
+    {
+        .id = "fastfile.DB_ValidateFileHeader",
+        .scan = "48 89 5C 24 20 55 56 57 48 81 EC 80 00 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 70 48",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&DB_ValidateFileHeader.ptr
     },
     {
         .id = "fastfile.Load_Stream",
@@ -505,6 +603,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&Load_XStringCustom.ptr
+    },
+    {
+        .id = "fastfile.Stream_OpenFileInternal",
+        .scan = "41 56 48 83 EC 50 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 60 48 89 6C 24 68 48 89 74 24 70 48 89 7C 24 78 4D",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Stream_OpenFileInternal.ptr
     },
     {
         .id = "fastfile.s_assetPools",
@@ -840,6 +947,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&CScr_GetMethod.ptr
     },
     {
+        .id = "gscfuncs.GscObjResolve",
+        .scan = "48 89 5C 24 08 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 00",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&GscObjResolve.ptr
+    },
+    {
         .id = "gscfuncs.SL_GetStringOfSize",
         .scan = "40 55 56 57 41 54 41 55 41 56 41 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 C7 44 24 20 FE FF FF FF 48 89 9C 24 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 45 0F B6 F9 45 8B E8",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -874,6 +990,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&ScrVar_AddClassFields.ptr
+    },
+    {
+        .id = "gscfuncs.ScrVar_InitClassMap",
+        .scan = "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 63 F1 48 8D",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&ScrVar_InitClassMap.ptr
     },
     {
         .id = "gscfuncs.ScrVm_Error",
@@ -939,6 +1064,33 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&Scr_GetMethod.ptr
     },
     {
+        .id = "gscfuncs.Scr_GetObjectField",
+        .scan = "83 F9 06 0F 87 D3 01 00 00 48 83 EC 68 48 8B 05",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Scr_GetObjectField.ptr
+    },
+    {
+        .id = "gscfuncs.Scr_GscLink",
+        .scan = "40 53 55 56 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 48",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Scr_GscLink.ptr
+    },
+    {
+        .id = "gscfuncs.Scr_ResetLinkInfo",
+        .scan = "48 89 5C 24 08 57 48 83 EC 30 45 33 C0 48 63 D9",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Scr_ResetLinkInfo.ptr
+    },
+    {
         .id = "gscfuncs.Scr_SetGenericField",
         .scan = "41 83 F8 16 0F 87 4C 01 00 00 48 89",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -946,6 +1098,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&Scr_SetGenericField.ptr
+    },
+    {
+        .id = "gscfuncs.Scr_SetObjectField",
+        .scan = "48 83 EC 38 48 8B C2 83 F9 06 0F 87 F9",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Scr_SetObjectField.ptr
     },
     {
         .id = "gscstrucs.gObjFileInfo",
@@ -1065,6 +1226,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&Lua_CoD_LoadLuaFile.ptr
     },
     {
+        .id = "lua.Lua_CoD_RegisterEngineFunctions",
+        .scan = "E8 ?? ?? ?? ?? 45 33 C0 33 D2 48 8B CB E8 ?? ?? ?? ?? 48 8B 43 48 48 83 C0 20",
+        .type = hook::generated_scan_runtime::ST_RELATIVE,
+        .offset = 1,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Lua_CoD_RegisterEngineFunctions.ptr
+    },
+    {
         .id = "lua.Lua_Cod_RegisterFunction",
         .scan = "40 53 48 83 EC 30 4C 8B 49 48 48 8B D9 48 8B 02 4D ",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -1110,6 +1280,24 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&hks_obj_tonumber.ptr
     },
     {
+        .id = "lua.hksi_hks_error",
+        .scan = "40 53 48 83 EC 20 48 8B D9 48 8B 89 90",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&hksi_hks_error.ptr
+    },
+    {
+        .id = "lua.hksi_lua_getclosureinfo",
+        .scan = "48 89 5C 24 08 48 89 6C 24 18 48 89 74 24 20 48 89 54 24 10 57 41 54 41 55 41 56 41 57 48 83 EC 40 4C 8B 7A",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&hksi_lua_getclosureinfo.ptr
+    },
+    {
         .id = "lua.hksi_lua_pushlstring",
         .scan = "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 BF",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -1137,6 +1325,24 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&hksi_lua_setfield.ptr
     },
     {
+        .id = "lua.hksl_loadfile",
+        .scan = "48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 48 89 7C 24 20 41 56 48 83 EC 40 48 8B 69",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&hksl_loadfile.ptr
+    },
+    {
+        .id = "system.CG_DeployServerCommand",
+        .scan = "48 89 5C 24 10 48 89 74 24 18 48 89 7C 24 20 55 41 54 41 55 41 56 41 57 48 8D AC 24 80 F6",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&CG_DeployServerCommand.ptr
+    },
+    {
         .id = "system.Cmd_AddCommandInternal",
         .scan = "48 83 EC 18 0F 10 01 48 8B 05 ?? ?? ?? ?? 0F 29 04 24 48 85 C0 74 2D 4C 8B 0C 24 49 BB",
         .type = hook::generated_scan_runtime::ST_ABSOLUTE,
@@ -1144,6 +1350,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&Cmd_AddCommandInternal.ptr
+    },
+    {
+        .id = "system.Com_Error",
+        .scan = "40 55 48 8D AC 24 50 BC FF FF B8",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Com_Error.ptr
     },
     {
         .id = "system.SEH_GetLanguageNameAbbr",
@@ -1162,6 +1377,42 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&SV_SendServerCommand.ptr
+    },
+    {
+        .id = "system.ScopedCriticalSectionConstructor",
+        .scan = "40 53 48 83 EC 20 89 11 48 8B D9 C6",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&ScopedCriticalSectionConstructor.ptr
+    },
+    {
+        .id = "system.ScopedCriticalSectionDestructor",
+        .scan = "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 8B D9 8B",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&ScopedCriticalSectionDestructor.ptr
+    },
+    {
+        .id = "system.ScrVm_LogCompilerError",
+        .scan = "E8 ?? ?? ?? ?? 33 DB 44 8B D3",
+        .type = hook::generated_scan_runtime::ST_RELATIVE,
+        .offset = 1,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&ScrVm_LogCompilerError.ptr
+    },
+    {
+        .id = "system.Sys_Error",
+        .scan = "40 53 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 80",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&Sys_Error.ptr
     },
     {
         .id = "system.Sys_GetParamSafe",
@@ -1344,6 +1595,15 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .ref = (void**)&R_AddCmdSetViewportValues.ptr
     },
     {
+        .id = "ui.R_EndFrame",
+        .scan = "48 89 5C 24 18 55 48 8B EC 48 83 EC 20 E8 ?? ?? ?? ?? B9",
+        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
+        .offset = 0,
+        .postOffset = 0,
+        .single = true,
+        .ref = (void**)&R_EndFrame.ptr
+    },
+    {
         .id = "ui.R_TextHeight",
         .scan = "E8 ?? ?? ?? ?? F3 0F 10 0D ?? ?? ?? ?? 44 8B C0",
         .type = hook::generated_scan_runtime::ST_RELATIVE,
@@ -1360,24 +1620,6 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .postOffset = 0,
         .single = true,
         .ref = (void**)&R_TextWidth.ptr
-    },
-    {
-        .id = "ui.ScopedCriticalSectionConstructor",
-        .scan = "40 53 48 83 EC 20 89 11 48 8B D9 C6",
-        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
-        .offset = 0,
-        .postOffset = 0,
-        .single = true,
-        .ref = (void**)&ScopedCriticalSectionConstructor.ptr
-    },
-    {
-        .id = "ui.ScopedCriticalSectionDestructor",
-        .scan = "40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 40 48 8B D9 8B",
-        .type = hook::generated_scan_runtime::ST_ABSOLUTE,
-        .offset = 0,
-        .postOffset = 0,
-        .single = true,
-        .ref = (void**)&ScopedCriticalSectionDestructor.ptr
     },
     {
         .id = "ui.ScrPlace_GetView",

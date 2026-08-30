@@ -77,7 +77,10 @@ namespace systems::lua {
         }
 
         void PostInit(uint64_t uid) {
-            Lua_CoD_RegisterEngineFunctions_Hook.Create(0x3911C00_a, Lua_CoD_RegisterEngineFunctions_Stub);
+            Lua_CoD_RegisterEngineFunctions_Hook.Create(
+                bo4::Lua_CoD_RegisterEngineFunctions.Get(),
+                Lua_CoD_RegisterEngineFunctions_Stub
+            );
         }
         REGISTER_SYSTEM(lua_funcs, nullptr, PostInit);
     } // namespace

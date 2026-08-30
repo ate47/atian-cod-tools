@@ -1,5 +1,5 @@
 #include <dll_includes.hpp>
-#include <data/bo4.hpp>
+#include <data/refs.hpp>
 #include <core/config.hpp>
 #include <core/hashes/hash_store.hpp>
 #include <core/system.hpp>
@@ -113,10 +113,11 @@ namespace {
         std::string assetTraceCfg{ core::config::GetString("test.assettrace") };
         assetTrace.LoadConfig(assetTraceCfg.data());
         if (!assetTrace.Empty()) {
-            DB_FindXAssetHeader_Detour.Create(0x2EB75B0_a, DB_FindXAssetHeader_Stub);
-            DB_GetXAssetName_Detour.Create(0x28AAB60_a, DB_GetXAssetName_Stub);
+            DB_FindXAssetHeader_Detour.Create(bo4::DB_FindXAssetHeader.Get(), DB_FindXAssetHeader_Stub);
+            DB_GetXAssetName_Detour.Create(bo4::DB_GetXAssetName.Get(), DB_GetXAssetName_Stub);
             LOG_INFO("added hook for tracer {}", assetTraceCfg);
         }
+        /*
         if (core::config::GetBool("test.sha256trace", false)) {
             DB_SHA256_Init_Detour.Create(0x452E1F0_a, DB_SHA256_Init_Stub);
             DB_SHA256_Process_Detour.Create(0x452E230_a, DB_SHA256_Process_Stub);
@@ -126,6 +127,7 @@ namespace {
             KeyValuePairs_GetNextValue_Detour.Create(0x5AB160_a, KeyValuePairs_GetNextValue_Stub);
             KeyValuePairs_GetValue_Detour.Create(0x5AB2A0_a, KeyValuePairs_GetValue_Stub);
         }
+        */
     }
 
     REGISTER_SYSTEM(asset_tracer, nullptr, PostInit);

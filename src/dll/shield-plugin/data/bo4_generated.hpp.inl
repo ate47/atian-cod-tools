@@ -30,12 +30,18 @@ extern hook::refs::Ref<const dvar_t[0x1000]> s_dvarPool;
 extern hook::refs::Ref<void* (int alignment)> DB_AllocStreamPos;
 // Alloc the XBlock buffers (Fast Files)
 extern hook::refs::Ref<void (size_t *blockSize, const char *filename, const char *filename2, XBlock *blocks, int side, int *loaded)> DB_AllocXBlocks;
+// DB_AuthLoad_AnalyzeData (Fast Files)
+extern hook::refs::Ref<void> DB_AuthLoad_AnalyzeData;
+// DB_AuthLoad_End (Fast Files)
+extern hook::refs::Ref<void> DB_AuthLoad_End;
 // Convert XFile offset to alias (Fast Files)
 extern hook::refs::Ref<void (void** data)> DB_ConvertOffsetToAlias;
 // Convert XFile offset to pointer (Fast Files)
 extern hook::refs::Ref<void (void** data)> DB_ConvertOffsetToPointer;
 // Test if an XAsset exists (Fast Files)
 extern hook::refs::Ref<bool(XAssetType type, XHash* name)> DB_DoesXAssetExist;
+// DB_ExpandZoneList (Fast Files)
+extern hook::refs::Ref<void> DB_ExpandZoneList;
 // Does a zone file exists (Fast Files)
 extern hook::refs::Ref<bool(const char* file)> DB_FileExists;
 // Find a XAsset header (Fast Files)
@@ -54,12 +60,18 @@ extern hook::refs::Ref<const void** ()> DB_InsertPointer;
 extern hook::refs::Ref<bool()> DB_Is4KEnabled;
 // Link an XAsset entry (Fast Files)
 extern hook::refs::Ref<XAssetEntryPoolEntry* (XAsset *newEntry, bool allowOverride)> DB_LinkXAssetEntry;
+// DB_LoadXAssets (Fast Files)
+extern hook::refs::Ref<void> DB_LoadXAssets;
+// DB_LoadXFile (Fast Files)
+extern hook::refs::Ref<void> DB_LoadXFile;
 // Load data from XFile (Fast Files)
 extern hook::refs::Ref<void (byte *pos, int size)> DB_LoadXFileData;
 // Pop XFile loading stream block (Fast Files)
 extern hook::refs::Ref<void ()> DB_PopStreamPos;
 // Push XFile loading stream block (Fast Files)
 extern hook::refs::Ref<void (int index)> DB_PushStreamPos;
+// DB_ValidateFileHeader (Fast Files)
+extern hook::refs::Ref<void> DB_ValidateFileHeader;
 // Load a stream of the loaded XFile (Fast Files)
 extern hook::refs::Ref<bool (bool atStreamStart, void *ptr, size_t size)> Load_Stream;
 // Load an XAsset of the loaded XFile (Fast Files)
@@ -68,16 +80,18 @@ extern hook::refs::Ref<void (bool atStreamStart, XAsset *asset)> Load_XAsset;
 extern hook::refs::Ref<void (XHash* hash)> Load_XHash;
 // Load an XString (Fast Files)
 extern hook::refs::Ref<void (const char** str)> Load_XStringCustom;
-//  (Fast Files)
+// Stream_OpenFileInternal (Fast Files)
+extern hook::refs::Ref<void> Stream_OpenFileInternal;
+// asset pool data (Fast Files)
 extern hook::refs::Ref<XAssetPool> s_assetPools;
 
 /*
  * File System
  */
 
-//  (File System)
+// Close a file (File System)
 extern hook::refs::Ref<void(int32_t fileid)> Stream_CloseFile;
-//  (File System)
+// Open a file (File System)
 extern hook::refs::Ref<int32_t(const char* file)> Stream_OpenFile49;
 
 /*
@@ -157,6 +171,8 @@ extern hook::refs::Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_arg
 extern hook::refs::Ref<bool(byte* func, uint32_t* name, bool* isFunction)> CScr_GetFunctionReverseLookup;
 // Get an API client method (GSC API Functions)
 extern hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetMethod;
+// Link the script exports (GSC API Functions)
+extern hook::refs::Ref<int(scriptInstance_t inst, GSC_OBJ *prime_obj)> GscObjResolve;
 // Allocate a string into the MT buffer (GSC API Functions)
 extern hook::refs::Ref<ScrString_t(const char* str, unsigned int user, ScrStringType type, bool decrypt)> SL_GetStringOfSize;
 // Transfer a string reference to a user (GSC API Functions)
@@ -165,6 +181,8 @@ extern hook::refs::Ref<void(ScrString_t stringValue, unsigned int user)> SL_Tran
 extern hook::refs::Ref<void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)> ScrEvent_FireCallbackEventEnt;
 // Add class fields to a class (GSC API Functions)
 extern hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)> ScrVar_AddClassFields;
+// Init class map (GSC API Functions)
+extern hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum)> ScrVar_InitClassMap;
 // Throw a script error (GSC API Functions)
 extern hook::refs::Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error;
 // Construct a message string for network (GSC API Functions)
@@ -179,8 +197,16 @@ extern hook::refs::Ref<void(scriptInstance_t inst, const byte* b, fieldtype_t ty
 extern hook::refs::Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo;
 // Get an API server method (GSC API Functions)
 extern hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetMethod;
+// Get object field (GSC API Functions)
+extern hook::refs::Ref<void(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_GetObjectField;
+// Link a script (GSC API Functions)
+extern hook::refs::Ref<void (scriptInstance_t inst, XHash* filename, bool runScript)> Scr_GscLink;
+// Reset the script linking information (GSC API Functions)
+extern hook::refs::Ref<void(scriptInstance_t inst)> Scr_ResetLinkInfo;
 // Set generic field to data (GSC API Functions)
 extern hook::refs::Ref<void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)> Scr_SetGenericField;
+// Set object field (GSC API Functions)
+extern hook::refs::Ref<bool(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_SetObjectField;
 
 /*
  * GSC Stuctures
@@ -213,37 +239,57 @@ extern hook::refs::Ref<scrVmPub_t> scrVmPub;
  * Lua
  */
 
-// script public variables (Lua)
+// begin a readonly table (Lua)
 extern hook::refs::Ref<void(const char* tname, lua_State* luaVM)> Lua_BeginTableReadOnly;
-// script public variables (Lua)
+// load and execute a lua file (Lua)
 extern hook::refs::Ref<bool(lua_State* luaVM, const char* file)> Lua_CoD_LoadLuaFile;
-// script public variables (Lua)
+// Register the Engine functions (Lua)
+extern hook::refs::Ref<void(lua_State* state)> Lua_CoD_RegisterEngineFunctions;
+// register a lua function to the current table (Lua)
 extern hook::refs::Ref<void(lua_State* luaVM, XHash* name, int (*func)(lua_State* s))> Lua_Cod_RegisterFunction;
-// script public variables (Lua)
+// end a readonly table (Lua)
 extern hook::refs::Ref<void(lua_State* luaVM)> Lua_EndTableReadOnly;
-// script public variables (Lua)
+// HksObject to xhash (Lua)
 extern hook::refs::Ref<XHash*(XHash* retval, lua_State* luaVM, int idx)> hks_obj_tolhash;
-// script public variables (Lua)
+// HksObject to string (Lua)
 extern hook::refs::Ref<const char*(lua_State* luaVM, HksObject* obj, size_t* len)> hks_obj_tolstring;
-// script public variables (Lua)
+// HksObject to number (Lua)
 extern hook::refs::Ref<float(lua_State* luaVM, const HksObject* obj)> hks_obj_tonumber;
-// script public variables (Lua)
+// hks error (Lua)
+extern hook::refs::Ref<int(lua_State* s, HksError errorCode)> hksi_hks_error;
+// Get information about a closure (Lua)
+extern hook::refs::Ref<bool(lua_State* s, HksClosure* closure, lua_Debug* ar, const char* what)> hksi_lua_getclosureinfo;
+// push a string (Lua)
 extern hook::refs::Ref<void(lua_State* s, const char* str, size_t l)> hksi_lua_pushlstring;
-// script public variables (Lua)
+// push a xhash (Lua)
 extern hook::refs::Ref<void(lua_State* s, const char* str)> hksi_lua_pushxhash;
-// script public variables (Lua)
+// set a field (Lua)
 extern hook::refs::Ref<void(lua_State* s, int index, const char* k)> hksi_lua_setfield;
+// Load a lua file (Lua)
+extern hook::refs::Ref<int(lua_State* state, const char* filename)> hksl_loadfile;
 
 /*
  * System
  */
 
+// Deploy a server command (System)
+extern hook::refs::Ref<void(LocalClientNum_t localClientNum)> CG_DeployServerCommand;
 // Register an internal function (System)
 extern hook::refs::Ref<void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)> Cmd_AddCommandInternal;
+// Common error (System)
+extern hook::refs::Ref<void(uint32_t code)> Com_Error;
 // Get the language name abbreviation (System)
 extern hook::refs::Ref<const char*(int32_t lang)> SEH_GetLanguageNameAbbr;
 // Send a server command (System)
 extern hook::refs::Ref<void(client_t* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand;
+// ScopedCriticalSection::ScopedCriticalSection (System)
+extern hook::refs::Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor;
+// ScopedCriticalSection::~ScopedCriticalSection (System)
+extern hook::refs::Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor;
+// Log a compiler error (System)
+extern hook::refs::Ref<void(const char* fmt, ...)> ScrVm_LogCompilerError;
+// System error (System)
+extern hook::refs::Ref<void(uint32_t code, const char* msg)> Sys_Error;
 // Get command params (System)
 extern hook::refs::Ref<const char*(int32_t index)> Sys_GetParamSafe;
 // Get TLS data (System)
@@ -289,14 +335,12 @@ extern hook::refs::Ref<void(bool enabled, int x, int y, int width, int height)> 
 extern hook::refs::Ref<void(bool forceBlack)> R_AddCmdSetUITextureSources;
 // Add set viewport values command (UI)
 extern hook::refs::Ref<void(int x, int y, int width, int height)> R_AddCmdSetViewportValues;
+// Render a frame (UI)
+extern hook::refs::Ref<void()> R_EndFrame;
 // Get text height (UI)
 extern hook::refs::Ref<uint32_t(Font* font)> R_TextHeight;
 // Get text width (UI)
 extern hook::refs::Ref<float(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font)> R_TextWidth;
-// ScopedCriticalSection::ScopedCriticalSection (UI)
-extern hook::refs::Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor;
-// ScopedCriticalSection::~ScopedCriticalSection (UI)
-extern hook::refs::Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor;
 // Get screen for a local client (UI)
 extern hook::refs::Ref<const ScreenPlacement*(const LocalClientNum_t localClientNum)> ScrPlace_GetView;
 // Get scaled text height (UI)

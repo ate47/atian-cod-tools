@@ -21,8 +21,8 @@ namespace systems::events {
         }
 
         void PostInit(uint64_t uid) {
-            R_EndFrame_Detour.Create(0x361E260_a, R_EndFrame_Stub);
-            Scr_ResetLinkInfo_Detour.Create(0x2749480_a, Scr_ResetLinkInfo_Stub);
+            R_EndFrame_Detour.Create(bo4::R_EndFrame.Get(), R_EndFrame_Stub);
+            Scr_ResetLinkInfo_Detour.Create(bo4::Scr_ResetLinkInfo.Get(), Scr_ResetLinkInfo_Stub);
         }
 
         REGISTER_SYSTEM(events, nullptr, PostInit);

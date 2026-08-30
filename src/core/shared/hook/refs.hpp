@@ -12,6 +12,8 @@ namespace hook::refs {
         constexpr operator T*() const { return ptr; }
 
         constexpr T* operator->() const { return ptr; }
+
+        constexpr T* Get() { return ptr; }
     };
 } // namespace hook::refs
 byte* operator"" _g(size_t val);

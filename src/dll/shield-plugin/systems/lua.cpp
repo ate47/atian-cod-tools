@@ -171,9 +171,9 @@ namespace systems::lua {
         }
 
         void PostInit(uint64_t uid) {
-            hksl_loadfile_Hook.Create(0x375D6A0_a, hksl_loadfile_Stub);
-            hksi_hks_error_Hook.Create(0x3756490_a, hksi_hks_error_Stub);
-            hksi_lua_getclosureinfo_Hook.Create(0x375DE20_a, hksi_lua_getclosureinfo_Stub);
+            hksl_loadfile_Hook.Create(bo4::hksl_loadfile.Get(), hksl_loadfile_Stub);
+            hksi_hks_error_Hook.Create(bo4::hksi_hks_error.Get(), hksi_hks_error_Stub);
+            hksi_lua_getclosureinfo_Hook.Create(bo4::hksi_lua_getclosureinfo.Get(), hksi_lua_getclosureinfo_Stub);
         }
 
         utils::ArrayAdder<systems::mods::ModLoadingHook> cfgHook{ systems::mods::GetModLoadingHooks(), LoadLuaCfg };
