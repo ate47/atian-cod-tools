@@ -159,6 +159,8 @@ typedef struct {
     const char* outputPath;
     // workflow used
     ActsAPIFastFile_FastfileWorkflow workflow;
+    // load patch files
+    bool m_fc;
 } ActsAPIFastFile_FastFileOption;
 
 /*

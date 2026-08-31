@@ -451,8 +451,11 @@ namespace {
                 throw std::runtime_error("Can't read XFile header");
             }
             std::filesystem::path fpfile;
+            std::filesystem::path fcfile;
             std::vector<byte> fileFPBuff{};
+            std::vector<byte> fileFCBuff{};
             bool hasFdFile{};
+            bool hasFcFile{};
             if (opt.m_fd) {
                 fpfile = ctx.file;
                 fpfile.replace_extension(".fp");
@@ -463,6 +466,18 @@ namespace {
                         throw std::runtime_error(std::format("Can't read {}", fpfile.string()));
                     }
                     fileFPBuff.clear();
+                }
+            }
+            if (opt.m_fc) {
+                fcfile = ctx.file;
+                fcfile.replace_extension(".fc");
+                if (opt.ReadFile(fcfile.string(), fileFCBuff)) {
+                    hasFcFile = true;
+                } else {
+                    if (opt.m_fdIgnoreMissing) {
+                        throw std::runtime_error(std::format("Can't read {}", fcfile.string()));
+                    }
+                    fileFCBuff.clear();
                 }
             }
 
@@ -752,329 +767,344 @@ namespace {
                 WriteHeaderFile("Decompressed size: 0x{:x}", ffdata.size());
             }
 
-            if (hasFdFile) {
-                LOG_TRACE("loading patch {}", fpfile.string());
-                core::bytebuffer::ByteBuffer fpreader{ fileFPBuff };
+            auto ApplyDeltaFile =
+                [&ffdata, &ffHeader, &header, &opt, &ctx, &hos, &secure, &compressDataHeader, &secureType](
+                    std::vector<byte>& deltaFile,
+                    const std::filesystem::path& path,
+                    const char* deltaType
+                ) {
+                    LOG_OPT_INFO("loading {} patch {}", deltaType, path.string());
+                    core::bytebuffer::ByteBuffer fpreader{ deltaFile };
 
-                if (!fpreader.CanRead(8) || *fpreader.Ptr<uint64_t>() != 0x3030316466665749) {
-                    throw std::runtime_error(std::format("Can't read {}: bad magic", fpfile.string()));
-                }
-                if (!fpreader.CanRead(sizeof(DB_FFHeader) + sizeof(uint64_t))) { // fp header + prevHeader magic
-                    throw std::runtime_error("Can't read XFile header");
-                }
-
-                DB_FFHeader* fpHeader{ fpreader.ReadPtr<DB_FFHeader>() };
-                IWFastFileHeader prevHeader{};
-                IWFastFileHeader newHeader{};
-
-                if ((*fpreader.Ptr<uint64_t>() & IW_FF_MAGIC_MASK) != IW_FF_MAGIC) {
-                    throw std::runtime_error("Invalid prevHeader magic");
-                }
-
-                uint64_t iwMagic{ IW_FF_MAGIC };
-                uint64_t iwMagicMask{ IW_FF_MAGIC_MASK };
-
-                size_t newHeaderLocation{ fpreader.FindMasked(&iwMagic, &iwMagicMask, sizeof(iwMagic), 8) };
-
-                if (newHeaderLocation == std::string::npos) {
-                    throw std::runtime_error("Can't find newHeader magic");
-                }
-
-                size_t ffHeaderSize{ newHeaderLocation - fpreader.Loc() };
-
-                LOG_DEBUG("ffHeaderSize: 0x{:x}", ffHeaderSize);
-
-                if (ffHeaderSize > sizeof(IWFastFileHeader)) {
-                    throw std::runtime_error(std::format("Computed ffHeaderSize too big: 0x{:x}", ffHeaderSize));
-                }
-
-                // load patch headers
-                switch (fpHeader->headerVersion) {
-                case IWFV_MW19_PATCH:
-                case IWFV_BO6_PATCH: {
-                    fpreader.Read(&prevHeader, ffHeaderSize);
-                    fpreader.Read(&newHeader, ffHeaderSize);
-
-                    if (std::memcmp(&prevHeader, &ffHeader, ffHeaderSize)) {
-                        throw std::runtime_error("The patch file is not for this fast file");
+                    if (!fpreader.CanRead(8) || *fpreader.Ptr<uint64_t>() != 0x3030316466665749) {
+                        throw std::runtime_error(std::format("Can't read {}: bad magic", path.string()));
                     }
-                    break;
-                }
-                default:
-                    throw std::runtime_error(
-                        std::format("patch version not supported 0x{:x}", fpHeader->headerVersion)
-                    );
-                }
-                size_t endSize{ std::string::npos };
-                uint64_t* blockSizes{};
-
-                switch (header->headerVersion) {
-                case IWFV_MW19: {
-                    ctx.blocksCount = opt.handler && opt.handler->forceNumXBlocks ? opt.handler->forceNumXBlocks : 8;
-                    // endSize = ...;
-                    blockSizes = newHeader.mw19.blockSize;
-                    break;
-                }
-                case IWFV_MW22: {
-                    ctx.blocksCount = 16;
-                    blockSizes = newHeader.mwii.blockSize;
-                    break;
-                }
-                case IWFV_MW23: {
-                    ctx.blocksCount = 16;
-                    blockSizes = newHeader.mwiii.blockSize;
-                    break;
-                }
-                case IWFV_BO6: {
-                    ctx.blocksCount = 16;
-                    blockSizes = newHeader.bo6.blockSize;
-                    break;
-                }
-                }
-
-                if (blockSizes) {
-                    for (size_t i = 0; i < ctx.blocksCount; i++) {
-                        ctx.blockSizes[i].size = blockSizes[i];
+                    if (!fpreader.CanRead(sizeof(DB_FFHeader) + sizeof(uint64_t))) { // fp header + prevHeader magic
+                        throw std::runtime_error("Can't read XFile header");
                     }
 
-                    LOG_DEBUG("patched blocks sizes:");
-                    for (size_t i = 0; i < ctx.blocksCount; i++) {
-                        LOG_DEBUG("blocks[{}] = 0x{:x}", i, ctx.blockSizes[i].size);
+                    DB_FFHeader* fpHeader{ fpreader.ReadPtr<DB_FFHeader>() };
+                    IWFastFileHeader prevHeader{};
+                    IWFastFileHeader newHeader{};
+
+                    if ((*fpreader.Ptr<uint64_t>() & IW_FF_MAGIC_MASK) != IW_FF_MAGIC) {
+                        throw std::runtime_error("Invalid prevHeader magic");
                     }
-                }
 
-                if (fpreader.CanRead(sizeof(uint32_t)) &&
-                    fastfile::flexible::IsFlexibleDataMagic(*fpreader.Ptr<uint32_t>())) {
-                    // read flexible data
-                    fastfile::flexible::TAFASecureInfo secure{};
-                    secure.fastfileName = ctx.ffname;
-                    secure.rsaKeyName = "iw";
-                    ctx.flexibleHeaderData.ReadHeader(fpreader, &secure);
-                }
+                    uint64_t iwMagic{ IW_FF_MAGIC };
+                    uint64_t iwMagicMask{ IW_FF_MAGIC_MASK };
 
-                if (opt.m_header) {
-                    PrintHeader(hos, fpHeader, "fp::header", false);
-                    PrintHeader(hos, &prevHeader.header, "fp::prevHeader", true);
-                    PrintHeader(hos, &newHeader.header, "fp::newHeader", true);
-                    DumpTafHeader(hos, ctx.flexibleHeaderData, "fp");
-                }
+                    size_t newHeaderLocation{ fpreader.FindMasked(&iwMagic, &iwMagicMask, sizeof(iwMagic), 8) };
 
-                if (!fpreader.CanRead(1)) {
-                    ffdata = {};
-                    return;
-                }
+                    if (newHeaderLocation == std::string::npos) {
+                        throw std::runtime_error("Can't find newHeader magic");
+                    }
 
-                // goto data
-                switch (header->headerVersion) {
-                case IWFV_MW19: {
-                    constexpr size_t secureChunkSize = 0x800000;
-                    constexpr size_t rsaBlockSize = 0x4000;
-                    bool found{};
-                    while (fpreader.CanRead(sizeof(uint32_t))) {
-                        if (*fpreader.Ptr<uint32_t>() == 0x43574902) {
-                            found = true;
-                            break;
+                    size_t ffHeaderSize{ newHeaderLocation - fpreader.Loc() };
+
+                    LOG_DEBUG("ffHeaderSize: 0x{:x}", ffHeaderSize);
+
+                    if (ffHeaderSize > sizeof(IWFastFileHeader)) {
+                        throw std::runtime_error(std::format("Computed ffHeaderSize too big: 0x{:x}", ffHeaderSize));
+                    }
+
+                    // load patch headers
+                    switch (fpHeader->headerVersion) {
+                    case IWFV_MW19_PATCH:
+                    case IWFV_BO6_PATCH: {
+                        fpreader.Read(&prevHeader, ffHeaderSize);
+                        fpreader.Read(&newHeader, ffHeaderSize);
+
+                        if (std::memcmp(&prevHeader, &ffHeader, ffHeaderSize)) {
+                            throw std::runtime_error("The patch file is not for this fast file");
                         }
-                        fpreader.Skip(1);
+                        std::memcpy(&ffHeader, &newHeader, ffHeaderSize); // update header
+                        break;
                     }
-                    if (!found) {
-                        throw std::runtime_error("can't find iwc");
+                    default:
+                        throw std::runtime_error(
+                            std::format("patch version not supported 0x{:x}", fpHeader->headerVersion)
+                        );
+                    }
+                    size_t endSize{ std::string::npos };
+                    uint64_t* blockSizes{};
+
+                    switch (header->headerVersion) {
+                    case IWFV_MW19: {
+                        ctx.blocksCount =
+                            opt.handler && opt.handler->forceNumXBlocks ? opt.handler->forceNumXBlocks : 8;
+                        // endSize = ...;
+                        blockSizes = newHeader.mw19.blockSize;
+                        break;
+                    }
+                    case IWFV_MW22: {
+                        ctx.blocksCount = 16;
+                        blockSizes = newHeader.mwii.blockSize;
+                        break;
+                    }
+                    case IWFV_MW23: {
+                        ctx.blocksCount = 16;
+                        blockSizes = newHeader.mwiii.blockSize;
+                        break;
+                    }
+                    case IWFV_BO6: {
+                        ctx.blocksCount = 16;
+                        blockSizes = newHeader.bo6.blockSize;
+                        break;
+                    }
                     }
 
-                    size_t rsaEnd{ fpreader.Loc() };
-                    if (rsaEnd > rsaBlockSize * 2) {
-                        // go at rsa start
-                        fpreader.Goto(rsaEnd - rsaBlockSize * 2);
-                        if (fpreader.Read<uint32_t>() == 0x66665749) {
-                            secure = true;
-                            fpreader.Skip(0x7ffc);
-                            if (fpreader.Read<uint32_t>() != 0x43574902) {
-                                throw std::runtime_error(
-                                    std::format("invalid iwc after RSA block at 0x{:x}", fpreader.Loc())
-                                );
-                            }
+                    if (blockSizes) {
+                        for (size_t i = 0; i < ctx.blocksCount; i++) {
+                            ctx.blockSizes[i].size = blockSizes[i];
+                        }
 
-                            size_t dataStart{ fpreader.Loc() + 4 };
-                            fpreader.Goto(dataStart - 8); // iwc + data
-                            byte* patchData{ fpreader.Ptr<byte>() };
-
-                            if (fpreader.CanRead(secureChunkSize + rsaBlockSize)) {
-                                // skip first chunk + rsa block
-                                fpreader.Skip(secureChunkSize + rsaBlockSize);
-                                LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
-                                patchData += secureChunkSize;
-
-                                while (fpreader.CanRead(1)) {
-                                    size_t chunkSize{ std::min<size_t>(secureChunkSize, fpreader.Remaining()) };
-                                    byte* chunk{ fpreader.ReadPtr<byte>(chunkSize) };
-                                    std::memmove(patchData, chunk, chunkSize);
-                                    patchData += chunkSize;
-                                    LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, fpreader.Loc());
-                                    if (chunkSize == secureChunkSize && fpreader.CanRead(rsaBlockSize)) {
-                                        fpreader.Skip(rsaBlockSize);
-                                    }
-                                }
-
-                                fpreader.Goto(0);
-                                byte* start{ fpreader.Ptr<byte>() };
-                                size_t newSize{ (size_t)(patchData - start) };
-                                LOG_TRACE("new size 0x{:x}", newSize);
-                                fpreader = { start, newSize };
-                            }
-                        } else {
-                            LOG_TRACE("no rsa header");
+                        LOG_DEBUG("patched blocks sizes:");
+                        for (size_t i = 0; i < ctx.blocksCount; i++) {
+                            LOG_DEBUG("blocks[{}] = 0x{:x}", i, ctx.blockSizes[i].size);
                         }
                     }
-                    fpreader.Goto(rsaEnd + 4); // iwc + data
-                    fpreader.Read(&compressDataHeader, sizeof(compressDataHeader));
-                    break;
-                }
-                case IWFV_MW22:
-                case IWFV_MW23:
-                case IWFV_BO6: {
-                    bool found{};
-                    while (fpreader.CanRead(sizeof(uint32_t))) {
-                        if (*fpreader.Ptr<uint32_t>() == 0x43574902) {
-                            found = true;
-                            break;
-                        }
-                        fpreader.Skip(1);
+
+                    if (fpreader.CanRead(sizeof(uint32_t)) &&
+                        fastfile::flexible::IsFlexibleDataMagic(*fpreader.Ptr<uint32_t>())) {
+                        // read flexible data
+                        fastfile::flexible::TAFASecureInfo secure{};
+                        secure.fastfileName = ctx.ffname;
+                        secure.rsaKeyName = "iw";
+                        ctx.flexibleHeaderData.ReadHeader(fpreader, &secure);
                     }
-                    if (!found) {
-                        LOG_DEBUG("can't find patch iwc, ignore");
+
+                    if (opt.m_header) {
+                        PrintHeader(hos, fpHeader, "fp::header", false);
+                        PrintHeader(hos, &prevHeader.header, "fp::prevHeader", true);
+                        PrintHeader(hos, &newHeader.header, "fp::newHeader", true);
+                        DumpTafHeader(hos, ctx.flexibleHeaderData, "fp");
+                    }
+
+                    if (!fpreader.CanRead(1)) {
+                        ffdata = {};
                         return;
                     }
-                    fpreader.Skip<uint32_t>(); // skip IWC
 
-                    secure = fpreader.CanRead(sizeof(uint32_t)) && *fpreader.Ptr<uint32_t>() == 0x66665749;
-                    if (secure) {
-                        fpreader.Skip(sizeof(FS_Header) + sizeof(FS_RSAChunk));
+                    // goto data
+                    switch (header->headerVersion) {
+                    case IWFV_MW19: {
+                        constexpr size_t secureChunkSize = 0x800000;
+                        constexpr size_t rsaBlockSize = 0x4000;
+                        bool found{};
+                        while (fpreader.CanRead(sizeof(uint32_t))) {
+                            if (*fpreader.Ptr<uint32_t>() == 0x43574902) {
+                                found = true;
+                                break;
+                            }
+                            fpreader.Skip(1);
+                        }
+                        if (!found) {
+                            throw std::runtime_error("can't find iwc");
+                        }
+
+                        size_t rsaEnd{ fpreader.Loc() };
+                        if (rsaEnd > rsaBlockSize * 2) {
+                            // go at rsa start
+                            fpreader.Goto(rsaEnd - rsaBlockSize * 2);
+                            if (fpreader.Read<uint32_t>() == 0x66665749) {
+                                secure = true;
+                                fpreader.Skip(0x7ffc);
+                                if (fpreader.Read<uint32_t>() != 0x43574902) {
+                                    throw std::runtime_error(
+                                        std::format("invalid iwc after RSA block at 0x{:x}", fpreader.Loc())
+                                    );
+                                }
+
+                                size_t dataStart{ fpreader.Loc() + 4 };
+                                fpreader.Goto(dataStart - 8); // iwc + data
+                                byte* patchData{ fpreader.Ptr<byte>() };
+
+                                if (fpreader.CanRead(secureChunkSize + rsaBlockSize)) {
+                                    // skip first chunk + rsa block
+                                    fpreader.Skip(secureChunkSize + rsaBlockSize);
+                                    LOG_TRACE("patch first chunk 0x{:x}", secureChunkSize);
+                                    patchData += secureChunkSize;
+
+                                    while (fpreader.CanRead(1)) {
+                                        size_t chunkSize{ std::min<size_t>(secureChunkSize, fpreader.Remaining()) };
+                                        byte* chunk{ fpreader.ReadPtr<byte>(chunkSize) };
+                                        std::memmove(patchData, chunk, chunkSize);
+                                        patchData += chunkSize;
+                                        LOG_TRACE("patch chunk 0x{:x} <- 0x{:x}", chunkSize, fpreader.Loc());
+                                        if (chunkSize == secureChunkSize && fpreader.CanRead(rsaBlockSize)) {
+                                            fpreader.Skip(rsaBlockSize);
+                                        }
+                                    }
+
+                                    fpreader.Goto(0);
+                                    byte* start{ fpreader.Ptr<byte>() };
+                                    size_t newSize{ (size_t)(patchData - start) };
+                                    LOG_TRACE("new size 0x{:x}", newSize);
+                                    fpreader = { start, newSize };
+                                }
+                            } else {
+                                LOG_TRACE("no rsa header");
+                            }
+                        }
+                        fpreader.Goto(rsaEnd + 4); // iwc + data
+                        fpreader.Read(&compressDataHeader, sizeof(compressDataHeader));
+                        break;
                     }
-                    fpreader.Read(&compressDataHeader, sizeof(compressDataHeader));
+                    case IWFV_MW22:
+                    case IWFV_MW23:
+                    case IWFV_BO6: {
+                        bool found{};
+                        while (fpreader.CanRead(sizeof(uint32_t))) {
+                            if (*fpreader.Ptr<uint32_t>() == 0x43574902) {
+                                found = true;
+                                break;
+                            }
+                            fpreader.Skip(1);
+                        }
+                        if (!found) {
+                            LOG_DEBUG("can't find patch iwc, ignore");
+                            return;
+                        }
+                        fpreader.Skip<uint32_t>(); // skip IWC
+
+                        secure = fpreader.CanRead(sizeof(uint32_t)) && *fpreader.Ptr<uint32_t>() == 0x66665749;
+                        if (secure) {
+                            fpreader.Skip(sizeof(FS_Header) + sizeof(FS_RSAChunk));
+                        }
+                        fpreader.Read(&compressDataHeader, sizeof(compressDataHeader));
+
+                        break;
+                    }
+                    default:
+                        throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
+                    }
 
                     if (compressDataHeader.compression >= fastfile::FastFileIWCompression::IWFFC_COUNT) {
                         throw std::runtime_error("Can't find patch compression type");
-                    } else {
-                        alg = fastfile::GetFastFileCompressionAlgorithm(compressDataHeader.compression);
                     }
+                    utils::compress::CompressionAlgorithm alg{
+                        fastfile::GetFastFileCompressionAlgorithm(compressDataHeader.compression)
+                    };
 
                     LOG_DEBUG(
-                        "loaded bo6 patch secure:{}, alg:{}({})  0x{:x}",
+                        "loaded patch secure:{}, alg:{}({})  0x{:x}",
                         secure,
                         alg,
                         (int)compressDataHeader.compression,
                         fpreader.Loc()
                     );
-                    break;
-                }
-                default:
-                    throw std::runtime_error(std::format("version not supported 0x{:x}", header->headerVersion));
-                }
+                    // load fp data
+                    std::vector<byte> fpdata{};
 
-                // load fp data
-                std::vector<byte> fpdata{};
+                    size_t countfp{};
+                    size_t offsetpatch{};
+                    while (fpreader.CanRead(sizeof(uint32_t) * 3)) {
+                        size_t id{ countfp++ };
 
-                size_t countfp{};
-                size_t offsetpatch{};
-                while (fpreader.CanRead(sizeof(uint32_t) * 3)) {
-                    size_t id{ countfp++ };
+                        if (secure && secureType == ST_MW22) {
+                            if ((id & 0x1ff) == 0x1ff) {
+                                if (!fpreader.CanRead(0x4000))
+                                    break;
+                                fpreader.Skip(0x4000);
+                            }
+                        }
 
-                    if (secure && secureType == ST_MW22) {
-                        if ((id & 0x1ff) == 0x1ff) {
-                            if (!fpreader.CanRead(0x4000))
-                                break;
-                            fpreader.Skip(0x4000);
+                        size_t loc{ fpreader.Loc() };
+
+                        fastfile::XBlockCompressionBlockHeader* block{
+                            fpreader.ReadPtr<fastfile::XBlockCompressionBlockHeader>()
+                        };
+
+                        if (!block->compressedSize)
+                            break; // done
+
+                        if (secureType == ST_MW19 && block->encryptionCTR) {
+                            break; // fixme: find better
+                        }
+
+                        uint32_t alignedSize{ utils::Aligned<uint32_t>(block->compressedSize) };
+
+                        LOG_TRACE(
+                            "Decompressing {} block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) encryptionCTR:0x{:x}",
+                            utils::compress::GetCompressionName(alg),
+                            id,
+                            loc,
+                            block->compressedSize,
+                            alignedSize,
+                            block->uncompressedSize,
+                            block->encryptionCTR
+                        );
+
+                        byte* blockBuff{ fpreader.ReadPtr<byte>(alignedSize) };
+
+                        // allc data
+                        fpdata.resize(offsetpatch + block->uncompressedSize);
+
+                        byte* decompressed{ &fpdata[offsetpatch] };
+                        offsetpatch += block->uncompressedSize;
+
+                        int r{ utils::compress::Decompress2(
+                            alg,
+                            decompressed,
+                            block->uncompressedSize,
+                            blockBuff,
+                            block->compressedSize
+                        ) };
+                        if (r < 0) {
+                            throw std::runtime_error(
+                                std::format(
+                                    "Can't decompress block 0x{:x}: {} ({})",
+                                    loc,
+                                    utils::compress::DecompressResultName(r),
+                                    r
+                                )
+                            );
                         }
                     }
 
-                    size_t loc{ fpreader.Loc() };
+                    if (opt.dump_decompressed) {
+                        std::filesystem::path of{ ctx.file };
+                        std::filesystem::path decfile{ opt.m_output / of.filename() };
 
-                    fastfile::XBlockCompressionBlockHeader* block{
-                        fpreader.ReadPtr<fastfile::XBlockCompressionBlockHeader>()
-                    };
+                        decfile.replace_extension(std::format(".{}.dec", deltaType));
 
-                    if (!block->compressedSize)
-                        break; // done
-
-                    if (secureType == ST_MW19 && block->encryptionCTR) {
-                        break; // fixme: find better
+                        std::filesystem::create_directories(decfile.parent_path());
+                        if (!utils::WriteFile(decfile, fpdata)) {
+                            LOG_ERROR("Can't dump {}", decfile.string());
+                        } else {
+                            LOG_INFO("Dump fp patch into {}", decfile.string());
+                        }
                     }
 
-                    uint32_t alignedSize{ utils::Aligned<uint32_t>(block->compressedSize) };
+                    LOG_TRACE("Loaded {} 0x{:x} bytes", fpdata.size(), fpdata.size());
+                    LOG_TRACE("rem: pd:0x{:x}", fpreader.Remaining());
 
-                    LOG_TRACE(
-                        "Decompressing {} block#{:x} 0x{:x} (0x{:x}/0x{:x} -> 0x{:x}) encryptionCTR:0x{:x}",
-                        utils::compress::GetCompressionName(alg),
-                        id,
-                        loc,
-                        block->compressedSize,
-                        alignedSize,
-                        block->uncompressedSize,
-                        block->encryptionCTR
-                    );
+                    core::bytebuffer::ByteBuffer ffbb{ ffdata };
+                    core::bytebuffer::ByteBuffer fdbb{ fpdata };
 
-                    byte* blockBuff{ fpreader.ReadPtr<byte>(alignedSize) };
+                    ffdata = fastfile::bdiff::bdiff(&ffbb, &fdbb, fastfile::bdiff::BDiffType::BDT_IW);
 
-                    // allc data
-                    fpdata.resize(offsetpatch + block->uncompressedSize);
+                    if (opt.dump_decompressed) {
+                        std::filesystem::path of{ ctx.file };
+                        std::filesystem::path decfile{ opt.m_output / of.filename() };
 
-                    byte* decompressed{ &fpdata[offsetpatch] };
-                    offsetpatch += block->uncompressedSize;
+                        decfile.replace_extension(std::format(".{}.patched.dec", deltaType));
 
-                    int r{ utils::compress::Decompress2(
-                        alg,
-                        decompressed,
-                        block->uncompressedSize,
-                        blockBuff,
-                        block->compressedSize
-                    ) };
-                    if (r < 0) {
-                        throw std::runtime_error(
-                            std::format(
-                                "Can't decompress block 0x{:x}: {} ({})",
-                                loc,
-                                utils::compress::DecompressResultName(r),
-                                r
-                            )
-                        );
+                        std::filesystem::create_directories(decfile.parent_path());
+                        if (!utils::WriteFile(decfile, ffdata)) {
+                            LOG_ERROR("Can't dump {}", decfile.string());
+                        } else {
+                            LOG_INFO("Dump patched data into {}", decfile.string());
+                        }
                     }
-                }
+                };
 
-                if (opt.dump_decompressed) {
-                    std::filesystem::path of{ ctx.file };
-                    std::filesystem::path decfile{ opt.m_output / of.filename() };
-
-                    decfile.replace_extension(".fp.dec");
-
-                    std::filesystem::create_directories(decfile.parent_path());
-                    if (!utils::WriteFile(decfile, fpdata)) {
-                        LOG_ERROR("Can't dump {}", decfile.string());
-                    } else {
-                        LOG_INFO("Dump fp patch into {}", decfile.string());
-                    }
-                }
-
-                LOG_TRACE("Loaded {} 0x{:x} bytes", fpdata.size(), fpdata.size());
-                LOG_TRACE("rem: sd:0x{:x} pd:0x{:x}", reader.Remaining(), fpreader.Remaining());
-
-                core::bytebuffer::ByteBuffer ffbb{ ffdata };
-                core::bytebuffer::ByteBuffer fdbb{ fpdata };
-
-                ffdata = fastfile::bdiff::bdiff(&ffbb, &fdbb, fastfile::bdiff::BDiffType::BDT_IW);
-
-                if (opt.dump_decompressed) {
-                    std::filesystem::path of{ ctx.file };
-                    std::filesystem::path decfile{ opt.m_output / of.filename() };
-
-                    decfile.replace_extension(".patched.dec");
-
-                    std::filesystem::create_directories(decfile.parent_path());
-                    if (!utils::WriteFile(decfile, ffdata)) {
-                        LOG_ERROR("Can't dump {}", decfile.string());
-                    } else {
-                        LOG_INFO("Dump patched data into {}", decfile.string());
-                    }
-                }
+            if (hasFdFile) {
+                ApplyDeltaFile(fileFPBuff, fpfile, "fp");
+            }
+            if (hasFcFile) {
+                ApplyDeltaFile(fileFCBuff, fcfile, "fc");
             }
             if (opt.m_header) {
                 WriteHeaderFile("Decompressed size: 0x{:x}", ffdata.size());
