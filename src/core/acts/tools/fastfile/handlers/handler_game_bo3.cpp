@@ -222,7 +222,11 @@ namespace {
             hex[i * 2] = hexchars[p[i] >> 4];
             hex[i * 2 + 1] = hexchars[p[i] & 0xF];
         }
-        obj.AddMember(rapidjson::StringRef(key), rapidjson::Value(hex.c_str(), (rapidjson::SizeType)hex.size(), alloc), alloc);
+        obj.AddMember(
+            rapidjson::StringRef(key),
+            rapidjson::Value(hex.c_str(), (rapidjson::SizeType)hex.size(), alloc),
+            alloc
+        );
         obj.AddMember("bytesTruncated", size > JSON_TRACE_MAX_BYTES, alloc);
     }
 
@@ -537,7 +541,11 @@ namespace {
                         }
                     } else {
                         LOG_DEBUG(
-                            "Load asset {} (0x{:x}) {} / {}", assType, (int)asset.type, i, gcx.assetList.assetCount
+                            "Load asset {} (0x{:x}) {} / {}",
+                            assType,
+                            (int)asset.type,
+                            i,
+                            gcx.assetList.assetCount
                         );
                     }
 
