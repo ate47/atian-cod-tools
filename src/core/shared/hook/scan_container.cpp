@@ -94,20 +94,33 @@ namespace hook::scan_container {
         anyUpdate = false;
     }
 
-    std::vector<hook::library::ScanResult> ScanContainer::Scan(const char* path, const char* name) {
+    ResultValue& ScanContainer::GetCached(const char* path) {
         Sync();
-        ResultValue& val{ results[hash::Hash64(path)] };
+        return results[hash::Hash64(path)];
+    }
+
+    std::vector<hook::library::ScanResult>
+    ScanContainer::ScanCached(ResultValue& val, const char* path, const char* name) {
+        if (!val.loaded) {
+            return {};
+        }
+
+        std::vector<hook::library::ScanResult> res{};
+        LOG_TRACE("ScanContainer: Use cached {} ({}/{} res)", path, name ? name : "no name", val.res.size());
+        if (val.res.size())
+            LOG_TRACE("ScanContainer: Value: {}:0x{:x}", lib, val.res[0]);
+        res.reserve(val.res.size());
+        for (uint32_t rva : val.res) {
+            res.emplace_back((byte*)lib[rva], logger ? logger->AllocEntry(name) : nullptr);
+        }
+        return res;
+    }
+
+    std::vector<hook::library::ScanResult> ScanContainer::Scan(const char* path, const char* name) {
+        ResultValue& val{ GetCached(path) };
 
         if (val.loaded) {
-            std::vector<hook::library::ScanResult> res{};
-            LOG_TRACE("ScanContainer: Use cached {} ({}/{} res)", path, name ? name : "no name", val.res.size());
-            if (val.res.size())
-                LOG_TRACE("ScanContainer: Value: {}:0x{:x}", lib, val.res[0]);
-            res.reserve(val.res.size());
-            for (uint32_t rva : val.res) {
-                res.emplace_back((byte*)lib[rva], logger ? logger->AllocEntry(name) : nullptr);
-            }
-            return res;
+            return ScanCached(val, path, name);
         }
 
         // search value

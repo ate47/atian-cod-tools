@@ -9,6 +9,7 @@
 #include <hook/module_mapper.hpp>
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
+#include <hook/generated_scan_runtime.hpp>
 #include <utils/decrypt.hpp>
 #include <DbgHelp.h>
 #pragma comment(lib, "imagehlp.lib")
@@ -746,6 +747,7 @@ namespace {
         bool help{};
         bool allGames{};
         bool forceReload{};
+        bool noFastPreload{};
         const char* exeName{};
         const char* idcFile{};
         cli::options::CliOptions opts{};
@@ -753,6 +755,7 @@ namespace {
         opts.addOption(&exeName, "game exe", "--exec", "", "-e");
         opts.addOption(&allGames, "all games", "--all", "", "-a");
         opts.addOption(&forceReload, "force reload", "--force", "", "-f");
+        opts.addOption(&noFastPreload, "disable fast preload", "--no-preload");
         opts.addOption(&idcFile, "create idc", "--idc", " [file]", "-i");
 
         std::vector<std::string> names{};
@@ -787,7 +790,43 @@ namespace {
             }
 
             hook::scan_container::ScanContainer& scan{ mod.GetScanContainer(forceReload) };
+            core::memory_allocator::MemoryAllocator alloc{};
             game.SetScanContainer(&scan);
+            void* ref{};
+            if (!noFastPreload) {
+                std::vector<hook::generated_scan_runtime::ScanInformation> infos{};
+
+                game.ForEachScan([&ref, &game, &infos, &alloc](const char* id, const char* parent) {
+                    hook::generated_scan_runtime::ScanInformation si{};
+                    acts::game_data::ScanData sd{ game.GetScan(id, parent) };
+                    si.offset = sd.offset;
+                    si.postOffset = sd.postOffset;
+                    si.id = alloc.CloneStr(sd.name);
+                    si.scan = alloc.CloneStr(sd.path);
+                    si.single = sd.single;
+                    si.ref = &ref;
+                    switch (sd.type) {
+                    case acts::game_data::ScanType::SCT_RELATIVE:
+                        si.type = hook::generated_scan_runtime::ST_RELATIVE;
+                        break;
+                    case acts::game_data::ScanType::SCT_ABSOLUTE:
+                        si.type = hook::generated_scan_runtime::ST_ABSOLUTE;
+                        break;
+                    case acts::game_data::ScanType::SCT_GET_OFFSET32:
+                        si.type = hook::generated_scan_runtime::ST_GETOFFSET32;
+                        break;
+                    case acts::game_data::ScanType::SCT_OFFSET:
+                        si.type = hook::generated_scan_runtime::ST_OFFSET;
+                        break;
+                    default:
+                        throw std::runtime_error("Invalid scan type");
+                    }
+                    infos.emplace_back(si);
+                });
+
+                hook::generated_scan_runtime::LoadScans(scan, infos.data(), infos.size());
+            }
+
             bool err{ !game.ValidateScans() };
 
             if (err) {

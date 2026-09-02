@@ -54,6 +54,13 @@ namespace acts::game_data {
         // Get name
         const char* GetName() const { return dirname; };
 
+        // traverse all scans
+        void ForEachScan(std::function<void(const char* id, const char* parent)> func);
+        // traverse all scans
+        void ForEachSubScan(
+            const char* id, std::function<void(const char* id, const char* parent)> func,
+            const char* parent = BASE_PARENT
+        );
         // validate all scans
         bool ValidateScans();
         // validate a scan

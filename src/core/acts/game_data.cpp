@@ -178,6 +178,55 @@ namespace acts::game_data {
             Nulled(k.GetString(), parent.data());
         }
     }
+    void GameData::ForEachSubScan(
+        const char* id, std::function<void(const char* id, const char* parent)> func, const char* parent
+    ) {
+        const char* type{ cfg.GetCString(std::format("{}.{}.type", parent, id)) };
+
+        if (type && !_strcmpi(type, "Group")) {
+            // group, we go deeper
+            std::string base{ std::format("{}.{}", parent, id) };
+            rapidjson::Value& group{ cfg.GetVal(base.data(), 0, cfg.main) };
+            if (group.IsObject()) {
+                for (auto& [k, v] : group.GetObj()) {
+                    const char* key{ k.GetString() };
+                    if (!_strcmpi(key, "type") || !_strcmpi(key, "__comment__")) {
+                        continue;
+                    }
+                    ForEachSubScan(k.GetString(), func, base.data());
+                }
+            }
+            return;
+        }
+
+        func(id, parent);
+    }
+
+    void GameData::ForEachScan(std::function<void(const char* id, const char* parent)> func) {
+        {
+            rapidjson::Value& scansVal{ cfg.GetVal(BASE_PARENT, 0, cfg.main) };
+            if (scansVal.IsObject()) {
+                for (auto& [k, v] : scansVal.GetObj()) {
+                    ForEachSubScan(k.GetString(), func, BASE_PARENT);
+                }
+            }
+        }
+        rapidjson::Value& nullscans{ cfg.GetVal("nullscans", 0, cfg.main) };
+        if (nullscans.IsObject()) {
+            for (auto& [k, v] : nullscans.GetObj()) {
+                const char* parent{ k.GetString() };
+                std::string base{ std::format("nullscans.{}", parent) };
+
+                rapidjson::Value& scansVal{ cfg.GetVal(base.data(), 0, cfg.main) };
+                if (scansVal.IsObject()) {
+                    for (auto& [k, v] : scansVal.GetObj()) {
+                        ForEachSubScan(k.GetString(), func, base.data());
+                    }
+                }
+            }
+        }
+    }
+
     void GameData::ValidateScan(const char* id, const char* parent) {
         const char* type{ cfg.GetCString(std::format("{}.{}.type", parent, id)) };
 

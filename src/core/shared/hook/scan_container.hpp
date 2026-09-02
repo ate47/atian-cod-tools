@@ -44,6 +44,8 @@ namespace hook::scan_container {
         void Sync(bool force = false);
         void Save();
 
+        ResultValue& GetCached(const char* path);
+        std::vector<hook::library::ScanResult> ScanCached(ResultValue& val, const char* path, const char* name);
         std::vector<hook::library::ScanResult> Scan(const char* path, const char* name = nullptr);
         hook::library::ScanResult ScanSingle(const char* path, const char* name = nullptr);
         hook::library::ScanResult ScanAny(const char* path, const char* name = nullptr);
