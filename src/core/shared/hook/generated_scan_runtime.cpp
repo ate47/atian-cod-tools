@@ -130,8 +130,10 @@ namespace hook::generated_scan_runtime {
                         }
                     }
                     if (match) {
-                        msc->res->res.emplace_back((uint32_t)((current + off - msc->delta) -
-                                                              scan.GetLibrary().Get<uint8_t>(0)));
+                        uint32_t rva{ (uint32_t)((current + off - msc->delta) - scan.GetLibrary().Get<uint8_t>(0)) };
+                        if (std::find(msc->res->res.begin(), msc->res->res.end(), rva) == msc->res->res.end()) {
+                            msc->res->res.emplace_back(rva);
+                        }
                     }
                 }
 
@@ -144,8 +146,10 @@ namespace hook::generated_scan_runtime {
                         }
                     }
                     if (match) {
-                        msc->res->res.emplace_back((uint32_t)((current + off - msc->delta) -
-                                                              scan.GetLibrary().Get<uint8_t>(0)));
+                        uint32_t rva{ (uint32_t)((current + off - msc->delta) - scan.GetLibrary().Get<uint8_t>(0)) };
+                        if (std::find(msc->res->res.begin(), msc->res->res.end(), rva) == msc->res->res.end()) {
+                            msc->res->res.emplace_back(rva);
+                        }
                     }
                 };
             }
