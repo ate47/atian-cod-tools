@@ -16,44 +16,44 @@ std::span<const char*> GetCommonFastFiles() {
 // refs
 
 // DB_AllocStreamPos
-hook::refs::Ref<void> DB_AllocStreamPos{ nullptr };
+hook::refs::Ref<> DB_AllocStreamPos{};
 // DB_ConvertOffsetToAlias
-hook::refs::Ref<void> DB_ConvertOffsetToAlias{ nullptr };
+hook::refs::Ref<> DB_ConvertOffsetToAlias{};
 // DB_ConvertOffsetToPointer
-hook::refs::Ref<void> DB_ConvertOffsetToPointer{ nullptr };
+hook::refs::Ref<> DB_ConvertOffsetToPointer{};
 // DB_GetXAssetName
-hook::refs::Ref<void> DB_GetXAssetName{ nullptr };
+hook::refs::Ref<> DB_GetXAssetName{};
 // DB_IncStreamPos
-hook::refs::Ref<void> DB_IncStreamPos{ nullptr };
+hook::refs::Ref<> DB_IncStreamPos{};
 // DB_InitStreams
-hook::refs::Ref<void> DB_InitStreams{ nullptr };
+hook::refs::Ref<> DB_InitStreams{};
 // DB_InsertPointer
-hook::refs::Ref<void> DB_InsertPointer{ nullptr };
+hook::refs::Ref<> DB_InsertPointer{};
 // DB_LinkXAssetEntry
-hook::refs::Ref<void> DB_LinkXAssetEntry{ nullptr };
+hook::refs::Ref<> DB_LinkXAssetEntry{};
 // DB_PopStreamPos
-hook::refs::Ref<void> DB_PopStreamPos{ nullptr };
+hook::refs::Ref<> DB_PopStreamPos{};
 // DB_PushStreamPos
-hook::refs::Ref<void> DB_PushStreamPos{ nullptr };
+hook::refs::Ref<> DB_PushStreamPos{};
 // Load_ScriptStringList
-hook::refs::Ref<void> Load_ScriptStringList{ nullptr };
+hook::refs::Ref<> Load_ScriptStringList{};
 // Load_SimpleAsset_Internal
-hook::refs::Ref<void> Load_SimpleAsset_Internal{ nullptr };
+hook::refs::Ref<> Load_SimpleAsset_Internal{};
 // Load_Stream
-hook::refs::Ref<void> Load_Stream{ nullptr };
+hook::refs::Ref<> Load_Stream{};
 // Load_XAsset
-hook::refs::Ref<void> Load_XAsset{ nullptr };
+hook::refs::Ref<> Load_XAsset{};
 // Load_XStringCustom
-hook::refs::Ref<void> Load_XStringCustom{ nullptr };
+hook::refs::Ref<> Load_XStringCustom{};
 // g_streamPosIndex
-hook::refs::Ref<void> g_streamPosIndex{ nullptr };
+hook::refs::Ref<> g_streamPosIndex{};
 // varScriptStringList
-hook::refs::Ref<void> varScriptStringList{ nullptr };
+hook::refs::Ref<> varScriptStringList{};
 // varXAsset
-hook::refs::Ref<void> varXAsset{ nullptr };
+hook::refs::Ref<> varXAsset{};
 
 // mz_zip_reader_init
-hook::refs::Ref<void> mz_zip_reader_init{ nullptr };
+hook::refs::Ref<> mz_zip_reader_init{};
 
 constinit static hook::generated_scan_runtime::ScanInformation scans[] { 
     {
@@ -63,6 +63,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&DB_AllocStreamPos.ptr
     },
     {
@@ -72,6 +73,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&DB_ConvertOffsetToAlias.ptr
     },
     {
@@ -81,6 +83,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_ConvertOffsetToPointer.ptr
     },
     {
@@ -90,6 +93,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_GetXAssetName.ptr
     },
     {
@@ -99,6 +103,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_IncStreamPos.ptr
     },
     {
@@ -108,6 +113,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_InitStreams.ptr
     },
     {
@@ -117,6 +123,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&DB_InsertPointer.ptr
     },
     {
@@ -126,6 +133,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_LinkXAssetEntry.ptr
     },
     {
@@ -135,6 +143,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&DB_PopStreamPos.ptr
     },
     {
@@ -144,6 +153,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&DB_PushStreamPos.ptr
     },
     {
@@ -153,6 +163,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 8,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Load_ScriptStringList.ptr
     },
     {
@@ -162,6 +173,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 6,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&Load_SimpleAsset_Internal.ptr
     },
     {
@@ -171,6 +183,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&Load_Stream.ptr
     },
     {
@@ -180,6 +193,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 8,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Load_XAsset.ptr
     },
     {
@@ -189,6 +203,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Load_XStringCustom.ptr
     },
     {
@@ -198,6 +213,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 2,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&g_streamPosIndex.ptr
     },
     {
@@ -207,6 +223,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&varScriptStringList.ptr
     },
     {
@@ -216,6 +233,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&varXAsset.ptr
     },
     {
@@ -225,6 +243,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&mz_zip_reader_init.ptr
     },
 };

@@ -337,14 +337,16 @@ namespace platform {
 
     void* GetFunctionAddress(void* mod, const char* name) { return GetProcAddress((HMODULE)mod, name); }
 
-    void WriteMemSafe(void* dest, void* src, size_t len) {
+    void WriteMemSafe(void* dest, const void* src, size_t len) {
         DWORD old = 0;
-        VirtualProtect(dest, len, PAGE_EXECUTE_READWRITE, &old);
+        if (VirtualProtect(dest, len, PAGE_EXECUTE_READWRITE, &old)) {
+            memcpy(dest, src, len);
 
-        memcpy(dest, src, len);
-
-        VirtualProtect(dest, len, old, &old);
-        FlushInstructionCache(GetCurrentProcess(), dest, len);
+            VirtualProtect(dest, len, old, &old);
+            FlushInstructionCache(GetCurrentProcess(), dest, len);
+        } else {
+            LOG_WARNING("Failed to write {}", dest);
+        }
     }
 
     namespace {

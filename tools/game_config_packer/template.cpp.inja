@@ -9,10 +9,10 @@ std::span<const char*> GetCommonFastFiles() {
 }
 {% endif %}
 // refs{% for key, value in scans %}{% if existsIn(value, "type") %}{% if existsIn(value, "scan") %}
-hook::refs::Ref<{% if existsIn(value, "reftype") %}{{ value.reftype }}{% else %}void{% endif %}> {{ key }}{ nullptr };{% else if value.type == "Group" %}
+hook::refs::{% if existsIn(value, "multiple") and value.multiple %}MultiRef{% else %}Ref{% endif %}<{% if existsIn(value, "reftype") %}{{ value.reftype }}{% endif %}> {{ key }}{};{% else if value.type == "Group" %}
 {% for gkey, gvalue in value %}{% if existsIn(gvalue, "type") and existsIn(gvalue, "scan") %}
 // {{ gkey }}
-hook::refs::Ref<{% if existsIn(gvalue, "reftype") %}{{ gvalue.reftype }}{% else %}void{% endif %}> {{ gkey }}{ nullptr };{% endif %}{% endfor %}{% else %}
+hook::refs::{% if existsIn(gvalue, "multiple") and gvalue.multiple %}MultiRef{% else %}Ref{% endif %}<{% if existsIn(gvalue, "reftype") %}{{ gvalue.reftype }}{% endif %}> {{ gkey }}{};{% endif %}{% endfor %}{% else %}
 // missing scan or type for {{ key }}{% endif %}{% else %}
 // missing type for {{ key }}{% endif %}{% endfor %}
 
@@ -24,7 +24,8 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] { {% for 
         .offset = {% if existsIn(value, "offset") %}{{ value.offset }}{% else %}0{% endif %},
         .postOffset = {% if existsIn(value, "postOffset") %}{{ value.postOffset }}{% else %}0{% endif %},
         .single = {% if existsIn(value, "single") %}{{ value.single }}{% else %}false{% endif %},
-        .ref = (void**)&{{ key }}.ptr
+        .multiple = {% if existsIn(value, "multiple") %}{{ value.multiple }}{% else %}false{% endif %},
+        .ref = (void**)&{{ key }}.{% if existsIn(value, "multiple") and value.multiple %}ptrs{% else %}ptr{% endif %}
     },{% else if value.type == "Group" %}{% for gkey, gvalue in value %}{% if existsIn(gvalue, "type") and existsIn(gvalue, "scan") %}
     {
         .id = "{{ key }}.{{ gkey }}",
@@ -33,7 +34,8 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] { {% for 
         .offset = {% if existsIn(gvalue, "offset") %}{{ gvalue.offset }}{% else %}0{% endif %},
         .postOffset = {% if existsIn(gvalue, "postOffset") %}{{ gvalue.postOffset }}{% else %}0{% endif %},
         .single = {% if existsIn(gvalue, "single") %}{{ gvalue.single }}{% else %}false{% endif %},
-        .ref = (void**)&{{ gkey }}.ptr
+        .multiple = {% if existsIn(gvalue, "multiple") %}{{ gvalue.multiple }}{% else %}false{% endif %},
+        .ref = (void**)&{{ gkey }}.{% if existsIn(gvalue, "multiple") and gvalue.multiple %}ptrs{% else %}ptr{% endif %}
     },{% endif %}{% endfor %}{% endif %}{% endif %}{% endfor %}
 };
 

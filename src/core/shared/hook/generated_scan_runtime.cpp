@@ -15,31 +15,42 @@ namespace hook::generated_scan_runtime {
 
     static void LoadScanOffset(ScanInformation& info, hook::scan_container::ScanContainer& scan) {
         if (info.type == ST_OFFSET) {
+            void* ref;
             if (info.scan[0] == '0' && info.scan[1] == 'x') {
-                *info.ref = scan.GetLibrary()[std::strtoull(&info.scan[2], nullptr, 16)];
+                ref = scan.GetLibrary()[std::strtoull(&info.scan[2], nullptr, 16)];
             } else {
-                *info.ref = scan.GetLibrary()[std::strtoull(info.scan, nullptr, 10)];
+                ref = scan.GetLibrary()[std::strtoull(info.scan, nullptr, 10)];
+            }
+            if (info.multiple) {
+                ((std::vector<void*>*)info.ref)->push_back(ref);
+            } else {
+                *info.ref = ref;
             }
         } else {
             throw std::runtime_error("Invalid LoadScanOffset type");
         }
     }
 
-    static void
-    LoadScanResult(ScanInformation& info, hook::library::ScanResult& res, hook::scan_container::ScanContainer& scan) {
+    static void*
+    GetScanResult(ScanInformation& info, hook::library::ScanResult& res, hook::scan_container::ScanContainer& scan) {
         switch (info.type) {
         case ST_RELATIVE:
-            *info.ref = res.GetRelative<int32_t, byte*>(info.offset, info.postOffset);
-            break;
+            return res.GetRelative<int32_t, byte*>(info.offset, info.postOffset);
         case ST_ABSOLUTE:
-            *info.ref = res.GetPtr<byte*>(info.offset) + info.postOffset;
-            break;
+            return res.GetPtr<byte*>(info.offset) + info.postOffset;
         case ST_GETOFFSET32:
-            *info.ref = scan.GetLibrary()[res.Get<uint32_t>(info.offset) + info.postOffset];
-            break;
+            return scan.GetLibrary()[res.Get<uint32_t>(info.offset) + info.postOffset];
         default:
             throw std::runtime_error("Invalid LoadScanResult type");
-            break;
+        }
+    }
+
+    static void LoadScanResultAll(
+        std::vector<void*>& out, ScanInformation& info, std::vector<hook::library::ScanResult>& ress,
+        hook::scan_container::ScanContainer& scan
+    ) {
+        for (hook::library::ScanResult& res : ress) {
+            out.push_back(GetScanResult(info, res, scan));
         }
     }
 
@@ -68,18 +79,18 @@ namespace hook::generated_scan_runtime {
                 // load existing scan
                 std::vector<hook::library::ScanResult> res{ scan.ScanCached(cached, si.scan, si.id) };
 
-                if (res.empty()) {
+                if (si.multiple) {
+                    LoadScanResultAll(*(std::vector<void*>*)si.ref, si, res, scan);
+                } else if (res.empty()) {
                     // no result
                     anyMissing = true;
                     LOG_ERROR("Can't find {}", si.id);
-                    *si.ref = 0;
                 } else if (si.single && res.size() != 1) {
                     // too many results
                     anyMissing = true;
                     LOG_ERROR("Too many finds for {}", si.id);
-                    *si.ref = 0;
                 } else {
-                    LoadScanResult(si, res[0], scan);
+                    *si.ref = GetScanResult(si, res[0], scan);
                 }
                 continue;
             }
@@ -160,34 +171,11 @@ namespace hook::generated_scan_runtime {
 
             // now that the result is loaded, we can use it
 
-            hook::library::ScanResult res;
             ScanInformation& info{ *cscans[i].scan };
 
-            if (info.single) {
-                res = scan.ScanSingle(info.scan, info.id);
-            } else {
-                res = scan.ScanAny(info.scan, info.id);
-            }
-            LoadScanResult(info, res, scan);
-        }
-
-        scan.ignoreMissing = oldIgnoreMissing;
-
-        if (scan.foundMissing && !oldIgnoreMissing) {
-            throw std::runtime_error("Missing scans found");
-        }
-        LOG_TRACE("Loaded {} scans", count);
-    }
-
-    // old impl
-    static void LoadScansEach(hook::scan_container::ScanContainer& scan, ScanInformation* list, size_t count) {
-        bool oldIgnoreMissing{ scan.ignoreMissing };
-        scan.ignoreMissing = true;
-        for (size_t i = 0; i < count; i++) {
-            ScanInformation& info{ list[i] };
-
-            if (info.type == ST_OFFSET) {
-                LoadScanOffset(info, scan);
+            if (info.multiple) {
+                std::vector<hook::library::ScanResult> ress{ scan.Scan(info.scan, info.id) };
+                LoadScanResultAll(*(std::vector<void*>*)info.ref, info, ress, scan);
             } else {
                 hook::library::ScanResult res;
                 if (info.single) {
@@ -195,9 +183,10 @@ namespace hook::generated_scan_runtime {
                 } else {
                     res = scan.ScanAny(info.scan, info.id);
                 }
-                LoadScanResult(info, res, scan);
+                *info.ref = GetScanResult(info, res, scan);
             }
         }
+
         scan.ignoreMissing = oldIgnoreMissing;
 
         if (scan.foundMissing && !oldIgnoreMissing) {

@@ -20,309 +20,309 @@ std::span<const char*> GetCommonFastFiles() {
 // refs
 
 // Dvar_Register
-hook::refs::Ref<dvar_t*(XHash* name, const char* desc, dvarType_t type, int flags, DvarValue* value, DvarLimits* domain)> Dvar_Register{ nullptr };
+hook::refs::Ref<dvar_t*(XHash* name, const char* desc, dvarType_t type, int flags, DvarValue* value, DvarLimits* domain)> Dvar_Register{};
 // dvar_loc_language
-hook::refs::Ref<const dvar_t*> dvar_loc_language{ nullptr };
+hook::refs::Ref<const dvar_t*> dvar_loc_language{};
 // s_dvarHashTable
-hook::refs::Ref<const dvar_t* [0x400]> s_dvarHashTable{ nullptr };
+hook::refs::Ref<const dvar_t* [0x400]> s_dvarHashTable{};
 // s_dvarPool
-hook::refs::Ref<const dvar_t[0x1000]> s_dvarPool{ nullptr };
+hook::refs::Ref<const dvar_t[0x1000]> s_dvarPool{};
 
 // DB_AllocStreamPos
-hook::refs::Ref<void* (int alignment)> DB_AllocStreamPos{ nullptr };
+hook::refs::Ref<void* (int alignment)> DB_AllocStreamPos{};
 // DB_AllocXBlocks
-hook::refs::Ref<void (size_t *blockSize, const char *filename, const char *filename2, XBlock *blocks, int side, int *loaded)> DB_AllocXBlocks{ nullptr };
+hook::refs::Ref<void (size_t *blockSize, const char *filename, const char *filename2, XBlock *blocks, int side, int *loaded)> DB_AllocXBlocks{};
 // DB_AuthLoad_AnalyzeData
-hook::refs::Ref<void> DB_AuthLoad_AnalyzeData{ nullptr };
+hook::refs::Ref<> DB_AuthLoad_AnalyzeData{};
 // DB_AuthLoad_End
-hook::refs::Ref<void> DB_AuthLoad_End{ nullptr };
+hook::refs::Ref<> DB_AuthLoad_End{};
 // DB_ConvertOffsetToAlias
-hook::refs::Ref<void (void** data)> DB_ConvertOffsetToAlias{ nullptr };
+hook::refs::Ref<void (void** data)> DB_ConvertOffsetToAlias{};
 // DB_ConvertOffsetToPointer
-hook::refs::Ref<void (void** data)> DB_ConvertOffsetToPointer{ nullptr };
+hook::refs::Ref<void (void** data)> DB_ConvertOffsetToPointer{};
 // DB_DoesXAssetExist
-hook::refs::Ref<bool(XAssetType type, XHash* name)> DB_DoesXAssetExist{ nullptr };
+hook::refs::Ref<bool(XAssetType type, XHash* name)> DB_DoesXAssetExist{};
 // DB_ExpandZoneList
-hook::refs::Ref<void> DB_ExpandZoneList{ nullptr };
+hook::refs::Ref<> DB_ExpandZoneList{};
 // DB_FileExists
-hook::refs::Ref<bool(const char* file)> DB_FileExists{ nullptr };
+hook::refs::Ref<bool(const char* file)> DB_FileExists{};
 // DB_FindXAssetHeader
-hook::refs::Ref<XAssetHeader(XAssetType type, XHash* name, bool errorIfMissing, int waitTime)> DB_FindXAssetHeader{ nullptr };
+hook::refs::Ref<XAssetHeader(XAssetType type, XHash* name, bool errorIfMissing, int waitTime)> DB_FindXAssetHeader{};
 // DB_GetOffsetData
-hook::refs::Ref<void* (uint64_t ref)> DB_GetOffsetData{ nullptr };
+hook::refs::Ref<void* (uint64_t ref)> DB_GetOffsetData{};
 // DB_GetXAssetName
-hook::refs::Ref<XHash*(XHash* hash, const XAsset* asset)> DB_GetXAssetName{ nullptr };
+hook::refs::Ref<XHash*(XHash* hash, const XAsset* asset)> DB_GetXAssetName{};
 // DB_IncStreamPos
-hook::refs::Ref<void (size_t size)> DB_IncStreamPos{ nullptr };
+hook::refs::Ref<void (size_t size)> DB_IncStreamPos{};
 // DB_InitStreams
-hook::refs::Ref<void (XBlock *blocks)> DB_InitStreams{ nullptr };
+hook::refs::Ref<void (XBlock *blocks)> DB_InitStreams{};
 // DB_InsertPointer
-hook::refs::Ref<const void** ()> DB_InsertPointer{ nullptr };
+hook::refs::Ref<const void** ()> DB_InsertPointer{};
 // DB_Is4KEnabled
-hook::refs::Ref<bool()> DB_Is4KEnabled{ nullptr };
+hook::refs::Ref<bool()> DB_Is4KEnabled{};
 // DB_LinkXAssetEntry
-hook::refs::Ref<XAssetEntryPoolEntry* (XAsset *newEntry, bool allowOverride)> DB_LinkXAssetEntry{ nullptr };
+hook::refs::Ref<XAssetEntryPoolEntry* (XAsset *newEntry, bool allowOverride)> DB_LinkXAssetEntry{};
 // DB_LoadXAssets
-hook::refs::Ref<void> DB_LoadXAssets{ nullptr };
+hook::refs::Ref<> DB_LoadXAssets{};
 // DB_LoadXFile
-hook::refs::Ref<void> DB_LoadXFile{ nullptr };
+hook::refs::Ref<> DB_LoadXFile{};
 // DB_LoadXFileData
-hook::refs::Ref<void (byte *pos, int size)> DB_LoadXFileData{ nullptr };
+hook::refs::Ref<void (byte *pos, int size)> DB_LoadXFileData{};
 // DB_PopStreamPos
-hook::refs::Ref<void ()> DB_PopStreamPos{ nullptr };
+hook::refs::Ref<void ()> DB_PopStreamPos{};
 // DB_PushStreamPos
-hook::refs::Ref<void (int index)> DB_PushStreamPos{ nullptr };
+hook::refs::Ref<void (int index)> DB_PushStreamPos{};
 // DB_ValidateFileHeader
-hook::refs::Ref<void> DB_ValidateFileHeader{ nullptr };
+hook::refs::Ref<> DB_ValidateFileHeader{};
 // Load_Stream
-hook::refs::Ref<bool (bool atStreamStart, void *ptr, size_t size)> Load_Stream{ nullptr };
+hook::refs::Ref<bool (bool atStreamStart, void *ptr, size_t size)> Load_Stream{};
 // Load_XAsset
-hook::refs::Ref<void (bool atStreamStart, XAsset *asset)> Load_XAsset{ nullptr };
+hook::refs::Ref<void (bool atStreamStart, XAsset *asset)> Load_XAsset{};
 // Load_XHash
-hook::refs::Ref<void (XHash* hash)> Load_XHash{ nullptr };
+hook::refs::Ref<void (XHash* hash)> Load_XHash{};
 // Load_XStringCustom
-hook::refs::Ref<void (const char** str)> Load_XStringCustom{ nullptr };
+hook::refs::Ref<void (const char** str)> Load_XStringCustom{};
 // Stream_OpenFileInternal
-hook::refs::Ref<void> Stream_OpenFileInternal{ nullptr };
+hook::refs::Ref<> Stream_OpenFileInternal{};
 // s_assetPools
-hook::refs::Ref<XAssetPool> s_assetPools{ nullptr };
+hook::refs::Ref<XAssetPool> s_assetPools{};
 
 // Stream_CloseFile
-hook::refs::Ref<void(int32_t fileid)> Stream_CloseFile{ nullptr };
+hook::refs::Ref<void(int32_t fileid)> Stream_CloseFile{};
 // Stream_OpenFile49
-hook::refs::Ref<int32_t(const char* file)> Stream_OpenFile49{ nullptr };
+hook::refs::Ref<int32_t(const char* file)> Stream_OpenFile49{};
 
 // ScrStr_ConvertToString
-hook::refs::Ref<const char*(ScrVarIndex_t index)> ScrStr_ConvertToString{ nullptr };
+hook::refs::Ref<const char*(ScrVarIndex_t index)> ScrStr_ConvertToString{};
 // ScrVar_NewVariableByIndex
-hook::refs::Ref<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId, ScrVarNameIndex_t index)> ScrVar_NewVariableByIndex{ nullptr };
+hook::refs::Ref<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId, ScrVarNameIndex_t index)> ScrVar_NewVariableByIndex{};
 // ScrVar_PushArray
-hook::refs::Ref<void(scriptInstance_t inst)> ScrVar_PushArray{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst)> ScrVar_PushArray{};
 // ScrVar_SetValue
-hook::refs::Ref<void(scriptInstance_t inst, ScrVarIndex_t id, ScrVarValue_t* value)> ScrVar_SetValue{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, ScrVarIndex_t id, ScrVarValue_t* value)> ScrVar_SetValue{};
 // ScrVm_AddAPIFunction
-hook::refs::Ref<void(scriptInstance_t inst, void* func)> ScrVm_AddAPIFunction{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, void* func)> ScrVm_AddAPIFunction{};
 // ScrVm_AddBool
-hook::refs::Ref<void(scriptInstance_t inst, int value)> ScrVm_AddBool{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, int value)> ScrVm_AddBool{};
 // ScrVm_AddConstString
-hook::refs::Ref<void(scriptInstance_t inst, ScrString_t value)> ScrVm_AddConstString{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, ScrString_t value)> ScrVm_AddConstString{};
 // ScrVm_AddEntityNum
-hook::refs::Ref<void(scriptInstance_t inst, EntRefUnion value, ClassNum classNum, LocalClientNum_t num)> ScrVm_AddEntityNum{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, EntRefUnion value, ClassNum classNum, LocalClientNum_t num)> ScrVm_AddEntityNum{};
 // ScrVm_AddFloat
-hook::refs::Ref<void(scriptInstance_t inst, float value)> ScrVm_AddFloat{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, float value)> ScrVm_AddFloat{};
 // ScrVm_AddHash
-hook::refs::Ref<void(scriptInstance_t inst, XHash* value)> ScrVm_AddHash{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, XHash* value)> ScrVm_AddHash{};
 // ScrVm_AddInt
-hook::refs::Ref<void(scriptInstance_t inst, int64_t value)> ScrVm_AddInt{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, int64_t value)> ScrVm_AddInt{};
 // ScrVm_AddScriptFunction
-hook::refs::Ref<void(scriptInstance_t inst, byte* codePos)> ScrVm_AddScriptFunction{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, byte* codePos)> ScrVm_AddScriptFunction{};
 // ScrVm_AddString
-hook::refs::Ref<void(scriptInstance_t inst, const char *value)> ScrVm_AddString{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, const char *value)> ScrVm_AddString{};
 // ScrVm_AddStruct
-hook::refs::Ref<uint32_t(scriptInstance_t inst)> ScrVm_AddStruct{ nullptr };
+hook::refs::Ref<uint32_t(scriptInstance_t inst)> ScrVm_AddStruct{};
 // ScrVm_AddToArray
-hook::refs::Ref<void(scriptInstance_t inst)> ScrVm_AddToArray{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst)> ScrVm_AddToArray{};
 // ScrVm_AddToArrayStringIndexed
-hook::refs::Ref<void(scriptInstance_t inst, XHash* name)> ScrVm_AddToArrayStringIndexed{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, XHash* name)> ScrVm_AddToArrayStringIndexed{};
 // ScrVm_AddUndefined
-hook::refs::Ref<void(scriptInstance_t inst)> ScrVm_AddUndefined{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst)> ScrVm_AddUndefined{};
 // ScrVm_AddVector
-hook::refs::Ref<void(scriptInstance_t inst, vec3_t* vec)> ScrVm_AddVector{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, vec3_t* vec)> ScrVm_AddVector{};
 // ScrVm_GetBool
-hook::refs::Ref<bool(scriptInstance_t inst, unsigned int index)> ScrVm_GetBool{ nullptr };
+hook::refs::Ref<bool(scriptInstance_t inst, unsigned int index)> ScrVm_GetBool{};
 // ScrVm_GetConstString
-hook::refs::Ref<ScrVarIndex_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetConstString{ nullptr };
+hook::refs::Ref<ScrVarIndex_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetConstString{};
 // ScrVm_GetEntityRef
-hook::refs::Ref<scr_entref_t*(scr_entref_t* ent, scriptInstance_t inst, unsigned int index)> ScrVm_GetEntityRef{ nullptr };
+hook::refs::Ref<scr_entref_t*(scr_entref_t* ent, scriptInstance_t inst, unsigned int index)> ScrVm_GetEntityRef{};
 // ScrVm_GetFloat
-hook::refs::Ref<float(scriptInstance_t inst, unsigned int index)> ScrVm_GetFloat{ nullptr };
+hook::refs::Ref<float(scriptInstance_t inst, unsigned int index)> ScrVm_GetFloat{};
 // ScrVm_GetHash
-hook::refs::Ref<XHash*(XHash* hash, scriptInstance_t inst, unsigned int index)> ScrVm_GetHash{ nullptr };
+hook::refs::Ref<XHash*(XHash* hash, scriptInstance_t inst, unsigned int index)> ScrVm_GetHash{};
 // ScrVm_GetInt
-hook::refs::Ref<int64_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetInt{ nullptr };
+hook::refs::Ref<int64_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetInt{};
 // ScrVm_GetNumParam
-hook::refs::Ref<uint32_t(scriptInstance_t inst)> ScrVm_GetNumParam{ nullptr };
+hook::refs::Ref<uint32_t(scriptInstance_t inst)> ScrVm_GetNumParam{};
 // ScrVm_GetPointerType
-hook::refs::Ref<ScrVarType_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetPointerType{ nullptr };
+hook::refs::Ref<ScrVarType_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetPointerType{};
 // ScrVm_GetString
-hook::refs::Ref<const char*(scriptInstance_t inst, unsigned int index)> ScrVm_GetString{ nullptr };
+hook::refs::Ref<const char*(scriptInstance_t inst, unsigned int index)> ScrVm_GetString{};
 // ScrVm_GetType
-hook::refs::Ref<ScrVarType_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetType{ nullptr };
+hook::refs::Ref<ScrVarType_t(scriptInstance_t inst, unsigned int index)> ScrVm_GetType{};
 // ScrVm_GetValue
-hook::refs::Ref<ScrVarValue_t*(scriptInstance_t inst, unsigned int index)> ScrVm_GetValue{ nullptr };
+hook::refs::Ref<ScrVarValue_t*(scriptInstance_t inst, unsigned int index)> ScrVm_GetValue{};
 // ScrVm_GetVector
-hook::refs::Ref<void(scriptInstance_t inst, unsigned int index, vec3_t* vector)> ScrVm_GetVector{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, unsigned int index, vec3_t* vector)> ScrVm_GetVector{};
 // ScrVm_SetStructField
-hook::refs::Ref<void(scriptInstance_t inst, uint32_t structId, uint32_t name)> ScrVm_SetStructField{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, uint32_t structId, uint32_t name)> ScrVm_SetStructField{};
 
 // CScr_GetFunction
-hook::refs::Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetFunction{ nullptr };
+hook::refs::Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetFunction{};
 // CScr_GetFunctionReverseLookup
-hook::refs::Ref<bool(byte* func, uint32_t* name, bool* isFunction)> CScr_GetFunctionReverseLookup{ nullptr };
+hook::refs::Ref<bool(byte* func, uint32_t* name, bool* isFunction)> CScr_GetFunctionReverseLookup{};
 // CScr_GetMethod
-hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetMethod{ nullptr };
+hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> CScr_GetMethod{};
 // GscObjResolve
-hook::refs::Ref<int(scriptInstance_t inst, GSC_OBJ *prime_obj)> GscObjResolve{ nullptr };
+hook::refs::Ref<int(scriptInstance_t inst, GSC_OBJ *prime_obj)> GscObjResolve{};
 // SL_GetStringOfSize
-hook::refs::Ref<ScrString_t(const char* str, unsigned int user, ScrStringType type, bool decrypt)> SL_GetStringOfSize{ nullptr };
+hook::refs::Ref<ScrString_t(const char* str, unsigned int user, ScrStringType type, bool decrypt)> SL_GetStringOfSize{};
 // SL_TransferRefToUser
-hook::refs::Ref<void(ScrString_t stringValue, unsigned int user)> SL_TransferRefToUser{ nullptr };
+hook::refs::Ref<void(ScrString_t stringValue, unsigned int user)> SL_TransferRefToUser{};
 // ScrEvent_FireCallbackEventEnt
-hook::refs::Ref<void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)> ScrEvent_FireCallbackEventEnt{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, uint32_t stringValue, int entnum, bool is_params)> ScrEvent_FireCallbackEventEnt{};
 // ScrVar_AddClassFields
-hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)> ScrVar_AddClassFields{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum, uint32_t canonId, int32_t offset)> ScrVar_AddClassFields{};
 // ScrVar_InitClassMap
-hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum)> ScrVar_InitClassMap{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, ClassNum classnum)> ScrVar_InitClassMap{};
 // ScrVm_Error
-hook::refs::Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error{ nullptr };
+hook::refs::Ref<void(uint64_t code, scriptInstance_t inst, char* unused, bool terminal)> ScrVm_Error{};
 // Scr_ConstructMessageString
-hook::refs::Ref<void(scriptInstance_t inst, MessageString* string, signed int startIndex, int endIndex)> Scr_ConstructMessageString{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, MessageString* string, signed int startIndex, int endIndex)> Scr_ConstructMessageString{};
 // Scr_GetFunction
-hook::refs::Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetFunction{ nullptr };
+hook::refs::Ref<BuiltinFunction(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetFunction{};
 // Scr_GetFunctionReverseLookup
-hook::refs::Ref<bool(byte* func, uint32_t* name, bool* isFunction)> Scr_GetFunctionReverseLookup{ nullptr };
+hook::refs::Ref<bool(byte* func, uint32_t* name, bool* isFunction)> Scr_GetFunctionReverseLookup{};
 // Scr_GetGenericField
-hook::refs::Ref<void(scriptInstance_t inst, const byte* b, fieldtype_t type, int ofs)> Scr_GetGenericField{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, const byte* b, fieldtype_t type, int ofs)> Scr_GetGenericField{};
 // Scr_GetGscExportInfo
-hook::refs::Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, byte* codepos, const char** scriptname, int32_t* sloc, int32_t* crc, int32_t* vm)> Scr_GetGscExportInfo{};
 // Scr_GetMethod
-hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetMethod{ nullptr };
+hook::refs::Ref<void*(uint32_t canonId, int* type, int* min_args, int* max_args)> Scr_GetMethod{};
 // Scr_GetObjectField
-hook::refs::Ref<void(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_GetObjectField{ nullptr };
+hook::refs::Ref<void(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_GetObjectField{};
 // Scr_GscLink
-hook::refs::Ref<void (scriptInstance_t inst, XHash* filename, bool runScript)> Scr_GscLink{ nullptr };
+hook::refs::Ref<void (scriptInstance_t inst, XHash* filename, bool runScript)> Scr_GscLink{};
 // Scr_ResetLinkInfo
-hook::refs::Ref<void(scriptInstance_t inst)> Scr_ResetLinkInfo{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst)> Scr_ResetLinkInfo{};
 // Scr_SetGenericField
-hook::refs::Ref<void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)> Scr_SetGenericField{ nullptr };
+hook::refs::Ref<void(scriptInstance_t inst, byte* b, fieldtype_t type, int ofs)> Scr_SetGenericField{};
 // Scr_SetObjectField
-hook::refs::Ref<bool(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_SetObjectField{ nullptr };
+hook::refs::Ref<bool(ClassNum classnum, EntRefUnion entRefUnion, uint32_t offset)> Scr_SetObjectField{};
 
 // gObjFileInfo
-hook::refs::Ref<objFileInfo_t[scriptInstance_t::SI_COUNT][650]> gObjFileInfo{ nullptr };
+hook::refs::Ref<objFileInfo_t[scriptInstance_t::SI_COUNT][650]> gObjFileInfo{};
 // gObjFileInfoCount
-hook::refs::Ref<uint32_t> gObjFileInfoCount{ nullptr };
+hook::refs::Ref<uint32_t> gObjFileInfoCount{};
 // gVmOpJumpTable
-hook::refs::Ref<VM_OP_FUNC> gVmOpJumpTable{ nullptr };
+hook::refs::Ref<VM_OP_FUNC> gVmOpJumpTable{};
 // gVmOpJumpTableError
-hook::refs::Ref<VM_OP_ERR_FUNC> gVmOpJumpTableError{ nullptr };
+hook::refs::Ref<VM_OP_ERR_FUNC> gVmOpJumpTableError{};
 // gVmOpJumpTableErrorModTool
-hook::refs::Ref<VM_OP_ERR_FUNC> gVmOpJumpTableErrorModTool{ nullptr };
+hook::refs::Ref<VM_OP_ERR_FUNC> gVmOpJumpTableErrorModTool{};
 // gVmOpJumpTableModTool
-hook::refs::Ref<VM_OP_FUNC> gVmOpJumpTableModTool{ nullptr };
+hook::refs::Ref<VM_OP_FUNC> gVmOpJumpTableModTool{};
 // scrVarGlob
-hook::refs::Ref<scrVarGlob_t> scrVarGlob{ nullptr };
+hook::refs::Ref<scrVarGlob_t> scrVarGlob{};
 // scrVarPub
-hook::refs::Ref<BO4_scrVarPub> scrVarPub{ nullptr };
+hook::refs::Ref<BO4_scrVarPub> scrVarPub{};
 // scrVarTypeNames
-hook::refs::Ref<const char*> scrVarTypeNames{ nullptr };
+hook::refs::Ref<const char*> scrVarTypeNames{};
 // scrVmInvalidFuncs
-hook::refs::Ref<void*> scrVmInvalidFuncs{ nullptr };
+hook::refs::Ref<void*> scrVmInvalidFuncs{};
 // scrVmPub
-hook::refs::Ref<scrVmPub_t> scrVmPub{ nullptr };
+hook::refs::Ref<scrVmPub_t> scrVmPub{};
 
 // Lua_BeginTableReadOnly
-hook::refs::Ref<void(const char* tname, lua_State* luaVM)> Lua_BeginTableReadOnly{ nullptr };
+hook::refs::Ref<void(const char* tname, lua_State* luaVM)> Lua_BeginTableReadOnly{};
 // Lua_CoD_LoadLuaFile
-hook::refs::Ref<bool(lua_State* luaVM, const char* file)> Lua_CoD_LoadLuaFile{ nullptr };
+hook::refs::Ref<bool(lua_State* luaVM, const char* file)> Lua_CoD_LoadLuaFile{};
 // Lua_CoD_RegisterEngineFunctions
-hook::refs::Ref<void(lua_State* state)> Lua_CoD_RegisterEngineFunctions{ nullptr };
+hook::refs::Ref<void(lua_State* state)> Lua_CoD_RegisterEngineFunctions{};
 // Lua_Cod_RegisterFunction
-hook::refs::Ref<void(lua_State* luaVM, XHash* name, int (*func)(lua_State* s))> Lua_Cod_RegisterFunction{ nullptr };
+hook::refs::Ref<void(lua_State* luaVM, XHash* name, int (*func)(lua_State* s))> Lua_Cod_RegisterFunction{};
 // Lua_EndTableReadOnly
-hook::refs::Ref<void(lua_State* luaVM)> Lua_EndTableReadOnly{ nullptr };
+hook::refs::Ref<void(lua_State* luaVM)> Lua_EndTableReadOnly{};
 // hks_obj_tolhash
-hook::refs::Ref<XHash*(XHash* retval, lua_State* luaVM, int idx)> hks_obj_tolhash{ nullptr };
+hook::refs::Ref<XHash*(XHash* retval, lua_State* luaVM, int idx)> hks_obj_tolhash{};
 // hks_obj_tolstring
-hook::refs::Ref<const char*(lua_State* luaVM, HksObject* obj, size_t* len)> hks_obj_tolstring{ nullptr };
+hook::refs::Ref<const char*(lua_State* luaVM, HksObject* obj, size_t* len)> hks_obj_tolstring{};
 // hks_obj_tonumber
-hook::refs::Ref<float(lua_State* luaVM, const HksObject* obj)> hks_obj_tonumber{ nullptr };
+hook::refs::Ref<float(lua_State* luaVM, const HksObject* obj)> hks_obj_tonumber{};
 // hksi_hks_error
-hook::refs::Ref<int(lua_State* s, HksError errorCode)> hksi_hks_error{ nullptr };
+hook::refs::Ref<int(lua_State* s, HksError errorCode)> hksi_hks_error{};
 // hksi_lua_getclosureinfo
-hook::refs::Ref<bool(lua_State* s, HksClosure* closure, lua_Debug* ar, const char* what)> hksi_lua_getclosureinfo{ nullptr };
+hook::refs::Ref<bool(lua_State* s, HksClosure* closure, lua_Debug* ar, const char* what)> hksi_lua_getclosureinfo{};
 // hksi_lua_pushlstring
-hook::refs::Ref<void(lua_State* s, const char* str, size_t l)> hksi_lua_pushlstring{ nullptr };
+hook::refs::Ref<void(lua_State* s, const char* str, size_t l)> hksi_lua_pushlstring{};
 // hksi_lua_pushxhash
-hook::refs::Ref<void(lua_State* s, const char* str)> hksi_lua_pushxhash{ nullptr };
+hook::refs::Ref<void(lua_State* s, const char* str)> hksi_lua_pushxhash{};
 // hksi_lua_setfield
-hook::refs::Ref<void(lua_State* s, int index, const char* k)> hksi_lua_setfield{ nullptr };
+hook::refs::Ref<void(lua_State* s, int index, const char* k)> hksi_lua_setfield{};
 // hksl_loadfile
-hook::refs::Ref<int(lua_State* state, const char* filename)> hksl_loadfile{ nullptr };
+hook::refs::Ref<int(lua_State* state, const char* filename)> hksl_loadfile{};
 
 // CG_DeployServerCommand
-hook::refs::Ref<void(LocalClientNum_t localClientNum)> CG_DeployServerCommand{ nullptr };
+hook::refs::Ref<void(LocalClientNum_t localClientNum)> CG_DeployServerCommand{};
 // Cmd_AddCommandInternal
-hook::refs::Ref<void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)> Cmd_AddCommandInternal{ nullptr };
+hook::refs::Ref<void(XHash* cmdName, xcommand_t function, cmd_function_t* allocedCmd)> Cmd_AddCommandInternal{};
 // Com_Error
-hook::refs::Ref<void(uint32_t code)> Com_Error{ nullptr };
+hook::refs::Ref<void(uint32_t code)> Com_Error{};
 // SEH_GetLanguageNameAbbr
-hook::refs::Ref<const char*(int32_t lang)> SEH_GetLanguageNameAbbr{ nullptr };
+hook::refs::Ref<const char*(int32_t lang)> SEH_GetLanguageNameAbbr{};
 // SV_SendServerCommand
-hook::refs::Ref<void(client_t* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{ nullptr };
+hook::refs::Ref<void(client_t* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{};
 // ScopedCriticalSectionConstructor
-hook::refs::Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor{ nullptr };
+hook::refs::Ref<void(ScopedCriticalSection* sec, int32_t s, ScopedCriticalSectionType type)> ScopedCriticalSectionConstructor{};
 // ScopedCriticalSectionDestructor
-hook::refs::Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor{ nullptr };
+hook::refs::Ref<void(ScopedCriticalSection* sec)> ScopedCriticalSectionDestructor{};
 // ScrVm_LogCompilerError
-hook::refs::Ref<void(const char* fmt, ...)> ScrVm_LogCompilerError{ nullptr };
+hook::refs::Ref<void(const char* fmt, ...)> ScrVm_LogCompilerError{};
 // Sys_Error
-hook::refs::Ref<void(uint32_t code, const char* msg)> Sys_Error{ nullptr };
+hook::refs::Ref<void(uint32_t code, const char* msg)> Sys_Error{};
 // Sys_GetParamSafe
-hook::refs::Ref<const char*(int32_t index)> Sys_GetParamSafe{ nullptr };
+hook::refs::Ref<const char*(int32_t index)> Sys_GetParamSafe{};
 // Sys_GetTLS
-hook::refs::Ref<TLSData*()> Sys_GetTLS{ nullptr };
+hook::refs::Ref<TLSData*()> Sys_GetTLS{};
 
 // AddBaseDrawTextCmd
-hook::refs::Ref<void(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor, float padding)> AddBaseDrawTextCmd{ nullptr };
+hook::refs::Ref<void(const char* text, int maxChars, Font* font, float x, float y, float xScale, float yScale, float rotation, const vec_t* color, int style, int cursorPos, char cursor, float padding)> AddBaseDrawTextCmd{};
 // R_AddCmdBeginView
-hook::refs::Ref<void(const void* sceneDef, const void* viewParms)> R_AddCmdBeginView{ nullptr };
+hook::refs::Ref<void(const void* sceneDef, const void* viewParms)> R_AddCmdBeginView{};
 // R_AddCmdClearScreen
-hook::refs::Ref<void> R_AddCmdClearScreen{ nullptr };
+hook::refs::Ref<void> R_AddCmdClearScreen{};
 // R_AddCmdDrawEmblemLayer
-hook::refs::Ref<void(const void* emblemLayer)> R_AddCmdDrawEmblemLayer{ nullptr };
+hook::refs::Ref<void(const void* emblemLayer)> R_AddCmdDrawEmblemLayer{};
 // R_AddCmdDrawQuadPic
-hook::refs::Ref<void(const vec_t* verts, const vec_t* color, Material* material)> R_AddCmdDrawQuadPic{ nullptr };
+hook::refs::Ref<void(const vec_t* verts, const vec_t* color, Material* material)> R_AddCmdDrawQuadPic{};
 // R_AddCmdDrawQuadPicW
-hook::refs::Ref<void> R_AddCmdDrawQuadPicW{ nullptr };
+hook::refs::Ref<void> R_AddCmdDrawQuadPicW{};
 // R_AddCmdDrawStretchPic
-hook::refs::Ref<void(float x, float y, float w, float h, float s0, float t0, float s1, float t1, float* color, Material* material)> R_AddCmdDrawStretchPic{ nullptr };
+hook::refs::Ref<void(float x, float y, float w, float h, float s0, float t0, float s1, float t1, float* color, Material* material)> R_AddCmdDrawStretchPic{};
 // R_AddCmdDrawTextInSpace
-hook::refs::Ref<void(const char* text, Font* font, const vec_t* org, const vec_t* xPixelStep, const vec_t* color, const vec_t* yPixelStep)> R_AddCmdDrawTextInSpace{ nullptr };
+hook::refs::Ref<void(const char* text, Font* font, const vec_t* org, const vec_t* xPixelStep, const vec_t* color, const vec_t* yPixelStep)> R_AddCmdDrawTextInSpace{};
 // R_AddCmdDrawUIQuads
-hook::refs::Ref<void> R_AddCmdDrawUIQuads{ nullptr };
+hook::refs::Ref<void> R_AddCmdDrawUIQuads{};
 // R_AddCmdDrawUIQuadsReplaceImage
-hook::refs::Ref<void> R_AddCmdDrawUIQuadsReplaceImage{ nullptr };
+hook::refs::Ref<void> R_AddCmdDrawUIQuadsReplaceImage{};
 // R_AddCmdEndOfList
-hook::refs::Ref<void()> R_AddCmdEndOfList{ nullptr };
+hook::refs::Ref<void()> R_AddCmdEndOfList{};
 // R_AddCmdProjectionSet2D
-hook::refs::Ref<void()> R_AddCmdProjectionSet2D{ nullptr };
+hook::refs::Ref<void()> R_AddCmdProjectionSet2D{};
 // R_AddCmdProjectionSet3D
-hook::refs::Ref<void()> R_AddCmdProjectionSet3D{ nullptr };
+hook::refs::Ref<void()> R_AddCmdProjectionSet3D{};
 // R_AddCmdResolveComposite
-hook::refs::Ref<void(GfxImage* image, void* callback)> R_AddCmdResolveComposite{ nullptr };
+hook::refs::Ref<void(GfxImage* image, void* callback)> R_AddCmdResolveComposite{};
 // R_AddCmdSetImageRenderTarget
-hook::refs::Ref<void(const GfxImage* rt)> R_AddCmdSetImageRenderTarget{ nullptr };
+hook::refs::Ref<void(const GfxImage* rt)> R_AddCmdSetImageRenderTarget{};
 // R_AddCmdSetScissorValues
-hook::refs::Ref<void(bool enabled, int x, int y, int width, int height)> R_AddCmdSetScissorValues{ nullptr };
+hook::refs::Ref<void(bool enabled, int x, int y, int width, int height)> R_AddCmdSetScissorValues{};
 // R_AddCmdSetUITextureSources
-hook::refs::Ref<void(bool forceBlack)> R_AddCmdSetUITextureSources{ nullptr };
+hook::refs::Ref<void(bool forceBlack)> R_AddCmdSetUITextureSources{};
 // R_AddCmdSetViewportValues
-hook::refs::Ref<void(int x, int y, int width, int height)> R_AddCmdSetViewportValues{ nullptr };
+hook::refs::Ref<void(int x, int y, int width, int height)> R_AddCmdSetViewportValues{};
 // R_EndFrame
-hook::refs::Ref<void()> R_EndFrame{ nullptr };
+hook::refs::Ref<void()> R_EndFrame{};
 // R_TextHeight
-hook::refs::Ref<uint32_t(Font* font)> R_TextHeight{ nullptr };
+hook::refs::Ref<uint32_t(Font* font)> R_TextHeight{};
 // R_TextWidth
-hook::refs::Ref<float(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font)> R_TextWidth{ nullptr };
+hook::refs::Ref<float(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font)> R_TextWidth{};
 // ScrPlace_GetView
-hook::refs::Ref<const ScreenPlacement*(const LocalClientNum_t localClientNum)> ScrPlace_GetView{ nullptr };
+hook::refs::Ref<const ScreenPlacement*(const LocalClientNum_t localClientNum)> ScrPlace_GetView{};
 // UI_TextHeight
-hook::refs::Ref<uint32_t(Font* font, float scale)> UI_TextHeight{ nullptr };
+hook::refs::Ref<uint32_t(Font* font, float scale)> UI_TextHeight{};
 // UI_TextWidth
-hook::refs::Ref<uint32_t(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font, float scale)> UI_TextWidth{ nullptr };
+hook::refs::Ref<uint32_t(const LocalClientNum_t localClientNum, const char* text, int maxChars, Font* font, float scale)> UI_TextWidth{};
 // sharedUiInfo
-hook::refs::Ref<sharedUiInfo_t> sharedUiInfo{ nullptr };
+hook::refs::Ref<sharedUiInfo_t> sharedUiInfo{};
 
 constinit static hook::generated_scan_runtime::ScanInformation scans[] { 
     {
@@ -332,6 +332,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Dvar_Register.ptr
     },
     {
@@ -341,6 +342,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&dvar_loc_language.ptr
     },
     {
@@ -350,6 +352,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&s_dvarHashTable.ptr
     },
     {
@@ -359,6 +362,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&s_dvarPool.ptr
     },
     {
@@ -368,6 +372,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_AllocStreamPos.ptr
     },
     {
@@ -377,6 +382,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_AllocXBlocks.ptr
     },
     {
@@ -386,6 +392,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_AuthLoad_AnalyzeData.ptr
     },
     {
@@ -395,6 +402,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_AuthLoad_End.ptr
     },
     {
@@ -404,6 +412,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_ConvertOffsetToAlias.ptr
     },
     {
@@ -413,6 +422,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_ConvertOffsetToPointer.ptr
     },
     {
@@ -422,6 +432,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_DoesXAssetExist.ptr
     },
     {
@@ -431,6 +442,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_ExpandZoneList.ptr
     },
     {
@@ -440,6 +452,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_FileExists.ptr
     },
     {
@@ -449,6 +462,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_FindXAssetHeader.ptr
     },
     {
@@ -458,6 +472,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_GetOffsetData.ptr
     },
     {
@@ -467,6 +482,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_GetXAssetName.ptr
     },
     {
@@ -476,6 +492,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_IncStreamPos.ptr
     },
     {
@@ -485,6 +502,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_InitStreams.ptr
     },
     {
@@ -494,6 +512,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_InsertPointer.ptr
     },
     {
@@ -503,6 +522,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_Is4KEnabled.ptr
     },
     {
@@ -512,6 +532,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_LinkXAssetEntry.ptr
     },
     {
@@ -521,6 +542,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_LoadXAssets.ptr
     },
     {
@@ -530,6 +552,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_LoadXFile.ptr
     },
     {
@@ -539,6 +562,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_LoadXFileData.ptr
     },
     {
@@ -548,6 +572,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_PopStreamPos.ptr
     },
     {
@@ -557,6 +582,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_PushStreamPos.ptr
     },
     {
@@ -566,6 +592,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&DB_ValidateFileHeader.ptr
     },
     {
@@ -575,6 +602,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Load_Stream.ptr
     },
     {
@@ -584,6 +612,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Load_XAsset.ptr
     },
     {
@@ -593,6 +622,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 9,
         .postOffset = 0,
         .single = false,
+        .multiple = false,
         .ref = (void**)&Load_XHash.ptr
     },
     {
@@ -602,6 +632,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Load_XStringCustom.ptr
     },
     {
@@ -611,6 +642,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Stream_OpenFileInternal.ptr
     },
     {
@@ -620,6 +652,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&s_assetPools.ptr
     },
     {
@@ -629,6 +662,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Stream_CloseFile.ptr
     },
     {
@@ -638,6 +672,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Stream_OpenFile49.ptr
     },
     {
@@ -647,6 +682,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrStr_ConvertToString.ptr
     },
     {
@@ -656,6 +692,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVar_NewVariableByIndex.ptr
     },
     {
@@ -665,6 +702,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVar_PushArray.ptr
     },
     {
@@ -674,6 +712,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVar_SetValue.ptr
     },
     {
@@ -683,6 +722,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddAPIFunction.ptr
     },
     {
@@ -692,6 +732,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddBool.ptr
     },
     {
@@ -701,6 +742,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddConstString.ptr
     },
     {
@@ -710,6 +752,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddEntityNum.ptr
     },
     {
@@ -719,6 +762,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddFloat.ptr
     },
     {
@@ -728,6 +772,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddHash.ptr
     },
     {
@@ -737,6 +782,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 2,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddInt.ptr
     },
     {
@@ -746,6 +792,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddScriptFunction.ptr
     },
     {
@@ -755,6 +802,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddString.ptr
     },
     {
@@ -764,6 +812,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddStruct.ptr
     },
     {
@@ -773,6 +822,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddToArray.ptr
     },
     {
@@ -782,6 +832,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddToArrayStringIndexed.ptr
     },
     {
@@ -791,6 +842,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddUndefined.ptr
     },
     {
@@ -800,6 +852,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_AddVector.ptr
     },
     {
@@ -809,6 +862,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetBool.ptr
     },
     {
@@ -818,6 +872,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetConstString.ptr
     },
     {
@@ -827,6 +882,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetEntityRef.ptr
     },
     {
@@ -836,6 +892,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetFloat.ptr
     },
     {
@@ -845,6 +902,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetHash.ptr
     },
     {
@@ -854,6 +912,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetInt.ptr
     },
     {
@@ -863,6 +922,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetNumParam.ptr
     },
     {
@@ -872,6 +932,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetPointerType.ptr
     },
     {
@@ -881,6 +942,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetString.ptr
     },
     {
@@ -890,6 +952,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetType.ptr
     },
     {
@@ -899,6 +962,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetValue.ptr
     },
     {
@@ -908,6 +972,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_GetVector.ptr
     },
     {
@@ -917,6 +982,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_SetStructField.ptr
     },
     {
@@ -926,6 +992,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&CScr_GetFunction.ptr
     },
     {
@@ -935,6 +1002,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&CScr_GetFunctionReverseLookup.ptr
     },
     {
@@ -944,6 +1012,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&CScr_GetMethod.ptr
     },
     {
@@ -953,6 +1022,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&GscObjResolve.ptr
     },
     {
@@ -962,6 +1032,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&SL_GetStringOfSize.ptr
     },
     {
@@ -971,6 +1042,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&SL_TransferRefToUser.ptr
     },
     {
@@ -980,6 +1052,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrEvent_FireCallbackEventEnt.ptr
     },
     {
@@ -989,6 +1062,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVar_AddClassFields.ptr
     },
     {
@@ -998,6 +1072,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVar_InitClassMap.ptr
     },
     {
@@ -1007,6 +1082,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_Error.ptr
     },
     {
@@ -1016,6 +1092,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_ConstructMessageString.ptr
     },
     {
@@ -1025,6 +1102,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GetFunction.ptr
     },
     {
@@ -1034,6 +1112,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GetFunctionReverseLookup.ptr
     },
     {
@@ -1043,6 +1122,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GetGenericField.ptr
     },
     {
@@ -1052,6 +1132,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GetGscExportInfo.ptr
     },
     {
@@ -1061,6 +1142,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GetMethod.ptr
     },
     {
@@ -1070,6 +1152,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GetObjectField.ptr
     },
     {
@@ -1079,6 +1162,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_GscLink.ptr
     },
     {
@@ -1088,6 +1172,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_ResetLinkInfo.ptr
     },
     {
@@ -1097,6 +1182,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_SetGenericField.ptr
     },
     {
@@ -1106,6 +1192,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Scr_SetObjectField.ptr
     },
     {
@@ -1115,6 +1202,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&gObjFileInfo.ptr
     },
     {
@@ -1124,6 +1212,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&gObjFileInfoCount.ptr
     },
     {
@@ -1133,6 +1222,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 4,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&gVmOpJumpTable.ptr
     },
     {
@@ -1142,6 +1232,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 4,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&gVmOpJumpTableError.ptr
     },
     {
@@ -1151,6 +1242,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 4,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&gVmOpJumpTableErrorModTool.ptr
     },
     {
@@ -1160,6 +1252,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 4,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&gVmOpJumpTableModTool.ptr
     },
     {
@@ -1169,6 +1262,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&scrVarGlob.ptr
     },
     {
@@ -1178,6 +1272,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&scrVarPub.ptr
     },
     {
@@ -1187,6 +1282,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 4,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&scrVarTypeNames.ptr
     },
     {
@@ -1196,6 +1292,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 4,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&scrVmInvalidFuncs.ptr
     },
     {
@@ -1205,6 +1302,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&scrVmPub.ptr
     },
     {
@@ -1214,6 +1312,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Lua_BeginTableReadOnly.ptr
     },
     {
@@ -1223,6 +1322,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Lua_CoD_LoadLuaFile.ptr
     },
     {
@@ -1232,6 +1332,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Lua_CoD_RegisterEngineFunctions.ptr
     },
     {
@@ -1241,6 +1342,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Lua_Cod_RegisterFunction.ptr
     },
     {
@@ -1250,6 +1352,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Lua_EndTableReadOnly.ptr
     },
     {
@@ -1259,6 +1362,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hks_obj_tolhash.ptr
     },
     {
@@ -1268,6 +1372,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hks_obj_tolstring.ptr
     },
     {
@@ -1277,6 +1382,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hks_obj_tonumber.ptr
     },
     {
@@ -1286,6 +1392,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hksi_hks_error.ptr
     },
     {
@@ -1295,6 +1402,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hksi_lua_getclosureinfo.ptr
     },
     {
@@ -1304,6 +1412,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hksi_lua_pushlstring.ptr
     },
     {
@@ -1313,6 +1422,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hksi_lua_pushxhash.ptr
     },
     {
@@ -1322,6 +1432,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hksi_lua_setfield.ptr
     },
     {
@@ -1331,6 +1442,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&hksl_loadfile.ptr
     },
     {
@@ -1340,6 +1452,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&CG_DeployServerCommand.ptr
     },
     {
@@ -1349,6 +1462,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Cmd_AddCommandInternal.ptr
     },
     {
@@ -1358,6 +1472,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Com_Error.ptr
     },
     {
@@ -1367,6 +1482,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&SEH_GetLanguageNameAbbr.ptr
     },
     {
@@ -1376,6 +1492,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&SV_SendServerCommand.ptr
     },
     {
@@ -1385,6 +1502,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScopedCriticalSectionConstructor.ptr
     },
     {
@@ -1394,6 +1512,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScopedCriticalSectionDestructor.ptr
     },
     {
@@ -1403,6 +1522,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrVm_LogCompilerError.ptr
     },
     {
@@ -1412,6 +1532,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Sys_Error.ptr
     },
     {
@@ -1421,6 +1542,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Sys_GetParamSafe.ptr
     },
     {
@@ -1430,6 +1552,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&Sys_GetTLS.ptr
     },
     {
@@ -1439,6 +1562,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&AddBaseDrawTextCmd.ptr
     },
     {
@@ -1448,6 +1572,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdBeginView.ptr
     },
     {
@@ -1457,6 +1582,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdClearScreen.ptr
     },
     {
@@ -1466,6 +1592,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawEmblemLayer.ptr
     },
     {
@@ -1475,6 +1602,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawQuadPic.ptr
     },
     {
@@ -1484,6 +1612,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawQuadPicW.ptr
     },
     {
@@ -1493,6 +1622,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawStretchPic.ptr
     },
     {
@@ -1502,6 +1632,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawTextInSpace.ptr
     },
     {
@@ -1511,6 +1642,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawUIQuads.ptr
     },
     {
@@ -1520,6 +1652,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdDrawUIQuadsReplaceImage.ptr
     },
     {
@@ -1529,6 +1662,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdEndOfList.ptr
     },
     {
@@ -1538,6 +1672,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdProjectionSet2D.ptr
     },
     {
@@ -1547,6 +1682,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdProjectionSet3D.ptr
     },
     {
@@ -1556,6 +1692,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdResolveComposite.ptr
     },
     {
@@ -1565,6 +1702,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdSetImageRenderTarget.ptr
     },
     {
@@ -1574,6 +1712,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdSetScissorValues.ptr
     },
     {
@@ -1583,6 +1722,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdSetUITextureSources.ptr
     },
     {
@@ -1592,6 +1732,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_AddCmdSetViewportValues.ptr
     },
     {
@@ -1601,6 +1742,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_EndFrame.ptr
     },
     {
@@ -1610,6 +1752,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_TextHeight.ptr
     },
     {
@@ -1619,6 +1762,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&R_TextWidth.ptr
     },
     {
@@ -1628,6 +1772,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 1,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&ScrPlace_GetView.ptr
     },
     {
@@ -1637,6 +1782,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&UI_TextHeight.ptr
     },
     {
@@ -1646,6 +1792,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 0,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&UI_TextWidth.ptr
     },
     {
@@ -1655,6 +1802,7 @@ constinit static hook::generated_scan_runtime::ScanInformation scans[] {
         .offset = 3,
         .postOffset = 0,
         .single = true,
+        .multiple = false,
         .ref = (void**)&sharedUiInfo.ptr
     },
 };

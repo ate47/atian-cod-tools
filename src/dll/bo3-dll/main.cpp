@@ -78,6 +78,9 @@ namespace acts {
 
                 core::config::SaveConfig();
 
+#ifndef CI_BUILD
+                hook::error::EnableDebugDump();
+#endif
                 hook::error::EnableHeavyDump();
                 hook::error::InstallErrorHooks(true);
 

@@ -18,6 +18,7 @@ namespace hook::generated_scan_runtime {
         int offset;
         int postOffset;
         bool single;
+        bool multiple;
         void** ref;
     };
 

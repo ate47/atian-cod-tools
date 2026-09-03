@@ -9,14 +9,14 @@ constexpr const char* FIRST_ASSET_NAME = "{{ firstAssetName }}";
 // end asset name
 constexpr const char* END_ASSET_NAME = {% if exists("endAssetName") %}"{{ endAssetName }}"{% else %}nullptr{% endif %};{% endif %}{% for key, value in scans %}{% if existsIn(value, "type") %}{% if existsIn(value, "scan") %}
 // {% if existsIn(value, "__comment__") %}{{ value.__comment__ }}{% else %}{{ key }}{% endif %}
-extern hook::refs::Ref<{% if existsIn(value, "reftype") %}{{ value.reftype }}{% else %}void{% endif %}> {{ key }};{% else if value.type == "Group" %}
+extern hook::refs::{% if existsIn(value, "multiple") and value.multiple %}MultiRef{% else %}Ref{% endif %}<{% if existsIn(value, "reftype") %}{{ value.reftype }}{% endif %}> {{ key }};{% else if value.type == "Group" %}
 
 /*
  * {% if existsIn(value, "__comment__") %}{{ value.__comment__ }}{% else %}{{ key }}{% endif %}
  */
 {% for gkey, gvalue in value %}{% if existsIn(gvalue, "type") and existsIn(gvalue, "scan") %}
 // {% if existsIn(gvalue, "__comment__") %}{{ gvalue.__comment__ }}{% else %}{{ gkey }}{% endif %} ({% if existsIn(value, "__comment__") %}{{ value.__comment__ }}{% else %}{{ key }}{% endif %})
-extern hook::refs::Ref<{% if existsIn(gvalue, "reftype") %}{{ gvalue.reftype }}{% else %}void{% endif %}> {{ gkey }};{% endif %}{% endfor %}{% endif %}{% endif %}{% endfor %}
+extern hook::refs::{% if existsIn(gvalue, "multiple") and gvalue.multiple %}MultiRef{% else %}Ref{% endif %}<{% if existsIn(gvalue, "reftype") %}{{ gvalue.reftype }}{% endif %}> {{ gkey }};{% endif %}{% endfor %}{% endif %}{% endif %}{% endfor %}
 {% if exists("commonFastFiles") %}
 /*
  * @return the common fastfile names

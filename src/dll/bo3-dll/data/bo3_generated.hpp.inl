@@ -10,48 +10,48 @@ constexpr const char* MODULE_NAME = "BlackOps3_dump.exe";
  */
 
 // DB_AllocStreamPos (Fast Files)
-extern hook::refs::Ref<void> DB_AllocStreamPos;
+extern hook::refs::Ref<> DB_AllocStreamPos;
 // DB_ConvertOffsetToAlias (Fast Files)
-extern hook::refs::Ref<void> DB_ConvertOffsetToAlias;
+extern hook::refs::Ref<> DB_ConvertOffsetToAlias;
 // DB_ConvertOffsetToPointer (Fast Files)
-extern hook::refs::Ref<void> DB_ConvertOffsetToPointer;
+extern hook::refs::Ref<> DB_ConvertOffsetToPointer;
 // DB_GetXAssetName (Fast Files)
-extern hook::refs::Ref<void> DB_GetXAssetName;
+extern hook::refs::Ref<> DB_GetXAssetName;
 // DB_IncStreamPos (Fast Files)
-extern hook::refs::Ref<void> DB_IncStreamPos;
+extern hook::refs::Ref<> DB_IncStreamPos;
 // DB_InitStreams (Fast Files)
-extern hook::refs::Ref<void> DB_InitStreams;
+extern hook::refs::Ref<> DB_InitStreams;
 // DB_InsertPointer (Fast Files)
-extern hook::refs::Ref<void> DB_InsertPointer;
+extern hook::refs::Ref<> DB_InsertPointer;
 // DB_LinkXAssetEntry (Fast Files)
-extern hook::refs::Ref<void> DB_LinkXAssetEntry;
+extern hook::refs::Ref<> DB_LinkXAssetEntry;
 // DB_PopStreamPos (Fast Files)
-extern hook::refs::Ref<void> DB_PopStreamPos;
+extern hook::refs::Ref<> DB_PopStreamPos;
 // DB_PushStreamPos (Fast Files)
-extern hook::refs::Ref<void> DB_PushStreamPos;
+extern hook::refs::Ref<> DB_PushStreamPos;
 // Load_ScriptStringList (Fast Files)
-extern hook::refs::Ref<void> Load_ScriptStringList;
+extern hook::refs::Ref<> Load_ScriptStringList;
 // Load_SimpleAsset_Internal (Fast Files)
-extern hook::refs::Ref<void> Load_SimpleAsset_Internal;
+extern hook::refs::Ref<> Load_SimpleAsset_Internal;
 // Load_Stream (Fast Files)
-extern hook::refs::Ref<void> Load_Stream;
+extern hook::refs::Ref<> Load_Stream;
 // Load_XAsset (Fast Files)
-extern hook::refs::Ref<void> Load_XAsset;
+extern hook::refs::Ref<> Load_XAsset;
 // Load_XStringCustom (Fast Files)
-extern hook::refs::Ref<void> Load_XStringCustom;
+extern hook::refs::Ref<> Load_XStringCustom;
 // g_streamPosIndex (Fast Files)
-extern hook::refs::Ref<void> g_streamPosIndex;
+extern hook::refs::Ref<> g_streamPosIndex;
 // varScriptStringList (Fast Files)
-extern hook::refs::Ref<void> varScriptStringList;
+extern hook::refs::Ref<> varScriptStringList;
 // varXAsset (Fast Files)
-extern hook::refs::Ref<void> varXAsset;
+extern hook::refs::Ref<> varXAsset;
 
 /*
  * Gsc
  */
 
-// mz_zip_reader_init (Gsc)
-extern hook::refs::Ref<void> mz_zip_reader_init;
+// Init minizip reader (Gsc)
+extern hook::refs::Ref<> mz_zip_reader_init;
 
 /*
  * @return the common fastfile names

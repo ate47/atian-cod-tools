@@ -20,7 +20,7 @@ namespace hook::process {
         return ptr;
     }
 
-    void WriteMemSafe(void* dest, void* src, size_t len) { platform::WriteMemSafe(dest, src, len); }
+    void WriteMemSafe(void* dest, const void* src, size_t len) { platform::WriteMemSafe(dest, src, len); }
 
     void* LoadLib(const char* lib, int32_t flags) { return platform::LoadShared(lib, flags); }
 

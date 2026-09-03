@@ -31,9 +31,9 @@ extern hook::refs::Ref<void* (int alignment)> DB_AllocStreamPos;
 // Alloc the XBlock buffers (Fast Files)
 extern hook::refs::Ref<void (size_t *blockSize, const char *filename, const char *filename2, XBlock *blocks, int side, int *loaded)> DB_AllocXBlocks;
 // DB_AuthLoad_AnalyzeData (Fast Files)
-extern hook::refs::Ref<void> DB_AuthLoad_AnalyzeData;
+extern hook::refs::Ref<> DB_AuthLoad_AnalyzeData;
 // DB_AuthLoad_End (Fast Files)
-extern hook::refs::Ref<void> DB_AuthLoad_End;
+extern hook::refs::Ref<> DB_AuthLoad_End;
 // Convert XFile offset to alias (Fast Files)
 extern hook::refs::Ref<void (void** data)> DB_ConvertOffsetToAlias;
 // Convert XFile offset to pointer (Fast Files)
@@ -41,7 +41,7 @@ extern hook::refs::Ref<void (void** data)> DB_ConvertOffsetToPointer;
 // Test if an XAsset exists (Fast Files)
 extern hook::refs::Ref<bool(XAssetType type, XHash* name)> DB_DoesXAssetExist;
 // DB_ExpandZoneList (Fast Files)
-extern hook::refs::Ref<void> DB_ExpandZoneList;
+extern hook::refs::Ref<> DB_ExpandZoneList;
 // Does a zone file exists (Fast Files)
 extern hook::refs::Ref<bool(const char* file)> DB_FileExists;
 // Find a XAsset header (Fast Files)
@@ -61,9 +61,9 @@ extern hook::refs::Ref<bool()> DB_Is4KEnabled;
 // Link an XAsset entry (Fast Files)
 extern hook::refs::Ref<XAssetEntryPoolEntry* (XAsset *newEntry, bool allowOverride)> DB_LinkXAssetEntry;
 // DB_LoadXAssets (Fast Files)
-extern hook::refs::Ref<void> DB_LoadXAssets;
+extern hook::refs::Ref<> DB_LoadXAssets;
 // DB_LoadXFile (Fast Files)
-extern hook::refs::Ref<void> DB_LoadXFile;
+extern hook::refs::Ref<> DB_LoadXFile;
 // Load data from XFile (Fast Files)
 extern hook::refs::Ref<void (byte *pos, int size)> DB_LoadXFileData;
 // Pop XFile loading stream block (Fast Files)
@@ -71,7 +71,7 @@ extern hook::refs::Ref<void ()> DB_PopStreamPos;
 // Push XFile loading stream block (Fast Files)
 extern hook::refs::Ref<void (int index)> DB_PushStreamPos;
 // DB_ValidateFileHeader (Fast Files)
-extern hook::refs::Ref<void> DB_ValidateFileHeader;
+extern hook::refs::Ref<> DB_ValidateFileHeader;
 // Load a stream of the loaded XFile (Fast Files)
 extern hook::refs::Ref<bool (bool atStreamStart, void *ptr, size_t size)> Load_Stream;
 // Load an XAsset of the loaded XFile (Fast Files)
@@ -81,7 +81,7 @@ extern hook::refs::Ref<void (XHash* hash)> Load_XHash;
 // Load an XString (Fast Files)
 extern hook::refs::Ref<void (const char** str)> Load_XStringCustom;
 // Stream_OpenFileInternal (Fast Files)
-extern hook::refs::Ref<void> Stream_OpenFileInternal;
+extern hook::refs::Ref<> Stream_OpenFileInternal;
 // asset pool data (Fast Files)
 extern hook::refs::Ref<XAssetPool> s_assetPools;
 

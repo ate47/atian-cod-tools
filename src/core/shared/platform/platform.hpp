@@ -77,7 +77,7 @@ namespace platform {
     //////////////////////// Memory functions
 
     // write to memory safely
-    void WriteMemSafe(void* dest, void* src, size_t len);
+    void WriteMemSafe(void* dest, const void* src, size_t len);
     // read memory safely
     bool ReadMemorySafe(void* location, void* buffer, size_t size);
     // get relative memory safe

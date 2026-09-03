@@ -8,7 +8,7 @@ namespace hook::process {
     byte* BasePtr();
     void* BaseHandle();
 
-    void WriteMemSafe(void* dest, void* src, size_t len);
+    void WriteMemSafe(void* dest, const void* src, size_t len);
 
     template<typename Type>
     void WriteMemSafe(void* dest, Type src) {
