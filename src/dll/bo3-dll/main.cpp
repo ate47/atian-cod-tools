@@ -4,19 +4,28 @@
 #include <core/config.hpp>
 #include <core/system.hpp>
 #include <data/bo3.hpp>
+#include <data/bo3_generated.hpp>
 
 namespace acts {
     namespace {
         hook::library::Detour GetSystemMetrics_Detour;
-        hook::scan_container::ScanContainer scan{ false };
 
         void PostUnpack() {
             LOG_INFO("post init bo3 dll");
 
             try {
-                scan.Load({});
+                try {
+                    {
+                        hook::scan_container::ScanContainer scan{ {}, true };
+                        bo3::LoadScans(scan);
+                    }
+                    core::system::PostInit();
+                } catch (std::exception& e) {
+                    LOG_ERROR("Error at ACTS DLL post init {}", e.what());
+                    MessageBoxA(NULL, utils::va("%s", e.what()), "Error at ACTS DLL post init", MB_ICONERROR);
+                    *reinterpret_cast<byte*>(0x123456789) = 2;
+                }
                 core::system::PostInit();
-                scan.Save();
                 LOG_INFO("ACTS Loaded");
             } catch (std::exception& e) {
                 LOG_ERROR("Error at acts DLL post unpack: {}", e.what());
@@ -95,8 +104,6 @@ namespace acts {
             }
         }
     } // namespace
-
-    hook::scan_container::ScanContainer& Scan() { return scan; }
 } // namespace acts
 BOOL WINAPI DllMain(HMODULE hModule, DWORD Reason, LPVOID lpVoid) {
     if (Reason == DLL_PROCESS_ATTACH) {

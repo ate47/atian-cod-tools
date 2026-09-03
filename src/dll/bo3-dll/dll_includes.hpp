@@ -7,7 +7,3 @@
 #include <hook/scan_container.hpp>
 
 #define EXPORT extern "C" __declspec(dllexport)
-
-namespace acts {
-    hook::scan_container::ScanContainer& Scan();
-}

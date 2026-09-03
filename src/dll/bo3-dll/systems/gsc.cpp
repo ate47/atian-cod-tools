@@ -1,4 +1,5 @@
 #include <dll_includes.hpp>
+#include <data/bo3_generated.hpp>
 #include <core/system.hpp>
 #include <core/memory_allocator.hpp>
 #include <deps/miniz.hpp>
@@ -61,10 +62,7 @@ namespace {
     }
 
     void PostInit(uint64_t id) {
-        mz_zip_reader_init_file_Detour.Create(
-            acts::Scan().ScanSingle("48 89 5C 24 10 48 89 74 24 18 57 48 83 EC 20 41 8B F0 48 8B D9").GetPtr(),
-            mz_zip_reader_init_file_Stub
-        );
+        mz_zip_reader_init_file_Detour.Create(bo3::mz_zip_reader_init.Get(), mz_zip_reader_init_file_Stub);
     }
 
     REGISTER_SYSTEM(gsc, nullptr, PostInit);

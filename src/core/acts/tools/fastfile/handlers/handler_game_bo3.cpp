@@ -318,21 +318,21 @@ namespace {
                 gcx.handleList.LoadConfig(opt.assetTypes);
             };
 
-            game.Get("varXAsset", &gcx.varXAsset);
-            game.Get("Load_XAsset", &gcx.Load_XAsset);
-            game.Get("varScriptStringList", &gcx.varScriptStringList);
-            game.Get("Load_ScriptStringList", &gcx.Load_ScriptStringList);
-            game.Get("DB_GetXAssetName", &gcx.DB_GetXAssetName);
-            game.Get("DB_InitStreams", &gcx.DB_InitStreams);
-            game.Get("DB_IncStreamPos", &gcx.DB_IncStreamPos);
-            game.Get("DB_PushStreamPos", &gcx.DB_PushStreamPos);
-            game.Get("DB_PopStreamPos", &gcx.DB_PopStreamPos);
-            game.Get("DB_AllocStreamPos", &gcx.DB_AllocStreamPos);
-            game.Get("g_streamPosIndex", &gcx.g_streamPosIndex);
+            game.Get("fastfile.varXAsset", &gcx.varXAsset);
+            game.Get("fastfile.Load_XAsset", &gcx.Load_XAsset);
+            game.Get("fastfile.varScriptStringList", &gcx.varScriptStringList);
+            game.Get("fastfile.Load_ScriptStringList", &gcx.Load_ScriptStringList);
+            game.Get("fastfile.DB_GetXAssetName", &gcx.DB_GetXAssetName);
+            game.Get("fastfile.DB_InitStreams", &gcx.DB_InitStreams);
+            game.Get("fastfile.DB_IncStreamPos", &gcx.DB_IncStreamPos);
+            game.Get("fastfile.DB_PushStreamPos", &gcx.DB_PushStreamPos);
+            game.Get("fastfile.DB_PopStreamPos", &gcx.DB_PopStreamPos);
+            game.Get("fastfile.DB_AllocStreamPos", &gcx.DB_AllocStreamPos);
+            game.Get("fastfile.g_streamPosIndex", &gcx.g_streamPosIndex);
 
-            game.Redirect("Load_Stream", Load_Stream);
-            game.Redirect("DB_LinkXAssetEntry", DB_LinkXAssetEntry);
-            game.Redirect("Load_XStringCustom", Load_XStringCustom);
+            game.Redirect("fastfile.Load_Stream", Load_Stream);
+            game.Redirect("fastfile.DB_LinkXAssetEntry", DB_LinkXAssetEntry);
+            game.Redirect("fastfile.Load_XStringCustom", Load_XStringCustom);
 
             game.ApplyNullScans("fastfile");
 
