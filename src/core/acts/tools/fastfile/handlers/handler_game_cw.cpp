@@ -335,30 +335,30 @@ namespace fastfile::handlers::cw {
 
                 scan.ignoreMissing = true;
 
-                game.Get("Load_XAsset", &gcx.Load_XAsset);
-                game.Get("DB_GetXAssetTypeSize", &gcx.DB_GetXAssetTypeSize);
-                game.Get("Load_Stream", &gcx.Load_Stream);
-                game.Get("DB_PopStreamPos", &gcx.DB_PopStreamPos);
-                game.Get("DB_PushStreamPos", &gcx.DB_PushStreamPos);
-                game.Get("DB_IncStreamPos", &gcx.DB_IncStreamPos);
-                game.Get("DB_AllocStreamPos", &gcx.DB_AllocStreamPos);
-                game.Get("DB_ConvertOffsetToPointer", &gcx.DB_ConvertOffsetToPointer);
-                game.Get("DB_AllocXBlocks", &gcx.DB_AllocXBlocks);
-                game.Get("DB_InitStreams", &gcx.DB_InitStreams);
+                game.Get("fastfile.Load_XAsset", &gcx.Load_XAsset);
+                game.Get("fastfile.DB_GetXAssetTypeSize", &gcx.DB_GetXAssetTypeSize);
+                game.Get("fastfile.Load_Stream", &gcx.Load_Stream);
+                game.Get("fastfile.DB_PopStreamPos", &gcx.DB_PopStreamPos);
+                game.Get("fastfile.DB_PushStreamPos", &gcx.DB_PushStreamPos);
+                game.Get("fastfile.DB_IncStreamPos", &gcx.DB_IncStreamPos);
+                game.Get("fastfile.DB_AllocStreamPos", &gcx.DB_AllocStreamPos);
+                game.Get("fastfile.DB_ConvertOffsetToPointer", &gcx.DB_ConvertOffsetToPointer);
+                game.Get("fastfile.DB_AllocXBlocks", &gcx.DB_AllocXBlocks);
+                game.Get("fastfile.DB_InitStreams", &gcx.DB_InitStreams);
 
-                game.Redirect("DB_LoadXFileData", DB_LoadXFileData);
-                game.Redirect("Load_XStringCustom", Load_XStringCustom);
-                game.Redirect("DB_LinkXAssetEntry", DB_LinkXAssetEntry);
-                game.Redirect("DB_FindXAssetHeader", DB_FindXAssetHeader);
-                game.Redirect("PMem_Alloc", PMem_Alloc);
-                game.Redirect("$UnkNavMesh", Return3Stub);
+                game.Redirect("fastfile.DB_LoadXFileData", DB_LoadXFileData);
+                game.Redirect("fastfile.Load_XStringCustom", Load_XStringCustom);
+                game.Redirect("fastfile.DB_LinkXAssetEntry", DB_LinkXAssetEntry);
+                game.Redirect("fastfile.DB_FindXAssetHeader", DB_FindXAssetHeader);
+                game.Redirect("fastfile.PMem_Alloc", PMem_Alloc);
+                game.Redirect("fastfile.$UnkNavMesh", Return3Stub);
 
                 // the link functions are inlined for these assets, we need to patch them
-                game.Redirect("DB_LinkWeapon", DB_LinkCustomAsset<ASSET_TYPE_WEAPON>);
-                game.Redirect("DB_LinkAttachmentUnique", DB_LinkCustomAsset<ASSET_TYPE_ATTACHMENTUNIQUE>);
-                game.Redirect("DB_LinkSoundBank", DB_LinkCustomAsset<ASSET_TYPE_SOUND_BANK>);
-                game.Redirect("DB_LinkDestructibleDef", DB_LinkCustomAsset<ASSET_TYPE_DESTRUCTIBLEDEF>);
-                game.Redirect("DB_LinkDynModel", DB_LinkCustomAsset<ASSET_TYPE_DYNMODEL>);
+                game.Redirect("fastfile.DB_LinkWeapon", DB_LinkCustomAsset<ASSET_TYPE_WEAPON>);
+                game.Redirect("fastfile.DB_LinkAttachmentUnique", DB_LinkCustomAsset<ASSET_TYPE_ATTACHMENTUNIQUE>);
+                game.Redirect("fastfile.DB_LinkSoundBank", DB_LinkCustomAsset<ASSET_TYPE_SOUND_BANK>);
+                game.Redirect("fastfile.DB_LinkDestructibleDef", DB_LinkCustomAsset<ASSET_TYPE_DESTRUCTIBLEDEF>);
+                game.Redirect("fastfile.DB_LinkDynModel", DB_LinkCustomAsset<ASSET_TYPE_DYNMODEL>);
 
                 game.ApplyNullScans("fastfile");
 

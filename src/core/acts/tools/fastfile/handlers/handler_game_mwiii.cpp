@@ -134,6 +134,7 @@ namespace fastfile::handlers::mwiii {
         static_assert(sizeof(XBlock) == 0x10);
 
         struct {
+            LoadStreamObject* loadStreamObj{};
             void (*Load_Asset)(bool atStreamStart, Asset* asset){};
             void (*DB_InitStreams)(XBlock* blocks){};
             void (*Load_ScriptStringList)(bool atStreamStart, AssetList* list){};
@@ -347,44 +348,39 @@ namespace fastfile::handlers::mwiii {
 
                 scan.ignoreMissing = true;
 
-                LoadStreamObject* loadStreamObj{ game.GetPointer<LoadStreamObject*>("loadStreamObj") };
+                game.Get("fastfile.loadStreamObj", &gcx.loadStreamObj);
+                game.Get("fastfile.Load_Asset", &gcx.Load_Asset);
+                game.Get("fastfile.DB_InitStreams", &gcx.DB_InitStreams);
+                game.Get("fastfile.Load_ScriptStringList", &gcx.Load_ScriptStringList);
+                game.Get("fastfile.DB_PatchMem_FixStreamAlignment", &gcx.DB_PatchMem_FixStreamAlignment);
+                game.Get("fastfile.DB_PushStreamPos", &gcx.DB_PushStreamPos);
+                game.Get("fastfile.DB_PopStreamPos", &gcx.DB_PopStreamPos);
+                game.Get("fastfile.streamPos", &gcx.streamPos);
+                game.Get("fastfile.rewind", &gcx.rewind);
+                game.Get("fastfile.streamPosIndex", &gcx.streamPosIndex);
+                game.Get("fastfile.$unkFixStreamAlign", &gcx.unkFixStreamAlign);
+                game.Get("fastfile.poolInfo", &gcx.poolInfo);
 
-                if (loadStreamObj) {
-                    loadStreamObj->__vtb = &dbLoadStreamVTable;
-                }
+                game.Redirect("fastfile.LoadStreamTA", LoadStreamTA);
+                game.Redirect("fastfile.Load_StringName", Load_String);
+                game.Redirect("fastfile.Load_String", Load_String);
+                game.Redirect("fastfile.DB_AddXAsset", DB_AddXAsset);
+                game.Redirect("fastfile.Load_CustomScriptString", Load_CustomScriptString);
 
-                gcx.Load_Asset = game.GetPointer<decltype(gcx.Load_Asset)>("Load_Asset");
-                gcx.DB_InitStreams = game.GetPointer<decltype(gcx.DB_InitStreams)>("DB_InitStreams");
-                gcx.Load_ScriptStringList =
-                    game.GetPointer<decltype(gcx.Load_ScriptStringList)>("Load_ScriptStringList");
-                gcx.DB_PatchMem_FixStreamAlignment =
-                    game.GetPointer<decltype(gcx.DB_PatchMem_FixStreamAlignment)>("DB_PatchMem_FixStreamAlignment");
-                gcx.DB_PushStreamPos = game.GetPointer<decltype(gcx.DB_PushStreamPos)>("DB_PushStreamPos");
-                gcx.DB_PopStreamPos = game.GetPointer<decltype(gcx.DB_PopStreamPos)>("DB_PopStreamPos");
-                gcx.streamPos = game.GetPointer<decltype(gcx.streamPos)>("streamPos");
-                gcx.rewind = game.GetPointer<decltype(gcx.rewind)>("rewind");
-                gcx.streamPosIndex = game.GetPointer<decltype(gcx.streamPosIndex)>("streamPosIndex");
-                gcx.unkFixStreamAlign = game.GetPointer<decltype(gcx.unkFixStreamAlign)>("$unkFixStreamAlign");
-                gcx.poolInfo = game.GetPointer<decltype(gcx.poolInfo)>("poolInfo");
-
-                game.Redirect("LoadStreamTA", LoadStreamTA);
-                game.Redirect("Load_StringName", Load_String);
-                game.Redirect("Load_String", Load_String);
-                game.Redirect("DB_AddXAsset", DB_AddXAsset);
-                game.Redirect("Load_CustomScriptString", Load_CustomScriptString);
-
-                game.Redirect("DB_LinkSoundBank", DB_AddXAssetCustom<JUPH_ASSET_SOUNDBANK>);
-                game.Redirect("DB_LinkSoundBankTransient", DB_AddXAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
-                game.Redirect("DB_LinkStreamingInfo", DB_AddXAssetCustom<JUPH_ASSET_STREAMINGINFO>);
-                game.Redirect("DB_LinkComputeshader", DB_AddXAssetCustom<JUPH_ASSET_COMPUTESHADER>);
-                game.Redirect("DB_LinkLibShader", DB_AddXAssetCustom<JUPH_ASSET_LIBSHADER>);
-                game.Redirect("DB_LinkDLogSchema", DB_AddXAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
-                game.Redirect("DB_LinkXModel", DB_AddXAssetCustom<JUPH_ASSET_XMODEL>);
+                game.Redirect("fastfile.DB_LinkSoundBank", DB_AddXAssetCustom<JUPH_ASSET_SOUNDBANK>);
+                game.Redirect("fastfile.DB_LinkSoundBankTransient", DB_AddXAssetCustom<JUPH_ASSET_SOUNDBANKTRANSIENT>);
+                game.Redirect("fastfile.DB_LinkStreamingInfo", DB_AddXAssetCustom<JUPH_ASSET_STREAMINGINFO>);
+                game.Redirect("fastfile.DB_LinkComputeshader", DB_AddXAssetCustom<JUPH_ASSET_COMPUTESHADER>);
+                game.Redirect("fastfile.DB_LinkLibShader", DB_AddXAssetCustom<JUPH_ASSET_LIBSHADER>);
+                game.Redirect("fastfile.DB_LinkDLogSchema", DB_AddXAssetCustom<JUPH_ASSET_DLOGSCHEMA>);
+                game.Redirect("fastfile.DB_LinkXModel", DB_AddXAssetCustom<JUPH_ASSET_XMODEL>);
                 game.ApplyNullScans("fastfile");
 
                 if (scan.foundMissing) {
                     throw std::runtime_error("Can't find some patterns");
                 }
+
+                gcx.loadStreamObj->__vtb = &dbLoadStreamVTable;
 
                 if (!opt.noWorkerPreload) {
                     for (auto& [hashType, worker] : GetWorkers()) {

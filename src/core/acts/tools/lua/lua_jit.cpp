@@ -383,12 +383,12 @@ namespace {
 
         void LoadPaths(hook::scan_container::ScanContainer& scan) {
             data.SetScanContainer(&scan);
-            data.Get("lua_newstate", &lua_newstate);
-            data.Get("lua_loadx", &lua_loadx);
-            data.Get("lj_cf_string_dump", &lj_cf_string_dump);
-            data.Get("lua_tolstring", &lua_tolstring);
-            data.Get("writer_buf", &writer_buf);
-            data.Get("cod_lua_setxhash", &cod_lua_setxhash);
+            data.Get("lua.lua_newstate", &lua_newstate);
+            data.Get("lua.lua_loadx", &lua_loadx);
+            data.Get("lua.lj_cf_string_dump", &lj_cf_string_dump);
+            data.Get("lua.lua_tolstring", &lua_tolstring);
+            data.Get("lua.writer_buf", &writer_buf);
+            data.Get("lua.cod_lua_setxhash", &cod_lua_setxhash);
         }
 
         void PatchAntiCheat(hook::scan_container::ScanContainer& scan) {

@@ -9,153 +9,215 @@
         "zone/zm_common.ff"
     ],
     "scans": {
-        "Load_XAsset": {
-            "scan": "E8 ? ? ? ? 48 83 C3 ? 8D 4E ? E8 ? ? ? ? 8B F1 84 C0 75 06",
-            "offset": 1,
-            "type": "Relative",
-            "single": true
+        "fastfile": {
+            "type": "Group",
+            "__comment__": "Fast Files",
+            "Load_XAsset": {
+                "scan": "E8 ? ? ? ? 48 83 C3 ? 8D 4E ? E8 ? ? ? ? 8B F1 84 C0 75 06",
+                "offset": 1,
+                "type": "Relative",
+                "single": true
+            },
+            "DB_GetXAssetTypeSize": {
+                "scan": "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 8B",
+                "type": "Absolute",
+                "single": true
+            },
+            "Load_Stream": {
+                "scan": "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 4C 8B CA 40 B7 ? 84 C9 74 46 48 85 DB 74 41 48 63 05 ? ? ? ? 83 F8 ? 77 2D 48 8D 15 71",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_PopStreamPos": {
+                "scan": "44 8B 05 ? ? ? ? 4C 8D 0D ? ? ? ? 48 63",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_PushStreamPos": {
+                "scan": "40 53 48 83 EC 20 8B D9 83 F9 09",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_IncStreamPos": {
+                "scan": "48 01 0D ? ? ? ? C3",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_AllocStreamPos": {
+                "scan": "4C 8B 05 ? ? ? ? 48 63 D1 48",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_ConvertOffsetToPointer": {
+                "scan": "4C 8B 01 49 FF C8 49 8B C0 48 C1 E8 ? 48 8D 14 40 48 B8 FF FF FF FF FF FF FF 0F 4C 23 C0 48 8B 05 ? ? ? ? 4C",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_AllocXBlocks": {
+                "scan": "40 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 8B",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_InitStreams": {
+                "scan": "33 D2 48 89 0D ? ? ? ? 48",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_LoadXFileData": {
+                "scan": "85 D2 0F 8E 45 01 00 00 41",
+                "type": "Absolute",
+                "single": true
+            },
+            "Load_XStringCustom": {
+                "scan": "E8 ? ? ? ? EB 08 48 8B CF E8 ? ? ? ? 33 C9",
+                "offset": 1,
+                "type": "Relative",
+                "single": true
+            },
+            "DB_LinkXAssetEntry": {
+                "scan": "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 48 8B EA",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_FindXAssetHeader": {
+                "scan": "48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D AC 24 80 D0",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "XAssetHeader (XAssetType type, CWXHash name, bool inv, int timeout)",
+                "__comment__": "Find XAsset"
+            },
+            "PMem_Alloc": {
+                "scan": "44 89 4C 24 ? 4C 89 44 24 ? 48 89 54 24 ? 48 89 4C 24 ? 57",
+                "type": "Absolute",
+                "single": true
+            },
+            "$UnkNavMesh": {
+                "scan": "E8 ?? ?? ?? ?? 8B F0 83 FD",
+                "offset": 1,
+                "type": "Relative",
+                "single": true
+            },
+            "DB_LinkWeapon": {
+                "scan": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 84 D2 75 0D 48 8B 11 B1 ? E8 ? ? ? ? 48 89 07 48 8B 3F 48 8D 9F ? ? ? ?",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_LinkAttachmentUnique": {
+                "scan": "48 89 5C 24 ? 57 48 83 EC ? 48 89 6C 24 ? 48 8B D9",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_LinkSoundBank": {
+                "scan": "48 89 5C 24 ? 57 48 83 EC ? 48 8B 11 48 8B F9 B1",
+                "type": "Absolute",
+                "single": true
+            },
+            "DB_LinkDestructibleDef": {
+                "scan": "E8 ? ? ? ? E8 ? ? ? ? 48 83 7B ? ? 74 37",
+                "offset": 1,
+                "type": "Relative",
+                "single": true
+            },
+            "DB_LinkDynModel": {
+                "scan": "E8 ? ? ? ? E8 ? ? ? ? 48 8D 4B ? E8 ? ? ? ? 48 83 C3",
+                "offset": 1,
+                "type": "Relative",
+                "single": true
+            },
+            "xassetpool": {
+                "scan": "48 8D 05 ? ? ? ? 48 C1 E2 ? 48 03 D0",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "XAssetPool",
+                "__comment__": "XAsset pools"
+            }
         },
-        "DB_GetXAssetTypeSize": {
-            "scan": "0F B6 C1 48 8D 0C 80 48 8D 05 ? ? ? ? 8B",
-            "type": "Absolute",
-            "single": true
+        "gsc": {
+            "type": "Group",
+            "__comment__": "Gsc",
+            "gVmOpJumpTable": {
+                "scan": "41 FF 94 FC ? ? ? ? 80 7C 24",
+                "type": "Relative",
+                "offset": 4,
+                "single": true,
+                "reftype": "VM_OP_FUNC",
+                "__comment__": "OPCODE jump table"
+            },
+            "gObjFileInfoCount": {
+                "scan": "4C 8D 2D ? ? ? ? 48 8D 15 ? ? ? ? 43 39 4C B5 00",
+                "type": "Relative",
+                "offset": 3,
+                "single": true,
+                "reftype": "uint32_t",
+                "__comment__": "Linked GSC objects count"
+            },
+            "gObjFileInfo": {
+                "scan": "4C 8D 2D ? ? ? ? 48 8D 15 ? ? ? ? 43 39 4C B5 00",
+                "type": "Relative",
+                "offset": 10,
+                "single": true,
+                "reftype": "objFileInfo_t[scriptInstance_t::SI_COUNT][800]",
+                "__comment__": "Linked GSC objects"
+            },
+            "Scr_GscObjLink": {
+                "scan": "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B DA 4C",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "void (scriptInstance_t inst, CWXHash scriptname)",
+                "__comment__": "Link a gsc script"
+            }
         },
-        "Load_Stream": {
-            "scan": "48 89 5C 24 ? 57 48 83 EC ? 49 8B D8 4C 8B CA 40 B7 ? 84 C9 74 46 48 85 DB 74 41 48 63 05 ? ? ? ? 83 F8 ? 77 2D 48 8D 15 71",
-            "type": "Absolute",
-            "single": true
+        "common": {
+            "type": "Group",
+            "__comment__": "Common",
+            "DecryptString": {
+                "scan": "48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 54 41 55 41 56 41 57 48 83 EC ? 48 8B D9 0F B6",
+                "type": "Absolute",
+                "single": true,
+                "reftype": "const char* (const char* str)",
+                "__comment__": "Decrypt strings"
+            }
         },
-        "DB_PopStreamPos": {
-            "scan": "44 8B 05 ? ? ? ? 4C 8D 0D ? ? ? ? 48 63",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_PushStreamPos": {
-            "scan": "40 53 48 83 EC 20 8B D9 83 F9 09",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_IncStreamPos": {
-            "scan": "48 01 0D ? ? ? ? C3",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_AllocStreamPos": {
-            "scan": "4C 8B 05 ? ? ? ? 48 63 D1 48",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_ConvertOffsetToPointer": {
-            "scan": "4C 8B 01 49 FF C8 49 8B C0 48 C1 E8 ? 48 8D 14 40 48 B8 FF FF FF FF FF FF FF 0F 4C 23 C0 48 8B 05 ? ? ? ? 4C",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_AllocXBlocks": {
-            "scan": "40 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 8B",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_InitStreams": {
-            "scan": "33 D2 48 89 0D ? ? ? ? 48",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_LoadXFileData": {
-            "scan": "85 D2 0F 8E 45 01 00 00 41",
-            "type": "Absolute",
-            "single": true
-        },
-        "Load_XStringCustom": {
-            "scan": "E8 ? ? ? ? EB 08 48 8B CF E8 ? ? ? ? 33 C9",
-            "offset": 1,
-            "type": "Relative",
-            "single": true
-        },
-        "DB_LinkXAssetEntry": {
-            "scan": "48 89 5C 24 ? 55 56 57 41 54 41 55 41 56 41 57 B8 ? ? ? ? E8 ? ? ? ? 48 2B E0 48 8B 05 ? ? ? ? 48 33 C4 48 89 84 24 ? ? ? ? 48 8B EA",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_FindXAssetHeader": {
-            "scan": "48 89 74 24 ? 55 57 41 54 41 56 41 57 48 8D AC 24 80 D0",
-            "type": "Absolute",
-            "single": true
-        },
-        "PMem_Alloc": {
-            "scan": "44 89 4C 24 ? 4C 89 44 24 ? 48 89 54 24 ? 48 89 4C 24 ? 57",
-            "type": "Absolute",
-            "single": true
-        },
-        "$UnkNavMesh": {
-            "scan": "E8 ?? ?? ?? ?? 8B F0 83 FD",
-            "offset": 1,
-            "type": "Relative",
-            "single": true
-        },
-        "DB_LinkWeapon": {
-            "scan": "48 89 5C 24 ? 48 89 74 24 ? 57 48 83 EC ? 48 8B F9 84 D2 75 0D 48 8B 11 B1 ? E8 ? ? ? ? 48 89 07 48 8B 3F 48 8D 9F ? ? ? ?",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_LinkAttachmentUnique": {
-            "scan": "48 89 5C 24 ? 57 48 83 EC ? 48 89 6C 24 ? 48 8B D9",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_LinkSoundBank": {
-            "scan": "48 89 5C 24 ? 57 48 83 EC ? 48 8B 11 48 8B F9 B1",
-            "type": "Absolute",
-            "single": true
-        },
-        "DB_LinkDestructibleDef": {
-            "scan": "E8 ? ? ? ? E8 ? ? ? ? 48 83 7B ? ? 74 37",
-            "offset": 1,
-            "type": "Relative",
-            "single": true
-        },
-        "DB_LinkDynModel": {
-            "scan": "E8 ? ? ? ? E8 ? ? ? ? 48 8D 4B ? E8 ? ? ? ? 48 83 C3",
-            "offset": 1,
-            "type": "Relative",
-            "single": true
-        },
-        "lua_newstate": {
-            "scan": "E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 0F 84 92 01 00 00",
-            "type": "Relative",
-            "offset": 1,
-            "single": true
-        },
-        "lua_loadx": {
-            "scan": "E8 ?? ?? ?? ?? 41 B8 ?? ?? ?? ?? 8B D0 48 8B CB 48 8B 7C 24 ?? 48 8B 74 24",
-            "type": "Relative",
-            "offset": 1,
-            "single": true
-        },
-        "lj_cf_string_dump": {
-            "scan": "48 89 5C 24 08 57 48 83 EC 30 BA 01 00 00 00 48 8B D9 E8 ?? ?? ?? ?? 48",
-            "type": "Absolute",
-            "single": true
-        },
-        "lua_tolstring": {
-            "scan": "E8 ?? ?? ?? ?? 41 BF ?? ?? ?? ?? 48 8B CD",
-            "type": "Relative",
-            "offset": 1,
-            "single": true
-        },
-        "writer_buf": {
-            "scan": "4C 8D 05 ?? ?? ?? ?? 89 4C 24 20 48 83 EA 68",
-            "type": "Relative",
-            "offset": 3,
-            "single": true
-        },
-        "cod_lua_setxhash": {
-            "scan": "E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 45 33 C9",
-            "type": "Relative",
-            "offset": 1,
-            "single": true
+        "lua": {
+            "type": "Group",
+            "__comment__": "Lua",
+            "lua_newstate": {
+                "scan": "E8 ?? ?? ?? ?? 48 8B D8 48 85 C0 0F 84 92 01 00 00",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
+            },
+            "lua_loadx": {
+                "scan": "E8 ?? ?? ?? ?? 41 B8 ?? ?? ?? ?? 8B D0 48 8B CB 48 8B 7C 24 ?? 48 8B 74 24",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
+            },
+            "lj_cf_string_dump": {
+                "scan": "48 89 5C 24 08 57 48 83 EC 30 BA 01 00 00 00 48 8B D9 E8 ?? ?? ?? ?? 48",
+                "type": "Absolute",
+                "single": true
+            },
+            "lua_tolstring": {
+                "scan": "E8 ?? ?? ?? ?? 41 BF ?? ?? ?? ?? 48 8B CD",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
+            },
+            "writer_buf": {
+                "scan": "4C 8D 05 ?? ?? ?? ?? 89 4C 24 20 48 83 EA 68",
+                "type": "Relative",
+                "offset": 3,
+                "single": true
+            },
+            "cod_lua_setxhash": {
+                "scan": "E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 45 33 C9",
+                "type": "Relative",
+                "offset": 1,
+                "single": true
+            }
         }
-
-       
     },
     "nullscans": {
         "fastfile": {

@@ -1,6 +1,8 @@
 #pragma once
 
-namespace cw {
+namespace bocw {
+    typedef uint64_t CWXHash;
+
     struct T9GSCOBJ {
         byte magic[8];
         int32_t crc;
@@ -305,8 +307,10 @@ namespace cw {
         ASSET_TYPE_COUNT
     };
 
+    enum scriptInstance_t : uint32_t { SI_SERVER = 0, SI_CLIENT = 1, SI_COUNT = 2 };
+
     struct ScriptParseTree {
-        uint64_t name;
+        CWXHash name;
         T9GSCOBJ* buffer;
         int32_t len;
     };
@@ -342,14 +346,14 @@ namespace cw {
         uint16_t profileInfoCount;
     };
 
-    struct __declspec(align(8)) ObjFileInfo {
+    typedef void (*VM_OP_FUNC)(scriptInstance_t inst, void* varInfo, FunctionStack* fs_0, void* ctx, bool* terminate);
+
+    struct objFileInfo_t {
         T9GSCOBJ* activeVersion;
         int32_t slot;
         int32_t refCount;
         uint32_t groupId;
     };
-
-    typedef ObjFileInfo ObjFileInfoStruct[800];
 
     struct XAssetPool {
         XAssetHeader pool;
@@ -359,4 +363,4 @@ namespace cw {
         int itemAllocCount;
         void* freeHead;
     };
-} // namespace cw
+} // namespace bocw
