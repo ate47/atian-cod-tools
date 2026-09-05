@@ -69,11 +69,11 @@ extern hook::refs::Ref<XAssetPool> xassetpool;
  * Gsc
  */
 
-// Linker GSC objects (Gsc)
+// Link a gsc script (Gsc)
 extern hook::refs::Ref<void (scriptInstance_t inst, CWXHash scriptname)> Scr_GscObjLink;
-// Linker GSC objects (Gsc)
+// Linked GSC objects (Gsc)
 extern hook::refs::Ref<objFileInfo_t[scriptInstance_t::SI_COUNT][800]> gObjFileInfo;
-// Linker GSC objects count (Gsc)
+// Linked GSC objects count (Gsc)
 extern hook::refs::Ref<uint32_t> gObjFileInfoCount;
 // OPCODE jump table (Gsc)
 extern hook::refs::Ref<VM_OP_FUNC> gVmOpJumpTable;
