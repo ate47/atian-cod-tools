@@ -772,80 +772,85 @@ namespace {
         }
         int r{ tool::OK };
         for (const std::string& name : names) {
-            acts::game_data::GameData game{ name.data() };
-            hook::module_mapper::Module mod{ true };
-            std::filesystem::path path;
+            try {
+                acts::game_data::GameData game{ name.data() };
+                hook::module_mapper::Module mod{ true };
+                std::filesystem::path path;
 
-            if (exeName) {
-                path = exeName;
-            } else {
-                path = utils::GetProgDir() / "deps" / game.GetModuleName();
+                if (exeName) {
+                    path = exeName;
+                } else {
+                    path = utils::GetProgDir() / "deps" / game.GetModuleName();
+                }
+                LOG_INFO("Loading {} - {}", name, path.string());
+
+                if (!mod.Load(path)) {
+                    LOG_ERROR("Can't load module");
+                    r = tool::BASIC_ERROR;
+                    continue;
+                }
+
+                hook::scan_container::ScanContainer& scan{ mod.GetScanContainer(forceReload) };
+                core::memory_allocator::MemoryAllocator alloc{};
+                game.SetScanContainer(&scan);
+                void* ref{};
+                if (!noFastPreload) {
+                    std::vector<hook::generated_scan_runtime::ScanInformation> infos{};
+
+                    game.ForEachScan([&ref, &game, &infos, &alloc](const char* id, const char* parent) {
+                        hook::generated_scan_runtime::ScanInformation si{};
+                        acts::game_data::ScanData sd{ game.GetScan(id, parent) };
+                        si.offset = sd.offset;
+                        si.postOffset = sd.postOffset;
+                        si.id = alloc.CloneStr(sd.name);
+                        si.scan = alloc.CloneStr(sd.path);
+                        si.single = sd.single;
+                        si.ref = &ref;
+                        switch (sd.type) {
+                        case acts::game_data::ScanType::SCT_RELATIVE:
+                            si.type = hook::generated_scan_runtime::ST_RELATIVE;
+                            break;
+                        case acts::game_data::ScanType::SCT_ABSOLUTE:
+                            si.type = hook::generated_scan_runtime::ST_ABSOLUTE;
+                            break;
+                        case acts::game_data::ScanType::SCT_GET_OFFSET32:
+                            si.type = hook::generated_scan_runtime::ST_GETOFFSET32;
+                            break;
+                        case acts::game_data::ScanType::SCT_OFFSET:
+                            si.type = hook::generated_scan_runtime::ST_OFFSET;
+                            break;
+                        default:
+                            throw std::runtime_error("Invalid scan type");
+                        }
+                        infos.emplace_back(si);
+                    });
+
+                    hook::generated_scan_runtime::LoadScans(scan, infos.data(), infos.size());
+                }
+
+                bool err{ !game.ValidateScans() };
+
+                if (err) {
+                    LOG_ERROR("Found error in {}", name);
+                    r = tool::BASIC_ERROR;
+                    continue;
+                }
+
+                if (idcFile) {
+                    std::filesystem::path outIdc{ idcFile };
+                    std::filesystem::create_directories(outIdc.parent_path());
+                    deps::idc_builder::IdcBuilder idc{};
+                    game.AddTypesToIdc(idc);
+                    game.ScanAllToIdc(idc);
+                    idc.WriteIdcFile(outIdc);
+                    LOG_INFO("dump idc to {}", outIdc.string());
+                }
+
+                LOG_INFO("Game data ok");
+            } catch (std::runtime_error& err) {
+                LOG_ERROR("Failed to load {}: {}", name, err.what());
+                r = -1;
             }
-            LOG_INFO("Loading {} - {}", name, path.string());
-
-            if (!mod.Load(path)) {
-                LOG_ERROR("Can't load module");
-                r = tool::BASIC_ERROR;
-                continue;
-            }
-
-            hook::scan_container::ScanContainer& scan{ mod.GetScanContainer(forceReload) };
-            core::memory_allocator::MemoryAllocator alloc{};
-            game.SetScanContainer(&scan);
-            void* ref{};
-            if (!noFastPreload) {
-                std::vector<hook::generated_scan_runtime::ScanInformation> infos{};
-
-                game.ForEachScan([&ref, &game, &infos, &alloc](const char* id, const char* parent) {
-                    hook::generated_scan_runtime::ScanInformation si{};
-                    acts::game_data::ScanData sd{ game.GetScan(id, parent) };
-                    si.offset = sd.offset;
-                    si.postOffset = sd.postOffset;
-                    si.id = alloc.CloneStr(sd.name);
-                    si.scan = alloc.CloneStr(sd.path);
-                    si.single = sd.single;
-                    si.ref = &ref;
-                    switch (sd.type) {
-                    case acts::game_data::ScanType::SCT_RELATIVE:
-                        si.type = hook::generated_scan_runtime::ST_RELATIVE;
-                        break;
-                    case acts::game_data::ScanType::SCT_ABSOLUTE:
-                        si.type = hook::generated_scan_runtime::ST_ABSOLUTE;
-                        break;
-                    case acts::game_data::ScanType::SCT_GET_OFFSET32:
-                        si.type = hook::generated_scan_runtime::ST_GETOFFSET32;
-                        break;
-                    case acts::game_data::ScanType::SCT_OFFSET:
-                        si.type = hook::generated_scan_runtime::ST_OFFSET;
-                        break;
-                    default:
-                        throw std::runtime_error("Invalid scan type");
-                    }
-                    infos.emplace_back(si);
-                });
-
-                hook::generated_scan_runtime::LoadScans(scan, infos.data(), infos.size());
-            }
-
-            bool err{ !game.ValidateScans() };
-
-            if (err) {
-                LOG_ERROR("Found error in {}", name);
-                r = tool::BASIC_ERROR;
-                continue;
-            }
-
-            if (idcFile) {
-                std::filesystem::path outIdc{ idcFile };
-                std::filesystem::create_directories(outIdc.parent_path());
-                deps::idc_builder::IdcBuilder idc{};
-                game.AddTypesToIdc(idc);
-                game.ScanAllToIdc(idc);
-                idc.WriteIdcFile(outIdc);
-                LOG_INFO("dump idc to {}", outIdc.string());
-            }
-
-            LOG_INFO("Game data ok");
         }
 
         return r;
