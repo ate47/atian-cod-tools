@@ -1,10 +1,39 @@
 - acts
 	- fastfile
-		- bo4
-			- fix zone compression crash/freeze (#35)
-			- add a better gfx image linker (#34)
-		- fix error with zone bool configurations (#36)
+		- cw
+			- enhance cw zone linker
+			- fix unsaved scans in handler
+			- port fix empty decompression
+			- unhash kvp keys
+			- allow to aes encrypt fastfile
+			- weaponfrontend, scriptbundlelist and zbarrier unlinkers
+			- bgcache, keyvaluepairs, localize and scriptparsetree linkers
+		- bo3
+			- add support for bo3 zone linker
+			- port fix empty decompression
+		- bo7
+			- use known types to unhash netconststrings
+		- dynamic archive checksums for compressors
+		- allow to load .fc files with -c --fc option
 	- gsc
-		- do not stop the gsc disassembler when finding invalid opcode
+		- gsco tool to obfuscate GSC scripts
+		- detect in-script trampolines
+		- fix bo3 notify compilation
+		- fix invalid ordering of the late op (#38)
+	- hashbrutedictgpu2 tool
+	- add mw4 to game_dump tool
+	- add mw4 decrypt
+	- add idc output and options to game_validate
+	- add --seed to control randomness
+	- add -D global option to load PDB
+	- fix part of pe dumper
+	- fix invalid shared lib image size reading (#40)
+- acts shield plugin
+	- use scans to load the data
+- acts bo3 dll
+	- faster scans loading
+- acts bocw dll
+	- faster scans loading
+	- cleanup old code
 
-@NotNierPea
+@Kenshin9977
