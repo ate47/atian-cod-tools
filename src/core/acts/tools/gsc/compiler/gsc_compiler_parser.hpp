@@ -6,7 +6,13 @@ namespace tool::gsc::compiler {
     class CompileObject;
     class FunctionObject;
 
+    struct ParsedHash {
+        std::string str;
+        char type;
+    };
+
     std::string ParseString(TerminalNode* term, size_t start = 0);
+    ParsedHash ParseHash(TerminalNode* term);
 
     bool ParseFieldNode(ParseTree* exp, gscParser& parser, CompileObject& obj, FunctionObject& fobj);
     bool

@@ -217,4 +217,4 @@ ANIMTREE_IDENTIFIER: '$' [a-z_A-Z] ([a-z_A-Z0-9])*;
 PATH: [a-z_A-Z][a-z_A-Z0-9\\/]+ ('.gsc' | '.csc')?;
 STRING: '"' (~["\\] | ('\\'.))* '"';
 ISTRING: '&' STRING;
-HASHSTRING: ('s' | 'r' | '#' | '@' | 't' | '%' | 'o') STRING;
+HASHSTRING: (('#' ([a-zA-Z0-9])*) | [sr@t%o]) STRING;

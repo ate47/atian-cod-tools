@@ -259,8 +259,92 @@ namespace tool::gsc::opcode {
 
     void VmInfo::SetGDBType(uint64_t gdbMagic) { this->gdbMagic = gdbMagic; }
 
+    char MapVMHashTypeToChar(const char* type) {
+        if (!type || !*type) {
+            return 0;
+        }
+
+        enum MAPPED_HASH_TYPE : char {
+            MHT_UNK = 0,
+            MHT_SCR = 's',
+            MHT_DVAR = 'd',
+            MHT_OMNVAR = 'o',
+            MHT_ASSET = 'a',
+            MHT_X64 = 'x',
+            MHT_X32 = 't',
+        };
+
+        if (!type[1]) {
+            // single char
+            switch (*type) {
+            case MHT_X64:
+            case '#':
+                return MHT_X64;
+            case MHT_DVAR:
+            case 'D':
+            case '@':
+                return MHT_DVAR;
+            case MHT_SCR:
+            case 'S':
+                return MHT_SCR;
+            case MHT_ASSET:
+            case 'A':
+            case '%':
+                return MHT_ASSET;
+            case MHT_OMNVAR:
+            case 'O':
+                return MHT_OMNVAR;
+            case MHT_X32:
+            case 'T':
+                return MHT_X32;
+            default:
+                return *type;
+            }
+        } else {
+            switch (hash::Hash64A(type)) {
+            case hash::Hash64A("x64"):
+                return MHT_X64;
+            case hash::Hash64A("x32"):
+                return MHT_X32;
+            case hash::Hash64A("scr"):
+                return MHT_SCR;
+            case hash::Hash64A("asset"):
+                return MHT_ASSET;
+            case hash::Hash64A("dvar"):
+                return MHT_DVAR;
+            case hash::Hash64A("omn"):
+                return MHT_OMNVAR;
+            default:
+                return MHT_UNK;
+            }
+        }
+    }
+    char MapVMHashTypeToChar(char type) {
+        char tt[2]{ type, 0 };
+        return MapVMHashTypeToChar(tt);
+    }
+
+    VmHashFunc* VmInfo::GetVMHashOPCode(const char* type) {
+        auto it{ hashesFunc.find(MapVMHashTypeToChar(type)) };
+        if (it == hashesFunc.end()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
+    VmHashFunc* VmInfo::GetVMHashOPCode(char type) {
+        auto it{ hashesFunc.find(MapVMHashTypeToChar(type)) };
+        if (it == hashesFunc.end()) {
+            return nullptr;
+        }
+
+        return &it->second;
+    }
+
     void
     VmInfo::RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc) {
+        type = MapVMHashTypeToChar(type);
         if (!(size == 8 || size == 4)) {
             LOG_ERROR("Invalid size for hash vm {}: '{}' / {} bytes", name, type, size);
             return;

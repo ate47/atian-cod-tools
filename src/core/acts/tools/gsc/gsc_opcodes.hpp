@@ -178,6 +178,8 @@ namespace tool::gsc::opcode {
         void RegisterVMOperatorFunction(
             const char* name, const char* usage, OPCode opcode, int flags, int minArgs = 0, int maxArgs = 255
         );
+        VmHashFunc* GetVMHashOPCode(const char* type);
+        VmHashFunc* GetVMHashOPCode(char type);
         void RegisterVMHashOPCode(char type, OPCode opCode, int size, std::function<uint64_t(const char*)> hashFunc);
         void RegisterOpCode(Platform platform, OPCode enumValue, uint16_t op);
         void RegisterSameCodePlatform(Platform main, Platform sub);
@@ -232,6 +234,8 @@ namespace tool::gsc::opcode {
         ) const;
     };
 
+    char MapVMHashTypeToChar(const char* type);
+    char MapVMHashTypeToChar(char type);
     const std::unordered_map<uint64_t, VmInfo>& GetVMMaps();
     bool IsValidVmMagic(uint64_t magic, VmInfo*& info, bool registerOpCodes = true);
     bool IsValidVm(uint64_t vm, VmInfo*& info, bool registerOpCodes = true);

@@ -5,8 +5,7 @@
 
 namespace tool::gsc::compiler {
 
-    std::string ParseString(TerminalNode* term, size_t start) {
-        std::string node = term->getText();
+    static std::string ParseString(std::string_view node, size_t start) {
 
         if (node.length() <= start)
             return {};
@@ -53,6 +52,36 @@ namespace tool::gsc::compiler {
         }
         *(newStrWriter++) = 0; // end char
         return &newStr[0];
+    }
+
+    std::string ParseString(TerminalNode* term, size_t start) { return ParseString(term->getText(), start); }
+
+    ParsedHash ParseHash(TerminalNode* term) {
+        std::string node{ term->getText() };
+        if (node.empty()) {
+            return {};
+        }
+
+        ParsedHash res;
+
+        if (node[0] != '#' || node[1] == '"') {
+            // basic hash
+            res.type = node[0];
+            res.str = ParseString(node, 1);
+        } else {
+            size_t start{ 2 };
+
+            while (node[start] != '"') {
+                start++;
+            }
+
+            node[start] = 0;
+            res.type = tool::gsc::opcode::MapVMHashTypeToChar(&node[1]);
+            node[start] = '"';
+            res.str = ParseString(node, start);
+        }
+
+        return res;
     }
 
     constexpr byte INVALID_VECTOR_FLAGS = 0xFF;
@@ -117,13 +146,13 @@ namespace tool::gsc::compiler {
 
     bool AddHashNode(ParseTree* tree, char type, const std::string& sub, FunctionObject& fobj, CompileObject& obj) {
         obj.AddHash(sub);
-        auto ith = obj.vmInfo->hashesFunc.find(type);
+        VmHashFunc* func{ obj.vmInfo->GetVMHashOPCode(type) };
 
-        if (ith == obj.vmInfo->hashesFunc.end()) {
+        if (!func) {
             obj.info.PrintLineMessage(
                 core::logs::LVL_ERROR,
                 tree,
-                std::format("Hash type not available for this vm: {}", type)
+                std::format("Hash type not available for this vm: {}", tree->getText())
             );
             return false;
         }
@@ -133,35 +162,35 @@ namespace tool::gsc::compiler {
         uint64_t val;
 
         if (!hash::TryHashPattern(ss, val)) {
-            val = ith->second.hashFunc(ss);
+            val = func->hashFunc(ss);
             if (!val) {
                 obj.info.PrintLineMessage(
                     core::logs::LVL_ERROR,
                     tree,
-                    std::format("Can't hash the string '{}' with the type {}", sub, type)
+                    std::format("Can't hash the string '{}' with the type: {}", sub, tree->getText())
                 );
                 return false;
             }
         }
 
-        switch (ith->second.size) {
+        switch (func->size) {
         case 8:
-            fobj.AddNode(tree, new AscmNodeData<uint64_t>((uint64_t)val, ith->second.opCode));
+            fobj.AddNode(tree, new AscmNodeData<uint64_t>((uint64_t)val, func->opCode));
             break;
         case 4:
-            fobj.AddNode(tree, new AscmNodeData<uint32_t>((uint32_t)val, ith->second.opCode));
+            fobj.AddNode(tree, new AscmNodeData<uint32_t>((uint32_t)val, func->opCode));
             break;
         case 2:
-            fobj.AddNode(tree, new AscmNodeData<uint16_t>((uint16_t)val, ith->second.opCode));
+            fobj.AddNode(tree, new AscmNodeData<uint16_t>((uint16_t)val, func->opCode));
             break;
         case 1:
-            fobj.AddNode(tree, new AscmNodeData<uint8_t>((uint8_t)val, ith->second.opCode));
+            fobj.AddNode(tree, new AscmNodeData<uint8_t>((uint8_t)val, func->opCode));
             break;
         default: {
             obj.info.PrintLineMessage(
                 core::logs::LVL_ERROR,
                 tree,
-                std::format("Invalid hash size definition: {} / {} bytes", type, ith->second.size)
+                std::format("Invalid hash size definition: {} / {} bytes", type, func->size)
             );
             return false;
         }
@@ -3041,7 +3070,8 @@ namespace tool::gsc::compiler {
         }
         case gscParser::HASHSTRING: {
             std::string hash = term->getText();
-            return AddHashNode(term, hash[0], hash.substr(2, len - 3), fobj, obj);
+            ParsedHash ph{ ParseHash(term) };
+            return AddHashNode(term, ph.type, ph.str, fobj, obj);
         }
         case gscParser::ANIMTREE_IDENTIFIER: {
             std::string node{ ParseString(term, 1) };

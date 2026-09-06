@@ -469,33 +469,30 @@ namespace tool::gsc::compiler {
         TerminalNode* term = dynamic_cast<TerminalNode*>(hashNode);
         switch (term->getSymbol()->getType()) {
         case gscParser::HASHSTRING: {
-            std::string hash = term->getText();
-            char type = hash[0];
-            std::string sub = hash.substr(2, hash.length() - 3);
-            auto ith = vmInfo->hashesFunc.find(type);
-
-            if (ith == vmInfo->hashesFunc.end()) {
+            ParsedHash ph{ ParseHash(term) };
+            tool::gsc::opcode::VmHashFunc* func{ vmInfo->GetVMHashOPCode(ph.type) };
+            if (!func) {
                 info.PrintLineMessage(
                     core::logs::LVL_ERROR,
                     hashNode,
-                    std::format("Hash type not available for this vm: {}", type)
+                    std::format("Hash type not available for this vm: {}", term->getText())
                 );
                 return false;
             }
 
-            const char* ss = sub.c_str();
+            const char* ss{ ph.str.data() };
 
             if (!hash::TryHashPattern(ss, output)) {
-                output = ith->second.hashFunc(ss);
+                output = func->hashFunc(ss);
                 if (!output) {
                     info.PrintLineMessage(
                         core::logs::LVL_ERROR,
                         hashNode,
-                        std::format("Can't hash the string '{}' with the type {}", sub, type)
+                        std::format("Can't hash the string '{}' with the type {}", ph.str, ph.type)
                     );
                     return false;
                 }
-                AddHash(sub);
+                AddHash(ph.str);
             }
             return true;
         }
