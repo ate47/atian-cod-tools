@@ -48,6 +48,10 @@ namespace platform {
     }
     // Free a shared lib
     bool FreeShared(void* lib);
+    // Get entry point of a lib
+    void* GetAddressOfEntryPoint(void* lib = nullptr);
+    // Get tls locs
+    std::vector<void*> GetTLSAddresses(void* lib = nullptr);
     // Get the name of a shared lib
     const char* GetSharedName(void* hmod);
     // Get the path of a shared lib
@@ -111,6 +115,8 @@ namespace platform {
     void InstallErrorHooks(bool clearSetFunction);
     // init symlink
     void InitSymLink();
+    // resolve file and line of an address (symlink required)
+    bool ResolveFileLine(void* address, const char** file, size_t* line);
     // last error
     uint32_t GetLastPlatformError();
 

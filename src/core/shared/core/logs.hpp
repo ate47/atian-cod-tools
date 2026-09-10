@@ -71,7 +71,8 @@ namespace core::logs {
     void setlevel(loglevel lvl);
     loglevel getlevel();
     void setbasiclog(bool basiclog);
-    void addlogpath(const std::string& path);
+    void addlogpath(const std::string& path, bool split = true);
+    void addignoredlogpath(const std::string& path, bool split = true);
     void cleanuplogpaths();
 
     void setfile(const char* filename);

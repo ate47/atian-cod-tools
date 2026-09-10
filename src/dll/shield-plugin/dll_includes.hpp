@@ -1,5 +1,5 @@
 #pragma once
-#include <Windows.h>
+#include <platform/platform_windows.hpp>
 #include <includes_shared.hpp>
 #include <hook/refs.hpp>
 #include <utils/hash.hpp>

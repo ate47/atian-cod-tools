@@ -169,6 +169,35 @@ namespace platform {
         return utils::va("%s", name);
     }
 
+    void* GetAddressOfEntryPoint(void* lib) {
+        if (!lib) {
+            lib = BaseHandle();
+        }
+        return (byte*)lib + PImageOptHeader(lib)->AddressOfEntryPoint;
+    }
+
+    std::vector<void*> GetTLSAddresses(void* lib) {
+        if (!lib) {
+            lib = BaseHandle();
+        }
+        byte* base{ (byte*)lib };
+
+        std::vector<void*> r;
+
+        IMAGE_DATA_DIRECTORY& tlsDir{ platform::PImageOptHeader(lib)->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS] };
+
+        if (tlsDir.VirtualAddress && tlsDir.Size) {
+            IMAGE_TLS_DIRECTORY& tls{ *reinterpret_cast<IMAGE_TLS_DIRECTORY*>(&base[tlsDir.VirtualAddress]) };
+            void** c{ reinterpret_cast<void**>(tls.AddressOfCallBacks) };
+
+            while (c && *c) {
+                r.push_back(*c);
+                c++;
+            }
+        }
+        return r;
+    }
+
     const char* GetDebugPath(void* hmod) {
         static std::unordered_map<uintptr_t, std::string> located{};
         uintptr_t hmodPtr = reinterpret_cast<uintptr_t>(hmod);
@@ -520,6 +549,11 @@ namespace platform {
 
     void CreateDetour(void** base, void* to) {
 #ifdef __ACTS_PLATFORM_HAS_DETOURS
+        if (!base || !*base) {
+            throw std::runtime_error(
+                std::format("{}, null -> {}", actssec("Can't create detour"), hook::library::CodePointer{ to })
+            );
+        }
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
@@ -528,7 +562,7 @@ namespace platform {
         LONG error = DetourTransactionCommit();
 
         if (error != NO_ERROR) {
-            throw std::runtime_error(utils::va(actssec("Can't commit detour %p -> %p"), base, to));
+            throw std::runtime_error(utils::va(actssec("Can't commit detour %p -> %p"), *base, to));
         }
 #else
         throw std::runtime_error("detours not available for this build");
@@ -595,27 +629,28 @@ namespace platform {
             SymInitialize(GetCurrentProcess(), NULL, TRUE);
         });
     }
-    namespace {
-        bool ResolveFileLine(uintptr_t address, const char** file, DWORD* line) {
-            hook::error::ErrorConfig& cfg{ hook::error::GetErrorConfig() };
-            if (!cfg.debugDump) {
-                return false;
-            }
-
-            InitSymLink();
-
-            DWORD displacement{};
-            IMAGEHLP_LINE64 info{};
-            info.SizeOfStruct = sizeof(info);
-
-            if (SymGetLineFromAddr64(GetCurrentProcess(), address, &displacement, &info)) {
-                *file = info.FileName;
-                *line = info.LineNumber;
-                return true;
-            }
-
+    bool ResolveFileLine(void* address, const char** file, size_t* line) {
+        hook::error::ErrorConfig& cfg{ hook::error::GetErrorConfig() };
+        if (!cfg.debugDump) {
             return false;
         }
+
+        InitSymLink();
+
+        DWORD displacement{};
+        IMAGEHLP_LINE64 info{};
+        info.SizeOfStruct = sizeof(info);
+
+        if (SymGetLineFromAddr64(GetCurrentProcess(), (uintptr_t)address, &displacement, &info)) {
+            *file = info.FileName;
+            *line = (size_t)info.LineNumber;
+            return true;
+        }
+
+        return false;
+    }
+
+    namespace {
 
         const char* PtrInfo(void* location) {
             uintptr_t relativeLocation;
@@ -693,8 +728,8 @@ namespace platform {
                 );
             } else {
                 const char* file;
-                DWORD line;
-                if (ResolveFileLine((uintptr_t)ExceptionInfo->ExceptionRecord->ExceptionAddress, &file, &line)) {
+                size_t line;
+                if (ResolveFileLine(ExceptionInfo->ExceptionRecord->ExceptionAddress, &file, &line)) {
                     LOG_ERROR(
                         "Error code: 0x{:x} at {} ({} 0x{:x}) {}:{}",
                         ExceptionInfo->ExceptionRecord->ExceptionCode,
@@ -762,9 +797,9 @@ namespace platform {
 
                     if (hook::error::GetLocInfo(reinterpret_cast<void*>(val), relativeLocation, moduleName)) {
                         const char* file;
-                        DWORD line;
+                        size_t line;
                         ss << " | " << moduleName << " 0x" << std::hex << relativeLocation;
-                        if (ResolveFileLine((uintptr_t)val, &file, &line)) {
+                        if (ResolveFileLine((void*)val, &file, &line)) {
                             ss << " " << file << ":" << line;
                         }
                     }
@@ -887,8 +922,8 @@ namespace platform {
         for (; i < capture; i++) {
             if (hook::error::GetLocInfo(locs[i], relativeLocation, moduleName)) {
                 const char* file;
-                DWORD line;
-                if (ResolveFileLine((uintptr_t)locs[i], &file, &line)) {
+                size_t line;
+                if (ResolveFileLine((void*)locs[i], &file, &line)) {
                     LOG_LVLF(level, "- {} 0x{:x} ({}) {}:{}", moduleName, relativeLocation, locs[i], file, line);
                 } else {
                     LOG_LVLF(level, "- {} 0x{:x} ({})", moduleName, relativeLocation, locs[i]);

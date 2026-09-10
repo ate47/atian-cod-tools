@@ -380,7 +380,17 @@ namespace hook::library {
 
     std::ostream& operator<<(std::ostream& out, const hook::library::CodePointer& ptr) {
         if (!ptr.location) {
-            out << "null";
+            return out << "null";
+        }
+
+        const char* file;
+        size_t line;
+        if (platform::ResolveFileLine(ptr.location, &file, &line)) {
+            out << file;
+            if (line) {
+                out << ":" << line;
+            }
+            return out;
         }
         hook::library::Library library{ GetLibraryInfo(ptr.location) };
         return out << library << "+0x" << std::hex << ((byte*)ptr.location - (byte*)*library);

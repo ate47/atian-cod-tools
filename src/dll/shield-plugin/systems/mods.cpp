@@ -18,8 +18,8 @@ namespace systems::mods {
     }
 
     namespace {
-        std::filesystem::path moddir{ "project-bo4/acts/mods" };
-        std::filesystem::path zonedir{ "project-bo4/acts/zone" };
+        std::filesystem::path moddir{ "acts/mods" };
+        std::filesystem::path zonedir{ "acts/zone" };
 
         struct XZoneBuffer {
             void* data;
