@@ -462,7 +462,7 @@ namespace {
                 if (opt.ReadFile(fpfile.string(), fileFPBuff)) {
                     hasFdFile = true;
                 } else {
-                    if (opt.m_fdIgnoreMissing) {
+                    if (!opt.m_fdIgnoreMissing) {
                         throw std::runtime_error(std::format("Can't read {}", fpfile.string()));
                     }
                     fileFPBuff.clear();
@@ -474,7 +474,7 @@ namespace {
                 if (opt.ReadFile(fcfile.string(), fileFCBuff)) {
                     hasFcFile = true;
                 } else {
-                    if (opt.m_fdIgnoreMissing) {
+                    if (!opt.m_fdIgnoreMissing) {
                         throw std::runtime_error(std::format("Can't read {}", fcfile.string()));
                     }
                     fileFCBuff.clear();
