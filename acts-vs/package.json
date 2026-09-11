@@ -1,0 +1,101 @@
+{
+  "name": "acts-language-support",
+  "displayName": "GSC Language Support",
+  "description": "Syntax highlighting and editor support for GSC, CSC, and GSH scripts.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.137.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "gsc",
+    "csc",
+    "gsh",
+    "call of duty"
+  ],
+  "activationEvents": [
+    "onLanguage:gsc"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "gsc",
+        "aliases": [
+          "GSC",
+          "gsc"
+        ],
+        "extensions": [
+          ".gsc",
+          ".csc",
+          ".gsh"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gsc",
+        "scopeName": "source.gsc",
+        "path": "./syntaxes/gsc.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Acts GSC",
+      "properties": {
+        "acts.languageServerPath": {
+          "type": "string",
+          "default": "acts",
+          "description": "Executable that provides the Acts GSC language server."
+        },
+        "acts.languageServerArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "--no-title",
+            "--noUpdater",
+            "--log",
+            "w",
+            "language_server",
+            "gsc"
+          ],
+          "description": "Arguments passed to the Acts GSC language-server executable."
+        },
+        "acts.languageServerCwd": {
+          "type": "string",
+          "default": "",
+          "description": "Working directory for the Acts GSC language server. Leave empty to inherit VS Code's environment."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.137.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "typescript": "^6.0.3",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}

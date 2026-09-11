@@ -203,6 +203,11 @@ namespace core::config {
         SetVal(path, v, 0, base);
     }
 
+    void ConfigGenericRefs::SetNull(const char* path) {
+        rapidjson::Value v{ rapidjson::kNullType };
+        SetVal(path, v, 0, base);
+    }
+
     int64_t ConfigGenericRefs::GetEnum(
         const char* path, const ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue
     ) {
@@ -289,6 +294,8 @@ namespace core::config {
     void ConfigGenericRefs::SetDouble(const char* path, double defaultValue) {}
 
     void ConfigGenericRefs::SetString(const char* path, const std::string& defaultValue) {}
+
+    void ConfigGenericRefs::SetNull(const char* path) {}
 
     void ConfigGenericRefs::SetBool(const char* path, bool defaultValue) {}
     int64_t ConfigGenericRefs::GetEnum(

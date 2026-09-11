@@ -61,6 +61,7 @@ namespace core::config {
         RapidJsonGeneric& GetVal(const char* path, size_t off, RapidJsonGeneric& loc);
         inline RapidJsonGeneric& GetVal(const char* path) { return GetVal(path, 0, base); }
         void SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc);
+        inline void SetVal(const char* path, rapidjson::Value& value) { SetVal(path, value, 0, base); }
 #endif
 
         int64_t GetInteger(const char* path, int64_t defaultValue = 0);
@@ -146,6 +147,7 @@ namespace core::config {
         inline void SetEnum(const std::string& path, int64_t enumValue, const ConfigEnumData* data, size_t dataCount) {
             SetEnum(path.c_str(), enumValue, data, dataCount);
         }
+        void SetNull(const char* path);
 
         operator bool() const;
     };
@@ -383,8 +385,18 @@ namespace core::config {
 #endif
         }
     };
+#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
+    template<typename DefaultTypeGetters = BaseTypeGetters>
+    class JsonDocument : public ConfigGeneric<DefaultTypeGetters> {
+      public:
+        std::filesystem::path configFile;
+        RapidJsonDocument main{};
+        JsonDocument() : ConfigGeneric<DefaultTypeGetters>(main, main) {}
+    };
+#endif
 
     using Config = ConfigDocument<BaseTypeGetters>;
+    using JDoc = JsonDocument<BaseTypeGetters>;
 
     Config& GetMainConfig();
 
