@@ -40,7 +40,8 @@ namespace core::config {
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
     using RapidJsonDocument =
         rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator>>;
-    using RapidJsonGeneric = rapidjson::GenericValue<RapidJsonDocument::EncodingType, RapidJsonDocument::AllocatorType>;
+    using RapidJsonAllocatorType = RapidJsonDocument::AllocatorType;
+    using RapidJsonGeneric = rapidjson::GenericValue<RapidJsonDocument::EncodingType, RapidJsonAllocatorType>;
     using RapidJsonGenericArray = rapidjson::GenericArray<false, RapidJsonGeneric>;
     using RapidJsonGenericObject = rapidjson::GenericObject<false, RapidJsonGeneric>;
 
@@ -58,10 +59,14 @@ namespace core::config {
         ConfigGenericRefs(const ConfigGenericRefs& other) noexcept : main(other.main), base(other.base) {}
         ConfigGenericRefs(ConfigGenericRefs&& other) noexcept : main(other.main), base(other.base) {}
 
-        RapidJsonGeneric& GetVal(const char* path, size_t off, RapidJsonGeneric& loc);
-        inline RapidJsonGeneric& GetVal(const char* path) { return GetVal(path, 0, base); }
+        RapidJsonGeneric& GetVal(const char* path, size_t off, RapidJsonGeneric& loc, bool createEmpty = false);
+        inline RapidJsonGeneric& GetVal(const char* path, bool createEmpty = false) {
+            return GetVal(path, 0, base, createEmpty);
+        }
         void SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc);
         inline void SetVal(const char* path, rapidjson::Value& value) { SetVal(path, value, 0, base); }
+
+        RapidJsonAllocatorType& GetAllocator() { return main.GetAllocator(); }
 #endif
 
         int64_t GetInteger(const char* path, int64_t defaultValue = 0);
@@ -157,17 +162,40 @@ namespace core::config {
     template<typename DefaultTypeGetters = BaseTypeGetters>
     class ConfigGeneric : public ConfigGenericRefs {
       public:
+        using ConfigGenericType = ConfigGeneric<DefaultTypeGetters>;
         using ConfigGenericRefs::ConfigGenericRefs;
 
-        ConfigGeneric<DefaultTypeGetters> GetSubVal(const char* path, size_t off, RapidJsonGeneric& loc) {
-            return GetSub(GetVal(path, off, loc));
+        ConfigGenericType GetSubVal(const char* path, size_t off, RapidJsonGeneric& loc, bool createEmpty = false) {
+            return GetSub(GetVal(path, off, loc, createEmpty));
         }
 
-        ConfigGeneric<DefaultTypeGetters> GetSubVal(const char* path) { return GetSubVal(path, 0, base); }
-
-        ConfigGeneric<DefaultTypeGetters> GetSub(RapidJsonGeneric& loc) {
-            return ConfigGeneric<DefaultTypeGetters>{ main, loc };
+        ConfigGenericType GetSubVal(const char* path, bool createEmpty = false) {
+            return GetSubVal(path, 0, base, createEmpty);
         }
+
+        ConfigGenericType CreateSubVal(const char* path) { return GetSubVal(path, true); }
+
+        ConfigGenericType GetSub(RapidJsonGeneric& loc) { return ConfigGenericType{ main, loc }; }
+
+        operator bool() const {
+#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
+            return base.IsNull();
+#else
+            return false;
+#endif
+        }
+
+#ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
+        void Set(const char* path, RapidJsonGeneric&& value) {
+            RapidJsonGeneric& sub{ this->GetVal(path, true) };
+            sub.CopyFrom(std::move(value), main.GetAllocator());
+        }
+
+        void Set(const char* path, const RapidJsonGeneric& value) {
+            RapidJsonGeneric& sub{ this->GetVal(path, true) };
+            sub.CopyFrom(value, main.GetAllocator());
+        }
+#endif
 
         template<typename T, typename Output = size_t, bool nullValid = true>
         inline Output LoadArray(const char* path, T* array, size_t maxCount, Output* size = nullptr) {
@@ -192,7 +220,7 @@ namespace core::config {
             }
 
             for (RapidJsonGeneric& member : cfgArray) {
-                ConfigGeneric<DefaultTypeGetters> sub{ GetSub(member) };
+                ConfigGenericType sub{ GetSub(member) };
                 using MT = std::remove_reference_t<decltype(*array)>;
                 sub.Load<MT>("~", *array);
                 ++array;
@@ -392,6 +420,13 @@ namespace core::config {
         std::filesystem::path configFile;
         RapidJsonDocument main{};
         JsonDocument() : ConfigGeneric<DefaultTypeGetters>(main, main) {}
+
+        bool ParseDocument(const char* file, size_t len) {
+            main.Parse(file, len);
+            return !main.HasParseError();
+        }
+
+        inline bool ParseDocument(const std::string& file) { return ParseDocument(file.data(), file.length()); }
     };
 #endif
 

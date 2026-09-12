@@ -1,6 +1,6 @@
 #pragma once
 
-namespace lsp {
+namespace tool::vscode::lsp {
 
     enum JsonRPCError {
         RPC_ParseError = -32700,
@@ -8,6 +8,12 @@ namespace lsp {
         RPC_MethodNotFound = -32601,
         RPC_InvalidParams = -32602,
         RPC_InternalError = -32603,
+    };
+
+    enum TextDocumentSyncKind {
+        TDSCK_None = 0,
+        TDSCK_Full = 1,
+        TDSCK_Incremental = 2,
     };
 
     enum SymbolKind {
@@ -38,4 +44,4 @@ namespace lsp {
         SK_Operator = 25,
         SK_TypeParameter = 26,
     };
-} // namespace lsp
+} // namespace tool::vscode::lsp

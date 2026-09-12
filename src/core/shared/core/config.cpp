@@ -35,10 +35,13 @@ namespace core::config {
 
 #ifdef __ACTS_COMPRESS_HAS_RAPIDJSON
 
-    RapidJsonGeneric& ConfigGenericRefs::GetVal(const char* path, size_t off, RapidJsonGeneric& loc) {
+    RapidJsonGeneric& ConfigGenericRefs::GetVal(const char* path, size_t off, RapidJsonGeneric& loc, bool createEmpty) {
         static rapidjson::Value nullAnswer{ rapidjson::kNullType };
-        if (!path || !*path || loc.IsNull()) {
-            return nullAnswer; // not a valid path/object
+        if (!path || !*path) {
+            return nullAnswer; // not a valid path
+        }
+        if (loc.IsNull()) {
+            return loc; // invalid object
         }
         if (path[0] == '~' && !path[1]) {
             return loc;
@@ -54,7 +57,13 @@ namespace core::config {
             std::string node{ path + off, sv.length() };
 
             if (!loc.HasMember(node.c_str())) {
-                return nullAnswer;
+                if (!createEmpty) {
+                    return nullAnswer;
+                }
+
+                RapidJsonGeneric key{ rapidjson::kStringType };
+                key.SetString(node.c_str(), main.GetAllocator());
+                loc.AddMember(key, RapidJsonGeneric{ rapidjson::kNullType }, main.GetAllocator());
             }
 
             return loc[node.c_str()];
@@ -62,12 +71,20 @@ namespace core::config {
         std::string node{ path + off, idx };
 
         if (!loc.HasMember(node.c_str())) {
-            return nullAnswer;
+            if (!createEmpty) {
+                return nullAnswer;
+            }
+            RapidJsonGeneric key{ rapidjson::kStringType };
+            key.SetString(node.c_str(), main.GetAllocator());
+            loc.AddMember(key, RapidJsonGeneric{ rapidjson::kObjectType }, main.GetAllocator());
         }
 
-        auto& val = loc[node.c_str()];
+        RapidJsonGeneric& val{ loc[node.c_str()] };
 
         if (!val.IsObject()) {
+            if (createEmpty) {
+                throw std::runtime_error(std::format("Trying to use {}[{}] as object, but it isn't", node, path));
+            }
             return nullAnswer;
         }
 
