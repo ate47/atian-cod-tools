@@ -156,7 +156,7 @@ test() {} // define func test
     inlined_func = function ( a, b )
     {
         return a + b;
-    }
+    };
 
     // call function
     sum = [[ inlined_func ]]( 1, 2 ); // sum=3

@@ -44,4 +44,11 @@ namespace tool::vscode::lsp {
         SK_Operator = 25,
         SK_TypeParameter = 26,
     };
+
+    enum DiagnosticSeverity {
+        DS_Error = 1,
+        DS_Warning = 2,
+        DS_Information = 3,
+        DS_Hint = 4,
+    };
 } // namespace tool::vscode::lsp

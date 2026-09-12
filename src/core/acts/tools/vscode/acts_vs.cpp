@@ -5,25 +5,105 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/writer.h>
-
 #include <fcntl.h>
 #include <io.h>
 
+// compiler
+#include <tools/gsc/compiler/gsc_compiler_grammar.hpp>
+
 namespace tool::vscode {
+    using namespace antlr4;
+    using namespace tool::gsc::compiler;
     using namespace hash::literals;
 
-    void LanguageServer::OpenFile(JDocSub ev) {
+    constexpr const char* JSON_RPC_VERSION = "2.0";
+
+    class ACTSErrorListener : public ConsoleErrorListener {
+        ErrorMsgHandler& errorHandler;
+
+      public:
+        ACTSErrorListener(ErrorMsgHandler& errorHandler) : errorHandler(errorHandler) {}
+
+        void syntaxError(
+            Recognizer* recognizer, Token* offendingSymbol, size_t line, size_t charPositionInLine,
+            const std::string& msg, std::exception_ptr e
+        ) override {
+            if (!offendingSymbol) {
+                // no token, use single char
+                errorHandler(core::logs::LVL_ERROR, line, charPositionInLine, line, charPositionInLine + 1, msg);
+                return;
+            }
+
+            std::string tokenText{ offendingSymbol->getText() };
+            size_t first{ 0 };
+            size_t endLine{ line };
+            while (first < tokenText.length()) {
+                size_t nl{ tokenText.find_first_of('\n', first) };
+                if (nl == std::string::npos) {
+                    break;
+                }
+                endLine++;
+                first = nl + 1;
+            }
+
+            size_t endChar;
+            if (endLine != line) {
+                endChar = tokenText.length() - first;
+            } else {
+                endChar = charPositionInLine + tokenText.length();
+            }
+
+            errorHandler(core::logs::LVL_ERROR, line, charPositionInLine, endLine, endChar, msg);
+        }
+    };
+
+    static void ProcessFile(const std::string& buff, ErrorMsgHandler errorHandler) {
+        // temp test for grammar parsing
+        core::preprocessor::PreProcessorOption popt{};
+
+        std::string str{ buff };
+
+        popt.ApplyPreProcessor(
+            str,
+            [&errorHandler](core::logs::loglevel lvl, size_t line, const std::string& message) -> void {
+                errorHandler(lvl, line, 0, line + 1, 0, message); // error the whole line
+            }
+        );
+        ANTLRInputStream is{ str };
+
+        std::unique_ptr<ACTSErrorListener> errList{ std::make_unique<ACTSErrorListener>(errorHandler) };
+
+        gscLexer lexer{ &is };
+        lexer.addErrorListener(&*errList);
+        CommonTokenStream tokens{ &lexer };
+
+        tokens.fill();
+        gscParser parser{ &tokens };
+
+        parser.removeErrorListeners();
+
+        parser.addErrorListener(&*errList);
+
+        gscParser::ProgContext* prog = parser.prog();
+    }
+
+    void TextDocument::SetText(std::string_view view, ErrorMsgHandler& errorHandler) {
+        text = view;
+        ProcessFile(text, errorHandler);
+    }
+
+    void LanguageServer::OpenFile(JDocSub ev, ErrorMsgHandler& errorHandler) {
         const char* uri{ ev.GetCString("uri") };
         const char* text{ ev.GetCString("text") };
 
         if (uri && text) {
             TextDocument& doc{ docs[uri] };
             doc.uri = uri;
-            doc.text = text;
+            doc.SetText(text, errorHandler);
         }
     }
 
-    void LanguageServer::ChangeFile(JDocSub ev) {
+    void LanguageServer::ChangeFile(JDocSub ev, ErrorMsgHandler& errorHandler) {
         const char* uri{ ev.GetCString("textDocument.uri") };
         JDocSub changes{ ev.GetSubVal("contentChanges") };
         if (!uri || !changes.base.IsArray()) {
@@ -36,7 +116,7 @@ namespace tool::vscode {
             if (text) {
                 TextDocument& doc{ docs[uri] };
                 doc.uri = uri;
-                doc.text = text;
+                doc.SetText(text, errorHandler);
             }
         }
     }
@@ -101,7 +181,7 @@ namespace tool::vscode {
 
     void LanguageServer::SendResponse(const JDocSub& id, core::config::RapidJsonGeneric&& result) {
         JDoc response{};
-        response.SetString("jsonrpc", "2.0");
+        response.SetString("jsonrpc", JSON_RPC_VERSION);
         JDocAllocatorType& allocator{ response.GetAllocator() };
         core::config::RapidJsonGeneric copiedId;
         copiedId.CopyFrom(id.base, allocator);
@@ -112,7 +192,7 @@ namespace tool::vscode {
 
     void LanguageServer::SendError(const JDocSub* id, lsp::JsonRPCError code, const std::string& message) {
         JDoc response{};
-        response.SetString("jsonrpc", "2.0");
+        response.SetString("jsonrpc", JSON_RPC_VERSION);
         response.SetInteger("error.code", code);
         response.SetString("error.message", message);
         if (id) {
@@ -127,7 +207,7 @@ namespace tool::vscode {
 
     void LanguageServer::PublishEmptyDiagnostics(JDocSub textDocument) {
         JDoc notification{};
-        notification.SetString("jsonrpc", "2.0");
+        notification.SetString("jsonrpc", JSON_RPC_VERSION);
         notification.SetString("method", "textDocument/publishDiagnostics");
 
         JDocSub params{ notification.CreateSubVal("params") };
@@ -189,11 +269,59 @@ namespace tool::vscode {
             }
             case "textDocument/didOpen"_x:
             case "textDocument/didChange"_x: {
-                OpenFile(params.GetSubVal("textDocument"));
-                if (params.GetSubVal("contentChanges").base.IsArray()) {
-                    ChangeFile(params);
-                }
-                PublishEmptyDiagnostics(params.GetSubVal("textDocument"));
+                JDoc notification{};
+                core::config::RapidJsonGeneric diagnostics{};
+                diagnostics.SetArray();
+                core::config::RapidJsonGenericArray arr{ diagnostics.GetArray() };
+
+                ErrorMsgHandler err = [&arr, &notification](
+                                          core::logs::loglevel lvl,
+                                          size_t startLine,
+                                          size_t startCharPositionInLine,
+                                          size_t endLine,
+                                          size_t endCharPositionInLine,
+                                          const std::string& message
+                                      ) -> void {
+                    lsp::DiagnosticSeverity severity;
+                    switch (lvl) {
+                    case core::logs::loglevel::LVL_DEBUG:
+                    case core::logs::loglevel::LVL_TRACE:
+                    case core::logs::loglevel::LVL_TRACE_PATH:
+                        return; // ignored
+                    case core::logs::loglevel::LVL_ERROR:
+                        severity = lsp::DiagnosticSeverity::DS_Error;
+                        break;
+                    case core::logs::loglevel::LVL_WARNING:
+                        severity = lsp::DiagnosticSeverity::DS_Warning;
+                        break;
+                    case core::logs::loglevel::LVL_INFO:
+                    default:
+                        severity = lsp::DiagnosticSeverity::DS_Information;
+                        break;
+                    }
+                    core::config::RapidJsonGeneric d{};
+                    d.SetObject();
+                    JDocSub diag{ notification.GetSub(d) };
+
+                    diag.SetInteger("range.start.line", startLine - 1);
+                    diag.SetInteger("range.start.character", startCharPositionInLine);
+                    diag.SetInteger("range.end.line", endLine - 1);
+                    diag.SetInteger("range.end.character", endCharPositionInLine);
+                    diag.SetString("message", message);
+                    diag.SetInteger("severity", severity);
+
+                    arr.PushBack(std::move(d), notification.GetAllocator());
+                };
+
+                OpenFile(params.GetSubVal("textDocument"), err);
+                ChangeFile(params, err);
+                notification.SetString("jsonrpc", JSON_RPC_VERSION);
+                notification.SetString("method", "textDocument/publishDiagnostics");
+
+                JDocSub dparams{ notification.CreateSubVal("params") };
+                dparams.SetString("uri", params.GetString("textDocument.uri"));
+                dparams.Set("diagnostics", std::move(diagnostics));
+                WriteMessage(notification);
                 break;
             }
             case "textDocument/didClose"_x: {
@@ -317,7 +445,7 @@ namespace tool::vscode {
         int language_server_test(int argc, const char* argv[]) {
 
             JDoc notification{};
-            notification.SetString("jsonrpc", "2.0");
+            notification.SetString("jsonrpc", JSON_RPC_VERSION);
             notification.SetString("method", "textDocument/publishDiagnostics");
 
             JDocSub params{ notification.CreateSubVal("params") };
