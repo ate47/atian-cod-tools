@@ -305,7 +305,7 @@ namespace tool {
         const auto& tool = findtool(argv[1]);
 
         if (!tool) {
-            LOG_ERROR("Error: Bad tool name. {} list for the tools list", *argv);
+            LOG_ERROR("Error: Bad tool name '{}'. {} list for the tools list", argv[1], argv[0]);
             bool find{};
             const char* query[]{ argv[1] };
             tool::search(query, 1, [&find](const tool::toolfunctiondata* tool) {

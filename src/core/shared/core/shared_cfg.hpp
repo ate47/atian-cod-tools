@@ -16,6 +16,7 @@ namespace core::shared_cfg {
         core::logs::logcallback callback{};
 
         std::vector<std::string> paths{};
+        std::vector<std::string> ignoredPaths{};
     };
     struct SharedCfgHashes {
         core::memory_allocator::MemoryAllocator alloc{};

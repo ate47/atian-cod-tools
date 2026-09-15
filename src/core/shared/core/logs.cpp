@@ -13,18 +13,42 @@ namespace core::logs {
         }
         return nullptr;
     }
-    void addlogpath(const std::string& path) {
+    void addlogpath(const std::string& path, bool split) {
         core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
-        size_t start{};
-        while (start < path.size()) {
-            size_t idx{ path.find(';', start) };
-            if (idx == std::string::npos) {
-                idx = path.size();
+
+        if (split) {
+            size_t start{};
+            while (start < path.size()) {
+                size_t idx{ path.find(';', start) };
+                if (idx == std::string::npos) {
+                    idx = path.size();
+                }
+
+                cfg.log.paths.push_back(path.substr(start, idx));
+
+                start = idx + 1;
             }
+        } else {
+            cfg.log.paths.push_back(path);
+        }
+    }
+    void addignoredlogpath(const std::string& path, bool split) {
+        core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 
-            cfg.log.paths.push_back(path.substr(start, idx));
+        if (split) {
+            size_t start{};
+            while (start < path.size()) {
+                size_t idx{ path.find(';', start) };
+                if (idx == std::string::npos) {
+                    idx = path.size();
+                }
 
-            start = idx + 1;
+                cfg.log.ignoredPaths.push_back(path.substr(start, idx));
+
+                start = idx + 1;
+            }
+        } else {
+            cfg.log.ignoredPaths.push_back(path);
         }
     }
     void cleanuplogpaths() { core::shared_cfg::GetSharedConfig().log.paths.clear(); }
@@ -95,18 +119,25 @@ namespace core::logs {
     void log(loglevel level, const char* header, const char* file, size_t line, const char* str, bool endl) {
         core::shared_cfg::SharedCfg& cfg{ core::shared_cfg::GetSharedConfig() };
 
-        if (file && cfg.log.paths.size()) {
+        if (file && (cfg.log.paths.size() || cfg.log.ignoredPaths.size())) {
             // check if the file can be handled
             std::string_view fsw{ file };
-            bool match{};
-            for (const std::string& p : cfg.log.paths) {
+            for (const std::string& p : cfg.log.ignoredPaths) {
                 if (fsw.starts_with(p)) {
-                    match = true;
-                    break;
+                    return;
                 }
             }
-            if (!match)
-                return; // not matching our pattern
+            if (cfg.log.paths.size()) {
+                bool match{};
+                for (const std::string& p : cfg.log.paths) {
+                    if (fsw.starts_with(p)) {
+                        match = true;
+                        break;
+                    }
+                }
+                if (!match)
+                    return; // not matching our pattern
+            }
         }
 
         if (cfg.log.callback) {

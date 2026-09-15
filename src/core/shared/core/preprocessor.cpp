@@ -223,10 +223,7 @@ namespace core::preprocessor {
         }
     }
 
-    bool PreProcessorOption::ApplyPreProcessorComments(
-        std::string& str,
-        std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler
-    ) {
+    bool PreProcessorOption::ApplyPreProcessorComments(std::string& str, ErrorHandler errorHandler) {
         size_t idx{};
         char* data = str.data();
         char* dataEnd = data + str.length();
@@ -291,10 +288,7 @@ namespace core::preprocessor {
 
         return true;
     }
-    bool PreProcessorOption::ApplyPreProcessor(
-        std::string& str,
-        std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler
-    ) {
+    bool PreProcessorOption::ApplyPreProcessor(std::string& str, ErrorHandler errorHandler) {
         if (!ApplyPreProcessorComments(str, errorHandler)) {
             return false;
         }

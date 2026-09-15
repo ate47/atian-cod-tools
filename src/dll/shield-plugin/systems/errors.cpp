@@ -131,7 +131,7 @@ namespace systems::errors {
             std::string errorFile{ core::config::GetString("logger.errorfile") };
             std::filesystem::path errorPath;
             if (errorFile.empty()) {
-                errorPath = utils::GetProgDir() / "project-bo4" / "acts" / "errors.tsv";
+                errorPath = utils::GetProgDir() / "acts" / "errors.tsv";
             } else {
                 errorPath = errorFile;
             }

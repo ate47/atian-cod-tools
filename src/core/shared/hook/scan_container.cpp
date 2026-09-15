@@ -92,6 +92,7 @@ namespace hook::scan_container {
             }
         }
         anyUpdate = false;
+        LOG_TRACE("scans saved to {}", scanPath.string());
     }
 
     ResultValue& ScanContainer::GetCached(const char* path) {

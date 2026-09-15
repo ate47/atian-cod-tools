@@ -9,6 +9,8 @@ namespace core::preprocessor {
         size_t fileoffset{};
     };
 
+    using ErrorHandler = std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)>;
+
     struct StringContainer {
         std::vector<StringData> blocks{};
         std::vector<std::string> buffers{};
@@ -45,15 +47,9 @@ namespace core::preprocessor {
 
         void ReplaceDefines(std::string& str, size_t start, size_t* end);
 
-        bool ApplyPreProcessorComments(
-            std::string& str,
-            std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler
-        );
+        bool ApplyPreProcessorComments(std::string& str, ErrorHandler errorHandler);
 
-        bool ApplyPreProcessor(
-            std::string& str,
-            std::function<void(core::logs::loglevel lvl, size_t line, const std::string& message)> errorHandler
-        );
+        bool ApplyPreProcessor(std::string& str, ErrorHandler errorHandler);
 
         bool ApplyPreProcessor(std::string& str, const char* filename = nullptr);
     };

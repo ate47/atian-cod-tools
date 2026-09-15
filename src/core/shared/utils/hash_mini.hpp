@@ -165,4 +165,17 @@ namespace hash {
         return !start ? HashSecure(XHASHSEC_T10_OMNVAR_STR, FNV1A_T10_OMNVAR_OFFSET, str, IV_TYPE3)
                       : Hash64A(str, start, IV_TYPE3);
     }
+
+    namespace literals {
+        constexpr uint64_t operator"" _x(const char* txt, size_t len) { return hash::HashX64(txt); }
+        constexpr uint64_t operator"" _x32(const char* txt, size_t len) { return hash::HashX32(txt); }
+        constexpr uint64_t operator"" _xt7(const char* txt, size_t len) { return hash::HashT7(txt); }
+        constexpr uint64_t operator"" _xt8(const char* txt, size_t len) { return hash::HashT89Scr(txt); }
+        constexpr uint64_t operator"" _xt10(const char* txt, size_t len) { return hash::HashT10Scr(txt); }
+        constexpr uint64_t operator"" _xt10s(const char* txt, size_t len) { return hash::HashT10ScrSP(txt); }
+        constexpr uint64_t operator"" _xiw(const char* txt, size_t len) { return hash::HashIWAsset(txt); }
+        constexpr uint64_t operator"" _xjup(const char* txt, size_t len) { return hash::HashJupScr(txt); }
+        constexpr uint64_t operator"" _xdvar(const char* txt, size_t len) { return hash::HashIWDVar(txt); }
+        constexpr uint64_t operator"" _xomn(const char* txt, size_t len) { return hash::HashT10OmnVar(txt); }
+    } // namespace literals
 } // namespace hash

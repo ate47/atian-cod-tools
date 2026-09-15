@@ -1,0 +1,14 @@
+{
+  "acts.languageServerArgs": [
+    "--no-title",
+    "--noUpdater",
+    "-F",
+    "--log",
+    "w",
+    "-D",
+    "language_server",
+    "gsc",
+    "--debug-file",
+    "debug.log"
+  ]
+}

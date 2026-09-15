@@ -45,6 +45,7 @@ src/**/_private_*.hpp
 /src/core/acts/tools/fastfile/handlers/handler_game_mw4.hpp
 /src/core/acts/tools/fastfile/handlers/handler_game_mw4.cpp
 /src/core/acts/tools/fastfile/handlers/mw4/
+/tmp/
 
 # VS
 /.vs/

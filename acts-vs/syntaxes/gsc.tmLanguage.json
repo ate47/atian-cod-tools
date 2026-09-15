@@ -1,0 +1,168 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "GSC",
+    "scopeName": "source.gsc",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#directives"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#hashes"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#operators"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "match": "//.*$",
+                    "name": "comment.line.double-slash.gsc"
+                },
+                {
+                    "begin": "/\\*",
+                    "end": "\\*/",
+                    "name": "comment.block.gsc"
+                }
+            ]
+        },
+        "directives": {
+            "patterns": [
+                {
+                    "match": "#(include|using|insert|using_animtree|precache|namespace|file|constexpr|define)\\b",
+                    "name": "keyword.control.directive.gsc"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "begin": "&?\"",
+                    "end": "\"",
+                    "name": "string.quoted.double.gsc",
+                    "patterns": [
+                        {
+                            "match": "\\\\.",
+                            "name": "constant.character.escape.gsc"
+                        }
+                    ]
+                },
+                {
+                    "match": "(?:#[A-Za-z0-9]*|[sr@t%o])\"(?:[^\"\\\\]|\\\\.)*\"",
+                    "name": "string.quoted.hash.gsc"
+                },
+                {
+                    "begin": "'",
+                    "end": "'",
+                    "name": "string.quoted.single.gsc",
+                    "patterns": [
+                        {
+                            "match": "\\\\.",
+                            "name": "constant.character.escape.gsc"
+                        }
+                    ]
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "match": "\\b-?0[xX][0-9a-fA-F]+\\b",
+                    "name": "constant.numeric.hex.gsc"
+                },
+                {
+                    "match": "\\b-?0[bB][01]+\\b",
+                    "name": "constant.numeric.binary.gsc"
+                },
+                {
+                    "match": "\\b-?0[0-7]+\\b",
+                    "name": "constant.numeric.octal.gsc"
+                },
+                {
+                    "match": "\\b-?(\\d+(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?\\b",
+                    "name": "constant.numeric.gsc"
+                }
+            ]
+        },
+        "hashes": {
+            "patterns": [
+                {
+                    "match": "#[A-Za-z_][A-Za-z0-9_]*",
+                    "name": "constant.other.hash.gsc"
+                },
+                {
+                    "match": "\\$[A-Za-z_][A-Za-z0-9_]*",
+                    "name": "variable.language.animtree.gsc"
+                },
+                {
+                    "match": "@[A-Za-z_][A-Za-z0-9_]*",
+                    "name": "variable.other.reference.gsc"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "match": "\\b(function|class|new|private|public|var|autoexec|event_handler|detour)\\b",
+                    "name": "storage.type.gsc"
+                },
+                {
+                    "match": "\\b(if|else|for|while|do|foreach|in|switch|case|default|return|break|continue|goto|wait|jumpdev)\\b",
+                    "name": "keyword.control.gsc"
+                },
+                {
+                    "match": "\\b(thread|childthread|threadendon|builtin|is|not)\\b",
+                    "name": "keyword.operator.gsc"
+                },
+                {
+                    "match": "\\b(true|false|undefined)\\b",
+                    "name": "constant.language.gsc"
+                },
+                {
+                    "match": "\\b(nop|Nop|DevOp|devop|Devop)\\b",
+                    "name": "support.function.special.gsc"
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()",
+                    "name": "entity.name.function.gsc"
+                },
+                {
+                    "match": "(?<=\\bfunction\\s+)[A-Za-z_][A-Za-z0-9_]*",
+                    "name": "entity.name.function.definition.gsc"
+                },
+                {
+                    "match": "[&@]([A-Za-z_][A-Za-z0-9_]*(<[^>]+>)?::)?[A-Za-z_][A-Za-z0-9_]*",
+                    "name": "entity.name.function.reference.gsc"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "match": "(===|!==|==|!=|<=|>=|<==|>==|=>|\\?\\?|\\?\\.|\\+\\+|--|\\+=|-=|\\*=|/=|%=|&&|\\|\\||<<|>>|[+*/%&|^!~=<>?:.-])",
+                    "name": "keyword.operator.gsc"
+                }
+            ]
+        }
+    }
+}

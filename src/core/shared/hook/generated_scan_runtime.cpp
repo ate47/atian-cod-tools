@@ -55,6 +55,7 @@ namespace hook::generated_scan_runtime {
     }
 
     static void LoadScansMulti(hook::scan_container::ScanContainer& scan, ScanInformation* list, size_t count) {
+        utils::Timestamp start{ utils::GetTimestamp() };
         std::unique_ptr<CompiledScan[]> cscans{ std::make_unique<CompiledScan[]>(count) };
         CompiledScan* scindex[0x100]{};
         CompiledScan* maskedSc{};
@@ -192,7 +193,8 @@ namespace hook::generated_scan_runtime {
         if (scan.foundMissing && !oldIgnoreMissing) {
             throw std::runtime_error("Missing scans found");
         }
-        LOG_TRACE("Loaded {} scans", count);
+        utils::Timestamp end{ utils::GetTimestamp() };
+        LOG_TRACE("Loaded {} scans in {}ms", count, end - start);
     }
 
     void LoadScans(hook::scan_container::ScanContainer& scan, ScanInformation* list, size_t count) {
