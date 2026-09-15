@@ -456,15 +456,13 @@ namespace {
             std::vector<byte> fileFCBuff{};
             bool hasFdFile{};
             bool hasFcFile{};
+            // IW patch files are optional, regardless of --fd-ignore.
             if (opt.m_fd) {
                 fpfile = ctx.file;
                 fpfile.replace_extension(".fp");
                 if (opt.ReadFile(fpfile.string(), fileFPBuff)) {
                     hasFdFile = true;
                 } else {
-                    if (opt.m_fdIgnoreMissing) {
-                        throw std::runtime_error(std::format("Can't read {}", fpfile.string()));
-                    }
                     fileFPBuff.clear();
                 }
             }
@@ -474,9 +472,6 @@ namespace {
                 if (opt.ReadFile(fcfile.string(), fileFCBuff)) {
                     hasFcFile = true;
                 } else {
-                    if (opt.m_fdIgnoreMissing) {
-                        throw std::runtime_error(std::format("Can't read {}", fcfile.string()));
-                    }
                     fileFCBuff.clear();
                 }
             }

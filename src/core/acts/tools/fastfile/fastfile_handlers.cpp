@@ -507,7 +507,7 @@ namespace fastfile {
         LOG_INFO("-G --game-path [g]        : Game path");
         LOG_INFO("-p --patch                : Use patch files (fd/fp)");
         LOG_INFO("-c --fc                   : Read fc files (fc)");
-        LOG_INFO("-i --fd-ignore            : Ignore missing fd file");
+        LOG_INFO("-i --fd-ignore            : Ignore missing fd file (IW fp/fc files are always optional)");
         LOG_INFO("-a --assets [g]           : Set the asset types to dump by name (by default all)");
         LOG_INFO("-n --name [n]             : Set the assets to dump by name (by default all)");
         LOG_INFO("-t --translate [t]        : Load translation directory");
