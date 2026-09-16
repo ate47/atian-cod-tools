@@ -91,8 +91,8 @@ namespace {
                 std::memcpy(&uncompressedSize, &data[off], 4);
                 std::memcpy(&compressedSize, &data[off + 4], 4);
                 off += 8;
-                if (!compressedSize || !uncompressedSize || off + compressedSize > data.size()
-                    || uncompressedSize > 0x4000000) {
+                if (!compressedSize || !uncompressedSize || off + compressedSize > data.size() ||
+                    uncompressedSize > 0x4000000) {
                     continue;
                 }
 
@@ -166,8 +166,7 @@ namespace {
         size_t totalScripts{};
         size_t errCount{};
 
-        for (const std::filesystem::directory_entry& entry :
-             std::filesystem::recursive_directory_iterator{ inPath }) {
+        for (const std::filesystem::directory_entry& entry : std::filesystem::recursive_directory_iterator{ inPath }) {
             if (!entry.is_regular_file()) {
                 continue;
             }
@@ -193,15 +192,12 @@ namespace {
             LOG_INFO("[{}] {} script(s) -> {}", rel.string(), r, subOut.string());
         }
 
-        LOG_INFO(
-            "Done: {} file(s) processed, {} script(s) extracted, {} error(s)", fileCount, totalScripts, errCount
-        );
+        LOG_INFO("Done: {} file(s) processed, {} script(s) extracted, {} error(s)", fileCount, totalScripts, errCount);
         return errCount ? tool::BASIC_ERROR : tool::OK;
     }
 
     ADD_TOOL(
         bo1remasterscripts, "fastfile", " [ff/dec/dir] [output=bo1_scripts]",
-        "extract .gsc/.csc scripts from a BO1 PS4 remaster zone, pass a directory to bulk-extract",
-        bo1remasterscripts
+        "extract .gsc/.csc scripts from a BO1 PS4 remaster zone, pass a directory to bulk-extract", bo1remasterscripts
     );
 } // namespace

@@ -539,9 +539,7 @@ namespace {
                     }
                     byte* compData{ reader.ReadPtr<byte>(compressedSize) };
 
-                    int written{
-                        InflateRaw(compData, compressedSize, chunkBuff.get(), BO1_REMASTER_CHUNK_MAX)
-                    };
+                    int written{ InflateRaw(compData, compressedSize, chunkBuff.get(), BO1_REMASTER_CHUNK_MAX) };
                     if (written < 0) {
                         throw std::runtime_error(std::format("Can't inflate chunk at 0x{:x}", chunkLoc));
                     }
