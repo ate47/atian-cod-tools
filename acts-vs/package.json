@@ -63,12 +63,17 @@
             "language_server",
             "gsc"
           ],
-          "description": "Arguments passed to the Acts GSC language-server executable."
+          "description": "Arguments passed to the GSC language-server executable."
         },
         "acts.languageServerCwd": {
           "type": "string",
           "default": "",
-          "description": "Working directory for the Acts GSC language server. Leave empty to inherit VS Code's environment."
+          "description": "Working directory for the GSC language server. Leave empty to inherit VS Code's environment."
+        },
+        "acts.languageServerGame": {
+          "type": "string",
+          "default": "",
+          "description": "Game used by the GSC lnaguage server"
         }
       }
     }

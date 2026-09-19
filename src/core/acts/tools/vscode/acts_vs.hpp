@@ -1,6 +1,9 @@
 #pragma once
+
 #include <core/config.hpp>
 #include <tools/vscode/lsp.hpp>
+
+class gscParser;
 
 namespace tool::vscode {
     using JDocAllocatorType = core::config::RapidJsonAllocatorType;
@@ -15,6 +18,7 @@ namespace tool::vscode {
     struct TextDocument {
         std::string uri;
         std::string text;
+        std::unique_ptr<gscParser> parser{};
 
         void SetText(std::string_view view, ErrorMsgHandler& errorHandler);
     };

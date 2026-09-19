@@ -45,7 +45,7 @@
         "directives": {
             "patterns": [
                 {
-                    "match": "#(include|using|insert|using_animtree|precache|namespace|file|constexpr|define)\\b",
+                    "match": "#(include|using|insert|using_animtree|precache|namespace|file|constexpr|define|ifndef|ifdef|else|endif|error|warning|region|endregion)\\b",
                     "name": "keyword.control.directive.gsc"
                 }
             ]

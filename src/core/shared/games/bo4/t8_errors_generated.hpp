@@ -46,6 +46,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1292858725, "Invalid mission name" }, // Sail 962 Hidden Buffalo
     { 1304594933, "unable to spawn entity" }, // Queen 513 Ultraviolet Buffalo
     { 1333649786, "IsMature can only be called on a player." }, // May 612 Snow Obelisk
+    { 1334067961, "StreamerRequest invalid syntax" }, // Delta 564 Taz Obelisk
     { 1359849142, "not an entity" }, // North 803 Swamp Conflict
     { 1363519084, "key is not internally a string" }, // Zulu 636 Conflicted Conflict
     { 1364331101, "Object must be an array" }, // Fall 388 Quick Conflict
@@ -220,6 +221,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 2618727779, "The server did not send us a config checksum but we have one" }, // West 243 Brass Cipher
     { 2626909173, "exceeded maximum number of script strings" }, // Queen 19 Furious Cipher
     { 2629548679, "Entity is not a player" }, // Nora 205 Almighty Cipher
+    { 2641166526, "IsStreamed can only be called on a script mover" }, // November 584 Cloaked Code
     { 2655465686, "not a script function pointer" }, // June 951 Prepared Cover
     { 2655888797, "endon must have at least one valid argument" }, // Fall 344 Camouflaged Cover
     { 2658987327, "Invalid string" }, // Bravo 822 Grizzly Cover
@@ -331,6 +333,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3456527393, "script stack overflow (too many embedded function calls)" }, // Hotel 460 United Goblin
     { 3459949409, "Failed to alloc client field - MAX_CLIENTFIELD_FIELDS_IN_SET=512 exceeded." }, // Hotel 173 Tragic Goblin
     { 3468307479, "DirectX Error" }, // Tango 383 Emerald Goblin
+    { 3480035146, "IsStreamed can only be called on a script mover" }, // Adam 532 Cloaked Crossbones
     { 3482075788, "caller is not an object" }, // East 481 Knockout Crossbones
     { 3488519410, "object is not an array, string, or vector" }, // Boy 986 Extreme Crossbones
     { 3509276200, "Invalid mission name" }, // Mike 331 Marsh Rain
@@ -432,6 +435,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 4260626055, "first arg to waittill_timeout must evaluate to an integer or float value" }, // Nora 836 Rapid Doppelganger
     { 4272949040, "g_copyInfo exceeded: too many asset overrides in one call to DB_LoadXAssets." }, // Romeo 852 Frozen Eye
     { 4278104166, "Illegal objective state, possible values: active, invisible, done, current or failed" }, // Oscar 283 Barren Eye
+    { 4285284065, "Could not find free slot for streamer request, 2 requests are already active" }, // Hotel 997 Ballistic Chance
     { 446529346, "the function can only be used with string or hash" }, // Zed 711 Resolute Raven
     { 451698481, "Unk fastfile load error" }, // Vice 164 Vengeful Raven
     { 467754466, "Error registering client field.  bCallbacksFor0WhenNew (CF_CALLBACK_ZERO_ON_NEW_ENT) is disallowed for CF_SCRIPTMOVERFIELDS." }, // Ida 635 Rightful Elephant

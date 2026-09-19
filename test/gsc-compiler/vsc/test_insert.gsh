@@ -1,0 +1,1 @@
+#define TEST_INSERT_VALUE

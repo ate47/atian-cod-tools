@@ -1,6 +1,7 @@
 Adam 156 Sub-zero Abyss	3199439626	Can't register dvar
 Adam 156 Urban Parachute	2082640650	No file descriptor available
 Adam 18 Miami Case	2612114442	Firing a weapon with fire type Aim Only.
+Adam 532 Cloaked Crossbones	3480035146	IsStreamed can only be called on a script mover
 Adam 564 Stealth Zombie	904544970	Attempt to register Client Field post finalization of Client Field registration period failed.
 Adam 614 Steel Retreat	2258850890	No clientfield named found in set.
 Alfa 559 Metallic Python	1046896252	not an entity
@@ -67,6 +68,7 @@ Delta 321 Classic Corps	1634348473	Vehicles only support bullet, bomb, gas, gren
 Delta 357 Divebomb Fleet	1703931129	Trying to read corrupted file
 Delta 418 Boiling Overlord	2909354809	invalid team name (not possible)
 Delta 515 United Mauler	3137736761	script stack overflow (too many embedded function calls)
+Delta 564 Taz Obelisk	1334067961	StreamerRequest invalid syntax
 Delta 694 Fierce Fort	1752379961	param is not an object
 Delta 796 Nightshade Artillery	2274889209	Invalid type passed in from array into waittill parameter list
 Delta 884 Aggressive Sunrise	3706227705	Invalid threat bias group
@@ -140,7 +142,9 @@ Hotel 460 United Goblin	3456527393	script stack overflow (too many embedded func
 Hotel 511 Meridian Boar	114609313	USAGE: GetInfluencerPreset could not find influencer with name
 Hotel 621 Dry Greyhound	476151073	invalid session mode
 Hotel 874 Gray Ordnance	2065311777	Entity is not of guidance type Drone
+Hotel 997 Ballistic Chance	4285284065	Could not find free slot for streamer request, 2 requests are already active
 Ida 309 Barricaded Bandit	3210502050	not an object
+Ida 526 Binary Greyhound	483405794	Unexpected string type in stringtable
 Ida 635 Rightful Elephant	467754466	Error registering client field.  bCallbacksFor0WhenNew (CF_CALLBACK_ZERO_ON_NEW_ENT) is disallowed for CF_SCRIPTMOVERFIELDS.
 Ida 736 Quick Lamprey	3964856290	kill called on an entity with magic bullet shield (FL_DISABLE_DEATH)
 Ida 941 Gray Mustang	3894031202	Can't find gamedata/playeranim/playeranimtypes.txt
@@ -229,6 +233,7 @@ North 96 Sleeper Demon	544902518	parameter does not exist
 November 116 Mythic Scorpio	750896894	Invalid bgCache type
 November 268 Wild Greyhound	475330046	Invalid dvar type
 November 417 Silver Sunrise	3692510654	Invalid type passed in from array into waittill parameter list
+November 584 Cloaked Code	2641166526	IsStreamed can only be called on a script mover
 November 588 Barren Carrier	1593720126	Can't register dvar
 November 670 Boiling Avalanche	829015102	var isn't a field object
 November 817 Tall Shell	2369974846	Invalid threat bias group
@@ -332,6 +337,7 @@ Sail 899 Good Retreat	2250249765	Corrupt or invalid string reference (not a vali
 Sail 946 Due Outlander	3922439973	ArraySort: array can only contain entities or structs or vectors
 Sail 962 Hidden Buffalo	1292858725	Invalid mission name
 Sierra 190 Knight Thunder	530250396	Source Damage vector is invalid.
+Sierra 229 Dazed Retreat	2262814876	Out of script global var memory.
 Sierra 54 Found Treasure	4178589916	Model was not cached by the linker.
 South 1020 Calm Potato	2538360978	caller is not an object
 South 108 Determined Yeti	3874454418	negative wait is not allowed
@@ -499,5 +505,3 @@ Zulu 540 Grim Refuge	4221135532	Optional argument must be a string type
 Zulu 636 Conflicted Conflict	1363519084	key is not internally a string
 Zulu 770 Mountain Traffic	2836526124	value out of range (acos)
 Zulu 974 Winning Clover	3671833516	accuracy mod must be nonnegative
-Ida 526 Binary Greyhound	483405794	Unexpected string type in stringtable
-Sierra 229 Dazed Retreat	2262814876	Out of script global var memory.

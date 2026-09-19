@@ -7,11 +7,11 @@
 #include <rapidjson/writer.h>
 #include <fcntl.h>
 #include <io.h>
-
 // compiler
 #include <tools/gsc/compiler/gsc_compiler_grammar.hpp>
 
 namespace tool::vscode {
+    // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification
     using namespace antlr4;
     using namespace tool::gsc::compiler;
     using namespace hash::literals;
@@ -57,39 +57,33 @@ namespace tool::vscode {
         }
     };
 
-    static void ProcessFile(const std::string& buff, ErrorMsgHandler errorHandler) {
-        // temp test for grammar parsing
-        core::preprocessor::PreProcessorOption popt{};
+    void TextDocument::SetText(std::string_view view, ErrorMsgHandler& errorHandler) {
+        text = view;
 
-        std::string str{ buff };
+        std::string str{ view };
 
-        popt.ApplyPreProcessor(
+        core::preprocessor::PreProcessorOption{}.ApplyPreProcessor(
             str,
             [&errorHandler](core::logs::loglevel lvl, size_t line, const std::string& message) -> void {
                 errorHandler(lvl, line, 0, line + 1, 0, message); // error the whole line
             }
         );
-        ANTLRInputStream is{ str };
 
         std::unique_ptr<ACTSErrorListener> errList{ std::make_unique<ACTSErrorListener>(errorHandler) };
 
+        ANTLRInputStream is{ str };
         gscLexer lexer{ &is };
         lexer.addErrorListener(&*errList);
         CommonTokenStream tokens{ &lexer };
 
         tokens.fill();
-        gscParser parser{ &tokens };
+        parser = std::make_unique<gscParser>(&tokens);
 
-        parser.removeErrorListeners();
+        parser->removeErrorListeners();
 
-        parser.addErrorListener(&*errList);
+        parser->addErrorListener(&*errList);
 
-        gscParser::ProgContext* prog = parser.prog();
-    }
-
-    void TextDocument::SetText(std::string_view view, ErrorMsgHandler& errorHandler) {
-        text = view;
-        ProcessFile(text, errorHandler);
+        parser->prog();
     }
 
     void LanguageServer::OpenFile(JDocSub ev, ErrorMsgHandler& errorHandler) {
@@ -414,6 +408,7 @@ namespace tool::vscode {
                 SendResponse(id, std::move(result.main));
                 break;
             }
+            case "textDocument/didSave"_x:
             case "$/setTrace"_x:
             case "initialized"_x:
             case "shutdown"_x: {
