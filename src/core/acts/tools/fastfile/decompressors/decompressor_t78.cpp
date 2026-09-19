@@ -302,6 +302,9 @@ namespace {
             }
 
             utils::compress::CompressionAlgorithm alg{ fastfile::GetFastFileCompressionAlgorithm(header->compression) };
+            if (noStreamInfo && alg == utils::compress::COMP_ZLIB) {
+                alg = utils::compress::COMP_ZLIB_DEFLATE; // old cod were using deflate, not zlib
+            }
 
             ffdata.resize(decompressedSize);
             LOG_TRACE("decompressing 0x{:x}... bytes", decompressedSize);
@@ -323,7 +326,7 @@ namespace {
                     LOG_TRACE(
                         "Decompressing {}{} block 0x{:x} 0x{:x} at 0x{:x}/0x{:x}",
                         header->encrypted ? "encrypted " : "",
-                        fastfile::GetFastFileCompressionName(header->compression),
+                        alg,
                         loc,
                         compressedSize,
                         offset,
@@ -362,48 +365,23 @@ namespace {
                         *((uint64_t*)&aesIV[0]) += compressedSize;
                     }
 
-                    switch (alg) {
-                    case utils::compress::COMP_NONE: {
-                        if (decompressedRemaining < compressedSize) {
-                            throw std::runtime_error(
-                                std::format(
-                                    "Can't decompress none 0x{:x} < 0x{:x}",
-                                    decompressedRemaining,
-                                    compressedSize
-                                )
-                            );
-                        }
-                        std::memcpy(decompressed, blockBuff, compressedSize);
-                        offset += compressedSize;
-                        break;
+                    int r{};
+                    if ((r = utils::compress::Decompress2(
+                             alg,
+                             decompressed,
+                             decompressedRemaining,
+                             blockBuff,
+                             compressedSize
+                         )) < 0) {
+                        throw std::runtime_error(
+                            std::format(
+                                "Can't decompress block 0x{:x}: {}",
+                                loc,
+                                utils::compress::DecompressResultName(r)
+                            )
+                        );
                     }
-                    case utils::compress::COMP_ZLIB: {
-                        z_stream zs{};
-
-                        if (inflateInit2(&zs, -15) != Z_OK) {
-                            throw std::runtime_error(std::format("Can't init zstream {}", zs.msg ? zs.msg : "<err>"));
-                        }
-
-                        zs.next_in = (z_const Bytef*)blockBuff;
-                        zs.avail_in = (uInt)compressedSize;
-                        zs.next_out = (Bytef*)decompressed;
-                        zs.avail_out = (uInt)decompressedRemaining;
-                        int e{ inflate(&zs, Z_FULL_FLUSH) };
-                        if (e != Z_STREAM_END) {
-                            throw std::runtime_error(
-                                std::format("Can't inflate zstream {}: {}", e, zs.msg ? zs.msg : "")
-                            );
-                        }
-
-                        offset += zs.total_out;
-
-                        inflateEnd(&zs);
-                        break;
-                    }
-                    default:
-                        throw std::runtime_error(std::format("Unknown algorithm: {}", alg));
-                    }
-
+                    offset += r;
                     continue;
                 }
 
@@ -425,7 +403,7 @@ namespace {
                 LOG_TRACE(
                     "Decompressing {}{} block 0x{:x} (0x{:x}/0x{:x} -> 0x{:x})",
                     header->encrypted ? "encrypted " : "",
-                    fastfile::GetFastFileCompressionName(header->compression),
+                    alg,
                     loc,
                     block->compressedSize,
                     block->alignedSize,

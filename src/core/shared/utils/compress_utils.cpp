@@ -106,17 +106,34 @@ namespace utils::compress {
         }
 #endif
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
-        case COMP_ZLIB: {
-            uLongf sizef = (uLongf)destSize;
-            uLongf sizef2{ (uLongf)srcSize };
-            int r{ uncompress2((Bytef*)dest, &sizef, (const Bytef*)src, &sizef2) };
-            lastoutput = r;
-            switch (r) {
+        case COMP_ZLIB:
+        case COMP_ZLIB_DEFLATE:
+        case COMP_ZLIB_GZIP: {
+            z_stream zs{};
+
+            int window{ GetZlibWindow(alg) };
+            if ((lastoutput = inflateInit2(&zs, window)) != Z_OK) {
+                LOG_ERROR("Can't init zstream {} with window {}", zs.msg ? zs.msg : "<err>", window);
+                return DecompressResult::DCOMP_UNKNOWN_ERROR;
+            }
+
+            zs.next_in = (z_const Bytef*)src;
+            zs.avail_in = (uInt)srcSize;
+            zs.next_out = (Bytef*)dest;
+            zs.avail_out = (uInt)destSize;
+
+            lastoutput = inflate(&zs, Z_FULL_FLUSH);
+
+            inflateEnd(&zs);
+
+            switch (lastoutput) {
             case Z_OK:
-                return sizef;
+            case Z_STREAM_END:
+                return (int)(destSize - zs.avail_out);
             case Z_BUF_ERROR:
                 return DecompressResult::DCOMP_DEST_TOO_SMALL;
             default:
+                LOG_ERROR("Can't inflate zstream {} with window {}: {}", lastoutput, window, zs.msg ? zs.msg : "");
                 return DecompressResult::DCOMP_UNKNOWN_ERROR;
             }
         }
@@ -208,14 +225,34 @@ namespace utils::compress {
         }
 #endif
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
-        case COMP_ZLIB: {
-            uLongf destSizef = (uLongf)*destSize;
+        case COMP_ZLIB:
+        case COMP_ZLIB_DEFLATE:
+        case COMP_ZLIB_GZIP: {
+            z_stream strm{};
+            strm.next_in = (Bytef*)src;
+            strm.avail_in = (uInt)srcSize;
+
+            strm.next_out = (Bytef*)dest;
+            strm.avail_out = (uInt)*destSize;
+
             int level{ (alg & COMP_STORED)             ? Z_NO_COMPRESSION
                        : (alg & COMP_HIGH_COMPRESSION) ? Z_BEST_COMPRESSION
                                                        : Z_BEST_SPEED };
-            if (compress2((Bytef*)dest, &destSizef, (const Bytef*)src, (uLongf)srcSize, level) != Z_OK)
+            int windowBits{ GetZlibWindow(alg) };
+
+            if (deflateInit2(&strm, level, Z_DEFLATED, windowBits, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
                 return false;
-            *destSize = destSizef;
+            }
+            int ret{ deflate(&strm, Z_FINISH) };
+
+            if (ret != Z_STREAM_END) {
+                deflateEnd(&strm);
+                return false;
+            }
+
+            *destSize = *destSize - strm.avail_out;
+
+            deflateEnd(&strm);
             return true;
         }
 #endif
@@ -281,7 +318,9 @@ namespace utils::compress {
         }
 #endif
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
-        case COMP_ZLIB: {
+        case COMP_ZLIB:
+        case COMP_ZLIB_DEFLATE:
+        case COMP_ZLIB_GZIP: {
             return compressBound((uLong)srcSize);
         }
 #endif
@@ -313,12 +352,12 @@ namespace utils::compress {
 
     namespace {
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
-        int DecompressZLib(std::vector<byte>& vec, const void* src, size_t srcSize) {
+        int DecompressZLib(std::vector<byte>& vec, const void* src, size_t srcSize, int windowBits) {
             z_stream strm{};
 
             int err;
 
-            err = inflateInit(&strm);
+            err = inflateInit2(&strm, windowBits);
 
             if (err != Z_OK) {
                 throw std::runtime_error("Can't init zlib stream");
@@ -383,14 +422,16 @@ namespace utils::compress {
     } // namespace
 
     int DecompressAll(CompressionAlgorithm alg, std::vector<byte>& vec, const void* src, size_t srcSize) {
-        switch (alg) {
+        switch (GetCompressionType(alg)) {
         case COMP_NONE:
             vec.resize(srcSize);
             std::memcpy(vec.data(), src, srcSize);
             return (int)srcSize;
 #ifdef __ACTS_COMPRESS_HAS_ZLIB
         case COMP_ZLIB:
-            return DecompressZLib(vec, src, srcSize);
+        case COMP_ZLIB_DEFLATE:
+        case COMP_ZLIB_GZIP:
+            return DecompressZLib(vec, src, srcSize, GetZlibWindow(alg));
 #endif
 #ifdef __ACTS_COMPRESS_HAS_LZ4
         case COMP_LZ4:
@@ -402,78 +443,70 @@ namespace utils::compress {
         }
     }
 
-    const char* GetCompressionName(CompressionAlgorithm alg, const char* defaultValue) {
-        CompressionAlgorithm type{ alg & (COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK) };
-        bool hc{ (alg & COMP_HIGH_COMPRESSION) == 0 };
-        switch (type) {
-        case COMP_NONE:
-            return "none";
-        case COMP_ZLIB:
-            return hc ? "zlib" : "zlib_hc";
-        case COMP_LZMA:
-            return hc ? "lzma" : "lzma_hc";
-        case COMP_LZ4:
-            return hc ? "lz4" : "lz4";
-        case COMP_OODLE | COMP_OODLE_TYPE_KRAKEN:
-            return hc ? "oodle_kraken" : "oodle_kraken_hc";
-        case COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN:
-            return hc ? "oodle_leviathan" : "oodle_leviathan_hc";
-        case COMP_OODLE | COMP_OODLE_TYPE_MERMAID:
-            return hc ? "oodle_mermaid" : "oodle_mermaid_hc";
-        case COMP_OODLE | COMP_OODLE_TYPE_SELKIE:
-            return hc ? "oodle_selkie" : "oodle_selkie_hc";
-        case COMP_OODLE | COMP_OODLE_TYPE_HYDRA:
-            return hc ? "oodle_hydra" : "oodle_hydra_hc";
-        case COMP_ZSTD:
-            return hc ? "zstd" : "zstd_hc";
-        default:
-            return defaultValue;
+    template<size_t len>
+    constexpr std::array<char, len + 1> GetAlgName(const char* name, const char* suffix) {
+        std::array<char, len + 1> arr;
+        size_t i{};
+        while (*name) {
+            arr[i++] = *(name++);
         }
+        while (*suffix) {
+            arr[i++] = *(suffix++);
+        }
+
+        arr[i] = 0;
+        return arr;
+    }
+
+    constinit struct CompressionAlgorithmName {
+        const char* name;
+        CompressionAlgorithm alg;
+        CompressionAlgorithm mask;
+    } CompressionAlgorithmNames[]{
+
+    // create one name per flag -> name / name_hc / name_stored
+#define __COMP_ALG_NAME(name, alg, mask)                                                                               \
+    { name, alg, mask | COMP_FLAGS_MASK }, { name "_hc", alg | COMP_HIGH_COMPRESSION, mask | COMP_FLAGS_MASK },        \
+        { name "_stored", alg | COMP_STORED, mask | COMP_FLAGS_MASK }
+
+        __COMP_ALG_NAME("none", COMP_NONE, COMP_TYPE_MASK),
+        __COMP_ALG_NAME("zlib", COMP_ZLIB, COMP_TYPE_MASK),
+        __COMP_ALG_NAME("deflate", COMP_ZLIB_DEFLATE, COMP_TYPE_MASK),
+        __COMP_ALG_NAME("gzip", COMP_ZLIB_GZIP, COMP_TYPE_MASK),
+        __COMP_ALG_NAME("lzma", COMP_LZMA, COMP_TYPE_MASK),
+        __COMP_ALG_NAME("lz4", COMP_LZ4, COMP_TYPE_MASK),
+        __COMP_ALG_NAME("oodle_kraken", COMP_OODLE | COMP_OODLE_TYPE_KRAKEN, COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK),
+        __COMP_ALG_NAME(
+            "oodle_leviathan", COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN, COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK
+        ),
+        __COMP_ALG_NAME("oodle_mermaid", COMP_OODLE | COMP_OODLE_TYPE_MERMAID, COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK),
+        __COMP_ALG_NAME("oodle_selkie", COMP_OODLE | COMP_OODLE_TYPE_SELKIE, COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK),
+        __COMP_ALG_NAME("oodle_hydra", COMP_OODLE | COMP_OODLE_TYPE_HYDRA, COMP_TYPE_MASK | COMP_OODLE_TYPE_MASK),
+        __COMP_ALG_NAME(
+            "oodle_unknown", COMP_OODLE | COMP_OODLE_TYPE_KRAKEN, COMP_TYPE_MASK
+        ), // default case for bad oodles
+        __COMP_ALG_NAME("zstd", COMP_ZSTD, COMP_TYPE_MASK),
+#undef __COMP_ALG_NAME
+    };
+
+    const char* GetCompressionName(CompressionAlgorithm alg, const char* defaultValue) {
+        for (const CompressionAlgorithmName& name : CompressionAlgorithmNames) {
+            if ((name.alg == (alg & name.mask))) {
+                return name.name;
+            }
+        }
+        return defaultValue;
     }
 
     CompressionAlgorithm GetConfigName(const char* cfg) {
-        if (!cfg || !*cfg || !_strcmpi(cfg, "none"))
+        if (!cfg || !*cfg) {
             return COMP_NONE;
-        if (!_strcmpi(cfg, "zlib"))
-            return COMP_ZLIB;
-        if (!_strcmpi(cfg, "zlib_hc"))
-            return COMP_ZLIB | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "lzma"))
-            return COMP_LZMA;
-        if (!_strcmpi(cfg, "lzma_hc"))
-            return COMP_LZMA | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "lz4"))
-            return COMP_LZ4;
-        if (!_strcmpi(cfg, "lz4_hc"))
-            return COMP_LZ4 | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "zstd"))
-            return COMP_ZSTD;
-        if (!_strcmpi(cfg, "zstd_hc"))
-            return COMP_ZSTD | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "oodle"))
-            return COMP_OODLE;
-        if (!_strcmpi(cfg, "oodle_hc"))
-            return COMP_OODLE | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "oodle_kraken"))
-            return COMP_OODLE | COMP_OODLE_TYPE_KRAKEN;
-        if (!_strcmpi(cfg, "oodle_kraken_hc"))
-            return COMP_OODLE | COMP_OODLE_TYPE_KRAKEN | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "oodle_leviathan"))
-            return COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN;
-        if (!_strcmpi(cfg, "oodle_leviathan_hc"))
-            return COMP_OODLE | COMP_OODLE_TYPE_LEVIATHAN | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "oodle_mermaid"))
-            return COMP_OODLE | COMP_OODLE_TYPE_MERMAID;
-        if (!_strcmpi(cfg, "oodle_mermaid_hc"))
-            return COMP_OODLE | COMP_OODLE_TYPE_MERMAID | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "oodle_selkie"))
-            return COMP_OODLE | COMP_OODLE_TYPE_SELKIE;
-        if (!_strcmpi(cfg, "oodle_selkie_hc"))
-            return COMP_OODLE | COMP_OODLE_TYPE_SELKIE | COMP_HIGH_COMPRESSION;
-        if (!_strcmpi(cfg, "oodle_hydra"))
-            return COMP_OODLE | COMP_OODLE_TYPE_HYDRA;
-        if (!_strcmpi(cfg, "oodle_hydra_hc"))
-            return COMP_OODLE | COMP_OODLE_TYPE_HYDRA | COMP_HIGH_COMPRESSION;
+        }
+        for (const CompressionAlgorithmName& name : CompressionAlgorithmNames) {
+            if (!_strcmpi(name.name, cfg)) {
+                return name.alg;
+            }
+        }
         throw std::runtime_error(std::format("Invalid compression name {}", cfg));
     }
 

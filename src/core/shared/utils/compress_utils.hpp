@@ -4,7 +4,7 @@
 namespace utils::compress {
     typedef size_t _CompressionAlgorithm;
     enum CompressionAlgorithm : _CompressionAlgorithm {
-        // compression type
+        /*** compression type ***/
         COMP_INVALID = 0,
         COMP_NONE,
         COMP_ZLIB,
@@ -12,12 +12,21 @@ namespace utils::compress {
         COMP_LZ4,
         COMP_OODLE,
         COMP_ZSTD,
+        COMP_ZLIB_GZIP,
+        COMP_ZLIB_DEFLATE,
 
         COMP_COUNT,
         COMP_TYPE_MASK = 0xFF,
-        // use high compression
-        COMP_HIGH_COMPRESSION = 1 << 8,
-        // oodle compression type, by default use kraken
+
+        /*** flags ***/
+
+        COMP_HIGH_COMPRESSION = 1 << 8, // use high compression
+        COMP_STORED = 1ull << 13,       // stored compression
+        COMP_FLAGS_MASK = COMP_HIGH_COMPRESSION | COMP_STORED,
+
+        /*** compressor data ***/
+
+        // oodle compression type, by default use kraken, see GetOodleCompressionType
         COMP_OODLE_TYPE_KRAKEN = 0ull << 9,
         COMP_OODLE_TYPE_LZH = 1ull << 9,
         COMP_OODLE_TYPE_LZH_LW = 2ull << 9,
@@ -33,9 +42,9 @@ namespace utils::compress {
         COMP_OODLE_TYPE_HYDRA = 12ull << 9,
         COMP_OODLE_TYPE_LEVIATHAN = 13ull << 9,
         COMP_OODLE_TYPE_MASK = 15ull << 9,
-
-        // stored compression
-        COMP_STORED = 1ull << 13,
+        // zlib window relative bits size, see GetZlibWindowedCompression and GetZlibWindow
+        COMP_ZLIB_WINDOW_BITS_SHIFT = 9,
+        COMP_ZLIB_WINDOW_BITS_MASK = 15ull << COMP_ZLIB_WINDOW_BITS_SHIFT,
     };
 
     constexpr size_t MAX_LZ4_SIZE = 0x7E000000;
@@ -64,6 +73,33 @@ namespace utils::compress {
     constexpr CompressionAlgorithm GetOodleCompressionType(CompressionAlgorithm c) { return c & COMP_OODLE_TYPE_MASK; }
 
     constexpr CompressionAlgorithm GetCompressionType(CompressionAlgorithm c) { return c & COMP_TYPE_MASK; }
+
+    constexpr int GetZlibWindow(CompressionAlgorithm c) {
+        int d{ (int)((c & COMP_ZLIB_WINDOW_BITS_MASK) >> COMP_ZLIB_WINDOW_BITS_SHIFT) };
+        switch (GetCompressionType(c)) {
+        case COMP_ZLIB_GZIP:
+            return 31 - d;
+        case COMP_ZLIB_DEFLATE:
+            return -15 + d;
+        case COMP_ZLIB:
+            return 15 - d;
+        default:
+            return 0;
+        }
+    }
+
+    constexpr CompressionAlgorithm GetZlibWindowedCompression(int window) {
+        if (window >= 8 && window <= 15) {
+            return (CompressionAlgorithm)((15ull - window) << COMP_ZLIB_WINDOW_BITS_SHIFT | COMP_ZLIB);
+        }
+        if (window >= -15 && window <= -8) {
+            return (CompressionAlgorithm)((window + 15ull) << COMP_ZLIB_WINDOW_BITS_SHIFT | COMP_ZLIB_DEFLATE);
+        }
+        if (window >= 24 && window <= 31) {
+            return (CompressionAlgorithm)((31ull - window) << COMP_ZLIB_WINDOW_BITS_SHIFT | COMP_ZLIB_GZIP);
+        }
+        return COMP_INVALID;
+    }
 
     const char* GetCompressionName(CompressionAlgorithm c, const char* defaultValue = "invalid");
     int Decompress2(CompressionAlgorithm alg, void* dest, size_t destSize, const void* src, size_t srcSize);
