@@ -8,6 +8,15 @@ file(GLOB_RECURSE ACTS_INCLUDE_SOURCES
     "${CMAKE_SOURCE_DIR}/include/*.h"
     "${CMAKE_SOURCE_DIR}/include/*.hpp"
 )
+file(GLOB ACTS_ROOT_SOURCES
+    "${CMAKE_SOURCE_DIR}/*.md"
+    "${CMAKE_SOURCE_DIR}/CMakeLists.txt"
+    "${CMAKE_SOURCE_DIR}/.gitignore"
+)
+file(GLOB_RECURSE ACTS_ROOT_SOURCES_REC
+    "${CMAKE_SOURCE_DIR}/.github/**"
+    "${CMAKE_SOURCE_DIR}/cmake/**"
+)
 if(STATIC_ACTS)
     add_library(AtianCodTools STATIC)
     set_target_properties(AtianCodTools PROPERTIES
@@ -22,7 +31,7 @@ else()
     )
 endif()
 
-target_sources(AtianCodTools PRIVATE ${ACTS_SOURCES} ${ACTS_INCLUDE_SOURCES})
+target_sources(AtianCodTools PRIVATE ${ACTS_SOURCES} ${ACTS_INCLUDE_SOURCES} ${ACTS_ROOT_SOURCES} ${ACTS_ROOT_SOURCES_REC})
 source_group(
     TREE "${CMAKE_SOURCE_DIR}/src/core/acts"
     PREFIX acts
@@ -33,6 +42,11 @@ source_group(
     PREFIX include
     FILES ${ACTS_INCLUDE_SOURCES}
 )
+source_group(
+    TREE "${CMAKE_SOURCE_DIR}/"
+    PREFIX "/"
+    FILES ${ACTS_ROOT_SOURCES} ${ACTS_ROOT_SOURCES_REC}
+)
 target_precompile_headers(AtianCodTools PRIVATE "${CMAKE_SOURCE_DIR}/src/core/acts/includes.hpp")
 append_common_defs(AtianCodTools)
 
@@ -41,6 +55,10 @@ add_custom_target(AtianCodToolsCopyConfig ALL
         ${CMAKE_SOURCE_DIR}/config/data
         $<TARGET_FILE_DIR:AtianCodTools>/data
     COMMENT "Copy config data to $<TARGET_FILE_DIR:AtianCodTools>..."
+)
+
+set_target_properties(AtianCodToolsCopyConfig PROPERTIES
+    FOLDER "Core"
 )
 
 target_include_directories(AtianCodTools PRIVATE

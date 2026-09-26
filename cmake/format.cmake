@@ -29,6 +29,13 @@ add_custom_target(format
     COMMAND "${CLANG_FORMAT}" -i @${CMAKE_BINARY_DIR}/cppfiles.txt
 )
 
+set_target_properties(format PROPERTIES
+    FOLDER "Utilities"
+)
+
 add_custom_target(check-format
     COMMAND "${CLANG_FORMAT}" --dry-run --Werror  @${CMAKE_BINARY_DIR}/cppfiles.txt
+)
+set_target_properties(check-format PROPERTIES
+    FOLDER "Utilities"
 )
