@@ -24,6 +24,15 @@ The code is formatted using clang-format. The CMake targets `format` and `check-
 
 Use `cmake --build build --target format` to format the project and `cmake --build build --target check-format` to check formatting without changing files.
 
+## Conventions
+
+Do not use the `auto` keyword. Use explicit types for local variables and declarations. The only
+exceptions are structured bindings for tuples and iterators, where `auto` may be used when it
+improves clarity.
+
+Always use braces for control-flow statements, including single-statement bodies. Do not write
+inline statements without braces for `if`, `else`, loops, or similar constructs.
+
 ## Setup and Build
 
 Run `scripts/setup.ps1` from the repository root to initialize submodules, install packages from
