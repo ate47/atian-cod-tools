@@ -15,6 +15,7 @@ FastFileAssetPoolWidget::FastFileAssetPoolWidget(ActsHandle ctx, UI3MdiArea* mdi
     setWindowTitle("FastFile Asset Pool");
 
     QMenuBar* bar{ new QMenuBar(this) };
+    bar->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     QMenu* fileMenu{ bar->addMenu("File") };
     QAction* loadCommonAction{ fileMenu->addAction("Load common fastfiles") };
@@ -41,8 +42,8 @@ FastFileAssetPoolWidget::FastFileAssetPoolWidget(ActsHandle ctx, UI3MdiArea* mdi
     splitter->setSizes({ 200, 800 });
 
     QVBoxLayout* layout{ new QVBoxLayout(this) };
-    layout->insertWidget(0, bar);
     layout->addWidget(splitter);
+    layout->insertWidget(0, bar);
     layout->setContentsMargins(0, 0, 0, 0);
 
     connect(loadCommonAction, &QAction::triggered, this, [this]() {
