@@ -3,6 +3,7 @@
 #include <utils/hash_mini.hpp>
 #include "HashWidget.h"
 #include <acts_api/hash.h>
+#include <MainWindow.h>
 #include <QLayout>
 #include <QLineEdit>
 #include <QLabel>
@@ -93,6 +94,8 @@ HashWidget::HashWidget(QWidget* parent) : QWidget(parent) {
     stringValue->connect(stringValue, &QLineEdit::textChanged, [this]() { ComputeCustom(); });
     customOffset->connect(customOffset, &QLineEdit::textChanged, [this]() { ComputeCustom(); });
     customPrime->connect(customPrime, &QLineEdit::textChanged, [this]() { ComputeCustom(); });
+
+    GetMainWindow()->RequiresInitialization(hashLookupIn);
     hashLookupIn->connect(hashLookupIn, &QLineEdit::textChanged, [this]() { ComputeLookup(); });
 
     funcLayout->addStretch();
@@ -201,4 +204,4 @@ void HashWidget::ComputeLookup() {
     }
 }
 
-ADD_UI_TOOL(HashWidget, "Hash", "Utilities", nullptr, false, true);
+ADD_UI_TOOL(HashWidget, "Hash", "Utilities");

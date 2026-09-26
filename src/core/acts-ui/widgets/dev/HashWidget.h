@@ -22,7 +22,6 @@ private:
 	QLineEdit* customDJB2ReverseOffset;
 	QLineEdit* customHash;
 	QLineEdit* customDJB2Hash;
-	QPushButton* hashLookupLoad;
 	QLineEdit* hashLookupIn;
 	QLineEdit* hashLookupOut;
 };
