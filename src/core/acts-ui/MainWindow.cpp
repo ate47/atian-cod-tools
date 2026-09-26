@@ -103,6 +103,22 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 MainWindow::~MainWindow() = default;
 
+void MainWindow::RequiresInitialization(QWidget* widget) {
+    widget->setEnabled(false);
+
+    if (hashWatcher->isRunning()) {
+        connect(
+            hashWatcher,
+            &QFutureWatcher<void>::finished,
+            widget,
+            [widget]() { widget->setEnabled(true); },
+            Qt::SingleShotConnection
+        );
+    } else {
+        widget->setEnabled(true);
+    }
+}
+
 void MainWindow::RequiresInitialization(std::function<void()> func) {
     if (hashWatcher->isRunning()) {
         connect(

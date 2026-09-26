@@ -20,3 +20,23 @@ inline T* ActsAPIImpl_New(Args... args) {
 inline std::vector<byte>& ActsAPIImpl_VectorData(ActsHandle handle) {
     return *reinterpret_cast<std::vector<byte>*>(handle);
 }
+/*
+ * Execute run or if an exception is thrown, fail with ActsAPISetLastMessage set to its message
+ * @param run action
+ * @return return of run or ACTS_STATUS_ERROR and ActsAPISetLastMessage
+ */
+ActsStatus ActsAPIImpl_ErrHandler(std::function<ActsStatus()> run);
+
+/*
+ * Execute run or if an exception is thrown, fail with ActsAPISetLastMessage set to its message
+ * @param run action
+ * @return return ok status or ACTS_STATUS_ERROR and ActsAPISetLastMessage
+ */
+ActsStatus ActsAPIImpl_ErrHandler(std::function<void()> run);
+
+// check sized struct for member
+// ptr*, member, defaultVal
+#define SIZED_STRUCT_MEMBER(strct, member, defaultVal)                                                                 \
+    ((offsetof(std::remove_pointer_t<decltype(strct)>, member) + sizeof((strct)->member) <= (strct)->structSize)       \
+         ? (strct)->member                                                                                             \
+         : (defaultVal))

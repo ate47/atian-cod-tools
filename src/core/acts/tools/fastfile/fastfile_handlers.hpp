@@ -127,6 +127,8 @@ namespace fastfile {
         ~FastFileOption();
         bool Compute(const char** args, size_t startIndex, size_t endIndex);
         void PrintHelp();
+        bool SetGameHandler(const char* id);
+        void SetGamePath(const char* gamePath);
 
         hook::module_mapper::Module& GetGameModule(
             bool crashError, bool* init = nullptr, bool needDecrypt = false, const char* defaultName = nullptr,

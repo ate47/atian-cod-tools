@@ -1,5 +1,7 @@
 #include <includes.hpp>
 #include "fastfile_handlers.hpp"
+#include <acts_api/fastfile_loader.h>
+#include <acts_api_impl/api_impl.hpp>
 #include <decryptutils.hpp>
 #pragma warning(push)
 #pragma warning(disable : 4996)
@@ -65,6 +67,11 @@ namespace fastfile {
         RegisterFastfileData();
         for (FFHandler* handler : GetHandlers()) {
             if (!_strcmpi(name, handler->name)) {
+                return handler;
+            }
+        }
+        for (FFHandler* handler : GetHandlers()) {
+            if (!_strcmpi(name, handler->description)) {
                 return handler;
             }
         }
@@ -291,6 +298,17 @@ namespace fastfile {
         }
     }
 
+    bool FastFileOption::SetGameHandler(const char* id) { return (handler = FindHandler(id)); }
+    void FastFileOption::SetGamePath(const char* gamePath) {
+        this->gamePath = gamePath;
+
+        // we try to open a casc storage
+        if (!CascOpenStorage(gamePath, 0, &cascStorage)) {
+            m_casc = gamePath;
+            cascStorage = nullptr;
+        }
+    }
+
     bool FastFileOption::Compute(const char** args, size_t startIndex, size_t endIndex) {
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
@@ -315,13 +333,7 @@ namespace fastfile {
                     LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
-                gamePath = args[++i];
-
-                // we try to open a casc storage
-                if (!CascOpenStorage(gamePath, 0, &cascStorage)) {
-                    m_casc = gamePath;
-                    cascStorage = nullptr;
-                }
+                SetGamePath(args[++i]);
             } else if (!strcmp("-C", arg) || !_strcmpi("--casc", arg)) {
                 if (i + 1 == endIndex) {
                     LOG_ERROR("Missing value for param '{}'!", arg);
@@ -340,8 +352,8 @@ namespace fastfile {
                     return false;
                 }
                 const char* id{ args[++i] };
-                if (!(handler = FindHandler(id))) {
-                    LOG_ERROR("Can't find handler for name '{}'", id);
+                if (!SetGameHandler(id)) {
+                    LOG_ERROR("Can't set handler for name '{}'", id);
                     return false;
                 }
             } else if (!strcmp("-a", arg) || !_strcmpi("--assets", arg)) {
@@ -602,7 +614,7 @@ namespace fastfile {
             HANDLE firstFileHandle{ CascFindFirstFile(cascStorage, path, &data, NULL) };
 
             if (!firstFileHandle) {
-                LOG_ERROR("Can't find path {}", path);
+                LOG_ERROR("Can't find path {}", path ? path : "");
                 return res;
             }
             utils::CloseEnd ce{ [firstFileHandle] { CascFindClose(firstFileHandle); } };
@@ -616,7 +628,7 @@ namespace fastfile {
             std::filesystem::path root{ gamePath };
 
             std::vector<std::filesystem::path> files{};
-            utils::GetFileRecurse(path[0] ? root / path : root, files);
+            utils::GetFileRecurse(path && path[0] ? root / path : root, files);
 
             for (const std::filesystem::path& file : files) {
                 res.push_back(file.string());
@@ -624,7 +636,7 @@ namespace fastfile {
         } else {
             std::vector<std::filesystem::path> files{};
 
-            utils::GetFileRecurse(path, files);
+            utils::GetFileRecurse(path ? path : "", files);
 
             for (const std::filesystem::path& file : files) {
                 res.push_back(file.string());
@@ -920,8 +932,11 @@ namespace fastfile {
         std::function<void(int argc, const char* argv[])> func;
     };
 
+    typedef ActsAPIFastFile_FastFileEntry FastFileEntry;
+
     class FFLoadContext {
       public:
+        core::memory_allocator::MemoryAllocator allocator{};
         FastFileOption& opt;
         AssetPool assetPool;
         std::vector<byte> buff{};
@@ -930,6 +945,7 @@ namespace fastfile {
         FFDecompressor* lastDecompressor{};
         byte pad[0x100]{};
         std::unordered_map<std::string, FFReplCmd> cmds{};
+        std::unordered_map<std::string, FastFileEntry> fastFileEntries{};
         bool runRepl{};
 
         FFLoadContext(FastFileOption& opt) : opt(opt), assetPool(opt) {
@@ -974,11 +990,7 @@ namespace fastfile {
                                                 LOG_ERROR("no common files registered for this game");
                                                 return;
                                             }
-                                            for (std::string& cf : this->opt.handler->commonFiles) {
-                                                if (!LoadFastFile(cf.data())) {
-                                                    LOG_ERROR("Nothing loaded for {}", cf.data());
-                                                }
-                                            }
+                                            LoadCommonFastFiles();
                                             WriteIndex();
                                         } };
         }
@@ -1010,6 +1022,14 @@ namespace fastfile {
             }
 
             RegisterCrypts();
+        }
+
+        void LoadCommonFastFiles() {
+            for (std::string& cf : this->opt.handler->commonFiles) {
+                if (!LoadFastFile(cf.data())) {
+                    LOG_ERROR("Nothing loaded for {}", cf.data());
+                }
+            }
         }
 
         void UpdateDecompressor(FFDecompressor* decompressor) {
@@ -1065,14 +1085,15 @@ namespace fastfile {
             } while (runRepl);
         }
 
-        bool LoadFastFile(const char* f, const char* fWildcard = nullptr, const char* iWildcard = nullptr) {
-            std::regex wildcard{ fWildcard ? fWildcard : ".*" };
-            std::regex ignoreWildcard{ iWildcard ? iWildcard : "." };
+        bool GetFastFileEntries(
+            const char* f, const char* fWildcard, const char* iWildcard, std::function<bool(FastFileEntry*)> callback
+        ) {
+            std::regex wildcard{ fWildcard && *fWildcard ? fWildcard : ".*" };
+            std::regex ignoreWildcard{ iWildcard && *iWildcard ? iWildcard : "." };
 
-            bool anyLoaded{};
-            for (std::string& filename : opt.GetFileRecurse(f)) {
+            for (const std::string& filename : opt.GetFileRecurse(f)) {
                 if (!filename.ends_with(".ff") && !filename.ends_with(".ff.zone") && !filename.ends_with(".ffd")) {
-                    LOG_TRACE("Ignore {}", filename);
+                    // LOG_TRACE("Ignore {}", filename);
                     continue;
                 }
                 std::filesystem::path flpname{ filename };
@@ -1103,79 +1124,130 @@ namespace fastfile {
                     }
                 }
 
-                count++;
-                anyLoaded = true;
+                FastFileEntry& entry{ fastFileEntries[filename] };
 
-                if (!opt.ReadFile(filename.data(), buff)) {
+                if (!entry.name) {
+                    // new entry
+                    entry.name = allocator.CloneStr(filename);
+                    entry.loaded = false;
+                }
+                if (!callback(&entry)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool LoadFastFileEntry(const FastFileEntry* entry, bool force) {
+            if (!entry->name) {
+                return false;
+            }
+            FastFileEntry& e{ fastFileEntries[entry->name] };
+
+            if (!e.name) {
+                // new entry
+                e.name = allocator.CloneStr(entry->name);
+                e.loaded = false;
+            }
+            return LoadFastFileEntry(&e, force);
+        }
+
+        bool LoadFastFileEntry(FastFileEntry* entry, bool force) {
+            const char* filename{ entry->name };
+
+            if (entry->loaded && !force) {
+                LOG_INFO("file {} was already loaded, ignore", filename);
+                return false;
+            }
+
+            entry->loaded = true;
+
+            count++;
+
+            try {
+                if (!opt.ReadFile(filename, buff)) {
                     LOG_ERROR("Can't read file {}", filename);
-                    continue;
+                    return false;
                 }
 
                 core::bytebuffer::ByteBuffer reader{ buff };
 
                 if (!reader.CanRead(sizeof(uint64_t))) {
                     LOG_ERROR("Can't read file {}: too small", filename);
-                    continue;
+                    return false;
                 }
 
                 ffdata.clear();
                 uint64_t magic{ *reader.Ptr<uint64_t>() };
 
-                try {
-                    // we use a temporary memory block for reader because we don't need the memory after reading
-                    // for the pools it needs to be static
-                    core::memory_allocator::MemoryAllocator ffMemory{};
-                    fastfile::FastFileContext ctx{ .zoneMemory = opt.workflow == FFW_ASSET_POOL ? assetPool.allocator
-                                                                                                : ffMemory };
-                    ctx.file = filename.c_str();
-                    currentCtx = &ctx;
-                    FFDecompressor* decompressor{ FindDecompressor(filename, reader) };
+                // we use a temporary memory block for reader because we don't need the memory after reading
+                // for the pools it needs to be static
+                core::memory_allocator::MemoryAllocator ffMemory{};
+                fastfile::FastFileContext ctx{ .zoneMemory =
+                                                   opt.workflow == FFW_ASSET_POOL ? assetPool.allocator : ffMemory };
+                ctx.file = filename;
+                currentCtx = &ctx;
+                currentOpt = &opt;
+                FFDecompressor* decompressor{ FindDecompressor(filename, reader) };
 
-                    if (!decompressor) {
-                        LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
-                        continue;
-                    }
-                    UpdateDecompressor(decompressor);
-
-                    std::filesystem::path ffnamet{ filename };
-                    ffnamet.replace_extension();
-                    ffnamet = ffnamet.filename();
-                    std::string ffnamets{ ffnamet.string() };
-                    sprintf_s(ctx.ffname, "%s", ffnamets.data());
-
-                    hashutils::Add(ctx.ffname, true, true);
-
-                    LOG_INFO("Loading {}... ({})", filename, decompressor->name);
-
-                    decompressor->LoadFastFile(opt, reader, ctx, ffdata);
-
-                    LOG_TRACE("Decompressed 0x{:x} byte(s)", ffdata.size());
-
-                    if (opt.dump_decompressed) {
-                        std::filesystem::path of{ ctx.file };
-                        std::filesystem::path decfile{ opt.m_output / ctx.ffname };
-
-                        decfile.replace_extension(".ff.dec");
-
-                        std::filesystem::create_directories(decfile.parent_path());
-                        if (!utils::WriteFile(decfile, ffdata.data(), ffdata.size())) {
-                            LOG_ERROR("Can't dump {}", decfile.string());
-                        } else {
-                            LOG_INFO("Dump into {}", decfile.string());
-                        }
-                    }
-
-                    if (opt.handler) {
-                        core::bytebuffer::ByteBuffer ffreader{ ffdata };
-                        LOG_TRACE("Reading using {}", opt.handler->name);
-                        opt.handler->Handle(opt, ffreader, ctx);
-                    }
-                    completed++;
-                } catch (std::runtime_error& err) {
-                    LOG_ERROR("Can't read {}: {}", filename, err.what());
+                if (!decompressor) {
+                    LOG_ERROR("Can't open {}: Can't find decompressor for magic 0x{:x}", filename, magic);
+                    return false;
                 }
-                currentCtx = nullptr;
+                UpdateDecompressor(decompressor);
+
+                std::filesystem::path ffnamet{ filename };
+                ffnamet.replace_extension();
+                ffnamet = ffnamet.filename();
+                std::string ffnamets{ ffnamet.string() };
+                sprintf_s(ctx.ffname, "%s", ffnamets.data());
+
+                hashutils::Add(ctx.ffname, true, true);
+
+                LOG_INFO("Loading {}... ({})", filename, decompressor->name);
+
+                decompressor->LoadFastFile(opt, reader, ctx, ffdata);
+
+                LOG_TRACE("Decompressed 0x{:x} byte(s)", ffdata.size());
+
+                if (opt.dump_decompressed) {
+                    std::filesystem::path of{ ctx.file };
+                    std::filesystem::path decfile{ opt.m_output / ctx.ffname };
+
+                    decfile.replace_extension(".ff.dec");
+
+                    std::filesystem::create_directories(decfile.parent_path());
+                    if (!utils::WriteFile(decfile, ffdata.data(), ffdata.size())) {
+                        LOG_ERROR("Can't dump {}", decfile.string());
+                    } else {
+                        LOG_INFO("Dump into {}", decfile.string());
+                    }
+                }
+
+                if (opt.handler) {
+                    core::bytebuffer::ByteBuffer ffreader{ ffdata };
+                    LOG_TRACE("Reading using {}", opt.handler->name);
+                    opt.handler->Handle(opt, ffreader, ctx);
+                }
+                completed++;
+            } catch (std::runtime_error& err) {
+                LOG_ERROR("Can't read {}: {}", filename, err.what());
             }
+            currentCtx = nullptr;
+            return true;
+        }
+
+        bool LoadFastFile(
+            const char* f, const char* fWildcard = nullptr, const char* iWildcard = nullptr, bool force = false
+        ) {
+            bool anyLoaded{};
+
+            GetFastFileEntries(f, fWildcard, iWildcard, [this, force, &anyLoaded](FastFileEntry* entry) -> bool {
+                if (LoadFastFileEntry(entry, force)) {
+                    anyLoaded = true;
+                }
+                return true;
+            });
 
             return anyLoaded;
         }
@@ -1508,6 +1580,125 @@ const char* ActsAPIFastFile_FastFileContext_GetType(ActsAPIFastFile_FastFileCont
     }
     return context->fftype;
 }
+
+class AssetPoolOption {
+  public:
+    core::memory_allocator::MemoryAllocator alloc{};
+    fastfile::FastFileOption opt;
+    fastfile::FFLoadContext ctx;
+
+    AssetPoolOption() : opt(), ctx(opt) {}
+};
+
+ActsHandle ActsAPIFastFile_CreateAssetPoolContext(const ActsAPIFastFile_AssetPoolOptions* options) {
+    if (!options || options->structSize == 0) {
+        ActsAPISetLastMessage("Invalid structSize for options");
+        return INVALID_ACTS_HANDLE_VALUE;
+    }
+
+    AssetPoolOption* opt{ ActsAPIImpl_New<AssetPoolOption>() };
+    ActsHandle ah{ (ActsHandle)opt };
+
+    const char* gamePath{ SIZED_STRUCT_MEMBER(options, gamePath, nullptr) };
+    const char* handler{ SIZED_STRUCT_MEMBER(options, handler, nullptr) };
+    const char* outputPath{ SIZED_STRUCT_MEMBER(options, outputPath, nullptr) };
+    bool patch{ SIZED_STRUCT_MEMBER(options, patch, true) };
+
+    if (gamePath) {
+        opt->opt.SetGamePath(opt->alloc.CloneStr(gamePath));
+    } else {
+        ActsAPICloseHandle(ah);
+        ActsAPISetLastMessage("Missing gamePath");
+        return INVALID_ACTS_HANDLE_VALUE;
+    }
+    if (!handler || !opt->opt.SetGameHandler(opt->alloc.CloneStr(handler))) {
+        ActsAPICloseHandle(ah);
+        ActsAPISetLastMessage("Invalid handler %s", handler ? handler : "null");
+        return INVALID_ACTS_HANDLE_VALUE;
+    }
+
+    opt->opt.m_fd = patch;
+    opt->opt.m_fc = patch;
+    opt->opt.workflow = FFW_ASSET_POOL;
+    opt->opt.m_output = (opt->opt.outputPath = opt->alloc.CloneStr(outputPath));
+
+    return ah;
+}
+
+ActsStatus ActsAPIFastFile_AssetPoolInit(ActsHandle assetPool) {
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([opt]() { opt->ctx.Init(); });
+}
+
+ActsStatus ActsAPIFastFile_AssetPoolLoadFastFile(
+    ActsHandle assetPool, const char* file, const char* wildcard, const char* ignoreWildcard
+) {
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    ACTS_API_ASSERT_NOT_NULL(file);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([opt, file, wildcard, ignoreWildcard]() {
+        if (!opt->ctx.LoadFastFile(file, wildcard, ignoreWildcard)) {
+            throw std::runtime_error("Nothing loaded");
+        }
+    });
+}
+
+ActsStatus ActsAPIFastFile_AssetPoolLoadFastFileEntry(
+    ActsHandle assetPool, const ActsAPIFastFile_FastFileEntry* entry, bool force
+) {
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    ACTS_API_ASSERT_NOT_NULL(entry);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([opt, entry, force]() {
+        if (!opt->ctx.LoadFastFileEntry(entry, force)) {
+            throw std::runtime_error("Nothing loaded");
+        }
+    });
+}
+ActsStatus ActsAPIFastFile_ListFastFile(
+    ActsHandle assetPool, const char* file, const char* wildcard, const char* ignoreWildcard,
+    ActsAPIFastFile_ListFastFile_Callback callback, void* ud
+) {
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler(
+        std::function<ActsStatus()>([opt, file, wildcard, ignoreWildcard, callback, ud]() -> ActsStatus {
+            if (opt->ctx
+                    .GetFastFileEntries(file, wildcard, ignoreWildcard, [callback, ud](fastfile::FastFileEntry* entry) {
+                        return callback(entry, ud);
+                    })) {
+                return ACTS_STATUS_OK;
+            } else {
+                return ACTS_STATUS_ERROR;
+            }
+        })
+    );
+}
+ActsStatus ActsAPIFastFile_ListHandlers(ActsAPIFastFile_ListHandlers_Callback callback, void* ud) {
+    return ActsAPIImpl_ErrHandler([callback, ud]() {
+        for (fastfile::FFHandler* handler : fastfile::GetHandlers()) {
+            ActsAPIFastFile_FastFileHandlerEntry h{
+                .id = handler->name,
+                .description = handler->description,
+            };
+            callback(&h, ud);
+        }
+    });
+}
+
+ActsStatus ActsAPIFastFile_AssetPoolLoadCommonFastFiles(ActsHandle assetPool) {
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([opt]() { opt->ctx.LoadCommonFastFiles(); });
+}
+
+ActsStatus ActsAPIFastFile_AssetPoolWriteIndex(ActsHandle assetPool) {
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([opt]() { opt->ctx.WriteIndex(); });
+}
+
 ActsAPIFastFile_FastFileOption* ActsAPIFastFile_GetCurrentOption() { return fastfile::currentOpt; }
 
 ActsAPIFastFile_FastFileContext* ActsAPIFastFile_GetCurrentContext() { return fastfile::currentCtx; }

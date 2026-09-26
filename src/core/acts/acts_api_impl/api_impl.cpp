@@ -14,6 +14,22 @@ namespace {
 
 core::memory_allocator::MemoryAllocator& ActsAPIImpl_GetAllocator() { return allocator; }
 
+ActsStatus ActsAPIImpl_ErrHandler(std::function<ActsStatus()> run) {
+    try {
+        return run();
+    } catch (std::runtime_error& err) {
+        ActsAPISetLastMessage("%s", err.what());
+        return ACTS_STATUS_ERROR;
+    }
+}
+
+ActsStatus ActsAPIImpl_ErrHandler(std::function<void()> run) {
+    return ActsAPIImpl_ErrHandler(std::function<ActsStatus()>([&run]() -> ActsStatus {
+        run();
+        return ACTS_STATUS_OK;
+    }));
+}
+
 unsigned int ActsAPIVersion_GetBuildVersion() { return core::actsinfo::BUILD_VERSION_ID; }
 const char* ActsAPIVersion_GetVersion() { return core::actsinfo::VERSION; }
 unsigned int ActsAPIVersion_GetVersionId() { return core::actsinfo::VERSION_ID; }

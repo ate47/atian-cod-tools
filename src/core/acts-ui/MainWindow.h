@@ -17,6 +17,7 @@ public:
     void AddSubWindow(QWidget* widget);
     QMenu* CreateMenu(const char* path);
     void OpenFile(const QString& path);
+    void RequiresInitialization(QWidget* widget);
 	void RequiresInitialization(std::function<void()> func);
 
 	UI3MdiArea* GetMdiArea() const { return mdiArea; }
