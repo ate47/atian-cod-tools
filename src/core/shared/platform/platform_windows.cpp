@@ -622,6 +622,7 @@ namespace platform {
 
         return regions;
     }
+
     void InitSymLink() {
         static std::once_flag of;
         std::call_once(of, [] {
@@ -629,6 +630,12 @@ namespace platform {
             SymInitialize(GetCurrentProcess(), NULL, TRUE);
         });
     }
+
+    void RefreshSymLink() {
+        InitSymLink();
+        SymRefreshModuleList(GetCurrentProcess());
+    }
+
     bool ResolveFileLine(void* address, const char** file, size_t* line) {
         hook::error::ErrorConfig& cfg{ hook::error::GetErrorConfig() };
         if (!cfg.debugDump) {

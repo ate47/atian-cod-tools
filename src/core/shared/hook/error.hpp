@@ -46,6 +46,10 @@ namespace hook::error {
      * Use debug data with dump
      */
     void EnableDebugDump();
+    /*
+     * Refresh debug data
+     */
+    void RefreshDebugDump();
 
     /*
      * Dump stack trace with a level

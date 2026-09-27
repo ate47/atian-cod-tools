@@ -115,6 +115,8 @@ namespace platform {
     void InstallErrorHooks(bool clearSetFunction);
     // init symlink
     void InitSymLink();
+    // refresh symlink
+    void RefreshSymLink();
     // resolve file and line of an address (symlink required)
     bool ResolveFileLine(void* address, const char** file, size_t* line);
     // last error

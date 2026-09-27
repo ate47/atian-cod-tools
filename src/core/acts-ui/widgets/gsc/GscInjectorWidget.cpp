@@ -11,10 +11,6 @@ namespace {
                                 "scripts\\core_common\\load_shared.gsc" };
 }
 
-const char* injGsc{ ActsAPIConfig_GetString("", "") };
-const char* injHook{ ActsAPIConfig_GetString("", defaultHooks[0]) };
-const char* injPS4{ ActsAPIConfig_GetString("", "") };
-
 UI_CONFIG_VAL(cfgUiInjectorPath, "ui.injector.path", QString(""), "GSC Injector Path");
 UI_CONFIG_VAL(cfgUiInjectorHook, "ui.injector.hook", QString("scripts\\zm_common\\load.gsc"), "GSC Injector Hook");
 UI_CONFIG_VAL(cfgUiPs4Ipd, "ui.ps4.ipd", QString(""), "PS4 IP");

@@ -411,6 +411,9 @@ static int RunUI3(int argc, const char* argv[]) {
         return -1;
     }
 
+    // load the new library pdb
+    hook::error::RefreshDebugDump();
+
     int (*MainActsUI)(int argc, const char** argv) = ui3Lib.GetProc<decltype(MainActsUI)>("MainActsUI");
     if (!MainActsUI) {
         LOG_ERROR("Failed to get MainActsUI function from acts-common-ui.dll!");

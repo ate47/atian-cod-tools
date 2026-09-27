@@ -45,6 +45,13 @@ namespace hook::error {
     }
 
     void EnableHeavyDump() { cfg.heavyDump = true; }
+
+    void RefreshDebugDump() {
+        if (cfg.debugDump) {
+            platform::RefreshSymLink();
+        }
+    }
+
     void EnableDebugDump() {
         cfg.debugDump = true;
         platform::InitSymLink();
