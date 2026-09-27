@@ -89,6 +89,10 @@ namespace {
                 }
             }
         }
+
+        size_t GetNumXAssetPools() override { return 1; };
+
+        const char* GetXAssetPoolName(size_t pool) override { return "lua"; }
     };
 
     // utils::ArrayAdder<LuaXHashFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

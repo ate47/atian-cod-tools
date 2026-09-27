@@ -94,6 +94,10 @@ namespace {
                 LOG_OPT_INFO("Dump {}", outFile.string());
             }
         }
+
+        size_t GetNumXAssetPools() override { return 1; };
+
+        const char* GetXAssetPoolName(size_t pool) override { return "gsc"; }
     };
 
 #ifndef CI_BUILD

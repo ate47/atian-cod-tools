@@ -273,11 +273,20 @@ namespace fastfile {
         )
             : name(name), description(description), noPatchOk(noPatchOk), game(game) {}
 
+        // Init the handler (scans, redirects, etc.)
         virtual void Init(FastFileOption& opt) {}
 
+        // Cleanup the handler data
         virtual void Cleanup() {}
 
+        // Handle a fastfile
         virtual void Handle(FastFileOption& opt, core::bytebuffer::ByteBuffer& reader, FastFileContext& ctx) = 0;
+
+        // Get the number of asset pools
+        virtual size_t GetNumXAssetPools() { return 0; };
+
+        // Get the name of an asset pool, pool should be < GetNumXAssetPools()
+        virtual const char* GetXAssetPoolName(size_t pool) { return nullptr; }
     };
     const char* GetFastFilePlatformName(FastFilePlatform comp);
     const char* GetGameIdName(GameId id);

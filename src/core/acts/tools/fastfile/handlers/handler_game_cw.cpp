@@ -517,6 +517,10 @@ namespace fastfile::handlers::cw {
                 gcx.DB_PopStreamPos();
                 LOG_OPT_INFO("Loaded {} asset(s)", gcx.loaded);
             }
+
+            size_t GetNumXAssetPools() override { return XAssetType::ASSET_TYPE_COUNT; };
+
+            const char* GetXAssetPoolName(size_t pool) override { return cw::PoolName((XAssetType)pool); }
         };
 
         utils::ArrayAdder<BOCWFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

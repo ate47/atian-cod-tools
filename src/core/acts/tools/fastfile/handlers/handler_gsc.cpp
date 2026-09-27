@@ -488,6 +488,10 @@ namespace {
             if (HandleScriptFile(opt, buff, ctx))
                 return;
         }
+
+        size_t GetNumXAssetPools() override { return 1; };
+
+        const char* GetXAssetPoolName(size_t pool) override { return "gsc"; }
     };
 
     utils::ArrayAdder<GscFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

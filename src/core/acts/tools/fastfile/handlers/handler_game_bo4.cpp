@@ -783,6 +783,12 @@ namespace fastfile::handlers::bo4 {
                     gcx.compiledZone->DumpDebug(outCZ);
                 }
             }
+
+            size_t GetNumXAssetPools() override { return games::bo4::pool::ASSET_TYPE_COUNT; };
+
+            const char* GetXAssetPoolName(size_t pool) override {
+                return games::bo4::pool::XAssetNameFromId((games::bo4::pool::XAssetType)pool);
+            }
         };
 
         utils::ArrayAdder<BO4FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

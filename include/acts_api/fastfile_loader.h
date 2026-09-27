@@ -24,6 +24,13 @@ typedef struct {
     const char* description;
 } ActsAPIFastFile_FastFileHandlerEntry;
 
+typedef struct {
+    uint64_t poolId;
+    const char* poolName;
+    uint64_t hash;
+    const char* name;
+} ActsAPIFastFile_FastFileAssetEntry;
+
 // create an asset pool context
 ACTS_COMMON_API ActsHandle ActsAPIFastFile_CreateAssetPoolContext(const ActsAPIFastFile_AssetPoolOptions* options);
 
@@ -45,6 +52,12 @@ typedef bool (*ActsAPIFastFile_ListFastFile_Callback)(const ActsAPIFastFile_Fast
 // callback for ActsAPIFastFile_ListHandlers
 typedef void (*ActsAPIFastFile_ListHandlers_Callback)(const ActsAPIFastFile_FastFileHandlerEntry* entry, void* ud);
 
+// callback for ActsAPIFastFile_ListStrings
+typedef void (*ActsAPIFastFile_ListStrings_Callback)(const char* str, uint64_t hash, void* ud);
+
+// callback for ActsAPIFastFile_ListAssets
+typedef void (*ActsAPIFastFile_ListAssets_Callback)(const ActsAPIFastFile_FastFileAssetEntry* entry, void* ud);
+
 // list the fastfiles
 ACTS_COMMON_API ActsStatus ActsAPIFastFile_ListFastFile(
     ActsHandle assetPool, const char* file, const char* wildcard, const char* ignoreWildcard,
@@ -52,6 +65,15 @@ ACTS_COMMON_API ActsStatus ActsAPIFastFile_ListFastFile(
 );
 // list the fastfile handlers
 ACTS_COMMON_API ActsStatus ActsAPIFastFile_ListHandlers(ActsAPIFastFile_ListHandlers_Callback callback, void* ud);
+
+// list the fastfile strings
+ACTS_COMMON_API ActsStatus ActsAPIFastFile_ListStrings(
+    ActsHandle assetPool, const char* wildcard, ActsAPIFastFile_ListStrings_Callback callback, void* ud
+);
+// list the fastfile assets
+ACTS_COMMON_API ActsStatus ActsAPIFastFile_ListAssets(
+    ActsHandle assetPool, const char* wildcard, ActsAPIFastFile_ListAssets_Callback callback, void* ud
+);
 
 // load the common fastfiles
 ACTS_COMMON_API ActsStatus ActsAPIFastFile_AssetPoolLoadCommonFastFiles(ActsHandle assetPool);

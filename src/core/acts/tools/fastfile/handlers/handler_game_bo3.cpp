@@ -444,6 +444,12 @@ namespace {
 
             gcx.allocator.FreeAll();
         }
+
+        size_t GetNumXAssetPools() override { return ::bo3::pool::T7XAssetType::T7_ASSET_TYPE_COUNT; };
+
+        const char* GetXAssetPoolName(size_t pool) override {
+            return ::bo3::pool::T7XAssetName((::bo3::pool::T7XAssetType)pool);
+        }
     };
 
     utils::ArrayAdder<BO3FFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

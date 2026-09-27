@@ -1675,6 +1675,89 @@ ActsStatus ActsAPIFastFile_ListFastFile(
         })
     );
 }
+
+ActsStatus ActsAPIFastFile_ListStrings(
+    ActsHandle assetPool, const char* wildcard, ActsAPIFastFile_ListStrings_Callback callback, void* ud
+) {
+    if (wildcard && !*wildcard) {
+        wildcard = nullptr;
+    }
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([callback, ud, opt, wildcard]() {
+        std::regex sWildcard{ wildcard ? wildcard : ".*" };
+        char* buff{ opt->ctx.assetPool.poolStrings.data() };
+        for (auto& [hash, offset] : opt->ctx.assetPool.poolStringsOffset) {
+            const char* str{ &buff[offset] };
+
+            if (wildcard) {
+                const char* strEnd{ &str[std::strlen(str)] };
+                std::cregex_iterator rbegin{ str, strEnd, sWildcard };
+
+                if (rbegin == std::cregex_iterator() || rbegin->length() != (strEnd - str)) {
+                    continue;
+                }
+            }
+
+            callback(str, hash, ud);
+        }
+    });
+}
+
+ActsStatus ActsAPIFastFile_ListAssets(
+    ActsHandle assetPool, const char* wildcard, ActsAPIFastFile_ListAssets_Callback callback, void* ud
+) {
+    if (wildcard && !*wildcard) {
+        wildcard = nullptr;
+    }
+    ACTS_API_ASSERT_VALID_HANDLE(assetPool);
+    AssetPoolOption* opt{ (AssetPoolOption*)assetPool };
+    return ActsAPIImpl_ErrHandler([callback, ud, opt, wildcard]() {
+        if (!opt->ctx.assetPool.assets.size()) {
+            return;
+        }
+        fastfile::FFHandler* handler{ opt->opt.handler };
+        if (!handler) {
+            throw std::runtime_error("Missing handler");
+        }
+        std::regex sWildcard{ wildcard ? wildcard : ".*" };
+        for (size_t poolId = 0; poolId < opt->ctx.assetPool.assets.size(); poolId++) {
+            std::unordered_map<uint64_t, fastfile::XAsset64Mem*>& pool{ opt->ctx.assetPool.assets[poolId] };
+            const char* poolName{ handler->GetXAssetPoolName(poolId) };
+
+            for (auto& [id, asset] : pool) {
+
+                const char* assetName{ hashutils::ExtractTmp("hash", id) };
+                if (wildcard) {
+                    const char* str{ assetName };
+                    const char* strEnd{ &str[std::strlen(str)] };
+
+                    std::cregex_iterator rbegin{ str, strEnd, sWildcard };
+
+                    if (rbegin == std::cregex_iterator() || rbegin->length() != (strEnd - str)) {
+                        // not a match for the string, maybe we search for the hash
+                        str = utils::va("%llx", id);
+                        strEnd = &str[std::strlen(str)];
+
+                        std::cregex_iterator rbegin{ str, strEnd, sWildcard };
+
+                        if (rbegin == std::cregex_iterator() || rbegin->length() != (strEnd - str)) {
+                            continue;
+                        }
+                    }
+                }
+
+                ActsAPIFastFile_FastFileAssetEntry e{};
+                e.hash = id;
+                e.poolId = poolId;
+                e.poolName = poolName;
+                e.name = assetName;
+                callback(&e, ud);
+            }
+        }
+    });
+}
+
 ActsStatus ActsAPIFastFile_ListHandlers(ActsAPIFastFile_ListHandlers_Callback callback, void* ud) {
     return ActsAPIImpl_ErrHandler([callback, ud]() {
         for (fastfile::FFHandler* handler : fastfile::GetHandlers()) {

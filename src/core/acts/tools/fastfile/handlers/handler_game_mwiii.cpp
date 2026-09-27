@@ -606,6 +606,12 @@ namespace fastfile::handlers::mwiii {
 
                 LOG_DEBUG("done reading {}", ctx.ffname);
             }
+
+            size_t GetNumXAssetPools() override { return gcx.assetNames.TypesCount(); };
+
+            const char* GetXAssetPoolName(size_t pool) override {
+                return gcx.assetNames.GetTypeName((HandlerAssetType)pool);
+            }
         };
 
         utils::ArrayAdder<FFHandlerImpl, fastfile::FFHandler> arr{ fastfile::GetHandlers() };

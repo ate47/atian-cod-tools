@@ -155,6 +155,10 @@ namespace {
                 }
             }
         }
+
+        size_t GetNumXAssetPools() override { return 1; };
+
+        const char* GetXAssetPoolName(size_t pool) override { return "gsc"; }
     };
 #ifndef CI_BUILD
     utils::ArrayAdder<GscXStringFFHandler, fastfile::FFHandler> arr{ fastfile::GetHandlers() };
