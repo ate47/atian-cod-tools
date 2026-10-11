@@ -17,7 +17,7 @@ namespace tool::gsc::opcode {
             t1018->RegisterVmName("sat18", "blackops7_18", "bo7_18");
             t1018->AddPlatform(PLATFORM_PC);
             t1018->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            t1018->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            t1018->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             t1018->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             t1018->RegisterVMOperatorFunction(
                 "waittill",

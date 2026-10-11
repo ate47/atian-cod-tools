@@ -210,6 +210,7 @@ namespace tool::gsc::opcode {
             );
             gscbin->RegisterVmName("iw8", "mw19", "modernwarfare19");
             gscbin->AddPlatform(PLATFORM_PC);
+            gscbin->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             // GetOpaqueStringCount / Scr_InitStringConstants =  useReducedSpGoldLimits ? 0xE2C0 : 0x1472F
             gscbin->SetOpaqueStringCount(0x1472F);
             // VM_Execute: sub_37EA880, seems to be similar to jup without devblockbegin for start

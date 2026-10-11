@@ -16,7 +16,7 @@ namespace tool::gsc::opcode {
             vt->AddPlatform(PLATFORM_XBOX);
             vt->SetPlatformBigEndian(PLATFORM_XBOX);
             vt->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            vt->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            vt->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             vt->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             vt->RegisterVMOperatorFunction(
                 "isdefined",

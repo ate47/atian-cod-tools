@@ -16,7 +16,7 @@ namespace tool::gsc::opcode {
             t10b->RegisterVmName("cerb", "t10_b", "blackops6_b", "t10sp", "bo6sp");
             t10b->AddPlatform(PLATFORM_PC);
             t10b->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            t10b->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            t10b->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             t10b->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             t10b->RegisterVMOperatorFunction(
                 "waittill",

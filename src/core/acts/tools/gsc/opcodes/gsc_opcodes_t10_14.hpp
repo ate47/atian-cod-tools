@@ -17,7 +17,7 @@ namespace tool::gsc::opcode {
             t1014->AddPlatform(PLATFORM_BO6);
             t1014->AddPlatform(PLATFORM_BO6_V1);
             t1014->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            t1014->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            t1014->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             t1014->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             t1014->RegisterVMOperatorFunction(
                 "waittill",

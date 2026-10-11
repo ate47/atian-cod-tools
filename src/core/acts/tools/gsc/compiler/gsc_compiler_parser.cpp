@@ -419,6 +419,33 @@ namespace tool::gsc::compiler {
             if (gvarIt != fobj.m_vmInfo->globalvars.end()) {
                 GlobalVariableDef& gv = gvarIt->second;
 
+                if (gv.refOpCode != OPCODE_Undefined) {
+                    fobj.AddNode(term, new AscmNodeOpCode(gv.refOpCode));
+                    return true;
+                }
+
+                if (!gv.getOpCode) {
+                    if (!obj.gscHandler->HasFlag(tool::gsc::GOHF_GLOBAL)) {
+                        obj.info.PrintLineMessage(
+                            core::logs::LVL_ERROR,
+                            term,
+                            std::format("{} is defined as a global, but the vm doesn't support globals", varName)
+                        );
+                        return false;
+                    }
+
+                    GlobalVarObject& decl = obj.globals[gv.name];
+
+                    if (!decl.def) {
+                        decl.def = &gv;
+                    }
+
+                    AscmNodeGlobalVariable* gvar = new AscmNodeGlobalVariable(&gv, OPCODE_GetGlobalObject);
+                    decl.nodes.emplace_back(gvar);
+                    fobj.AddNode(term, gvar);
+                    return true;
+                }
+
                 obj.info.PrintLineMessage(
                     core::logs::LVL_WARNING,
                     term,

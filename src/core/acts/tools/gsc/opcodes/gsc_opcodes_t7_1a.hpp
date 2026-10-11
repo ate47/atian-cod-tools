@@ -16,7 +16,7 @@ namespace tool::gsc::opcode {
             vt71a->AddPlatform(PLATFORM_PC);
             vt71a->AddPlatform(PLATFORM_PLAYSTATION);
             vt71a->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            vt71a->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            vt71a->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             vt71a->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             vt71a->RegisterVMGlobalVariable("world", OPCODE_GetWorld);
             vt71a->RegisterVMGlobalVariable("classes", OPCODE_GetClasses);

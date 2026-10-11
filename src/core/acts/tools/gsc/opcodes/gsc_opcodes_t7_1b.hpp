@@ -15,7 +15,7 @@ namespace tool::gsc::opcode {
             vt71b->RegisterVmName("t7_1b", "blackops3_1b");
             vt71b->AddPlatform(PLATFORM_PC);
             vt71b->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            vt71b->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            vt71b->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             vt71b->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             vt71b->RegisterVMGlobalVariable("world", OPCODE_GetWorld);
             vt71b->RegisterVMGlobalVariable("classes", OPCODE_GetClasses);

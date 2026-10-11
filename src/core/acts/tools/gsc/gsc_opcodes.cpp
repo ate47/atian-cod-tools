@@ -238,7 +238,7 @@ namespace tool::gsc::opcode {
         gv.maxParam = maxArgs;
     }
 
-    void VmInfo::RegisterVMGlobalVariable(const char* name, OPCode getOpCode) {
+    void VmInfo::RegisterVMGlobalVariable(const char* name, OPCode getOpCode, OPCode refOpCode) {
         uint64_t hash = HashField(name);
 
         if (globalvars.find(hash) != globalvars.end()) {
@@ -249,6 +249,7 @@ namespace tool::gsc::opcode {
         auto& gv = globalvars[hash];
         gv.name = name;
         gv.getOpCode = getOpCode;
+        gv.refOpCode = refOpCode;
     }
 
     void VmInfo::SetMaxOpCode(uint16_t maxOpCode) { this->maxOpCode = maxOpCode; }

@@ -16,7 +16,7 @@ namespace tool::gsc::opcode {
             v8b->RegisterVmName("jup", "s5", "mwiii", "modernwarfareiii", "mw23");
             v8b->AddPlatform(PLATFORM_PC);
             v8b->RegisterVMGlobalVariable("level", OPCODE_IW_GetLevel);
-            v8b->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame);
+            v8b->RegisterVMGlobalVariable("game", OPCODE_IW_GetGame, OPCODE_IW_GetGameRef);
             v8b->RegisterVMGlobalVariable("anim", OPCODE_IW_GetAnim);
             v8b->RegisterVMOperatorFunction(
                 "waittill",
