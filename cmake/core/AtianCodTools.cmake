@@ -66,39 +66,26 @@ target_include_directories(AtianCodTools PRIVATE
     "${CMAKE_SOURCE_DIR}/src/core/shared"
     "${CMAKE_SOURCE_DIR}/src/core/lib"
     "${CMAKE_SOURCE_DIR}/src/core/vm"
-    "${CMAKE_SOURCE_DIR}/deps/antlr4/runtime/Cpp/runtime/src/"
-    "${CMAKE_SOURCE_DIR}/deps/zlib/"
     "${CMAKE_SOURCE_DIR}/deps/zlib/contrib/minizip"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/libdebug/cpp/include/"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/kdebugger/include/"
     "${CMAKE_SOURCE_DIR}/deps/ps4debug/ps4-ksdk/include/"
-    "${CMAKE_SOURCE_DIR}/deps/asmjit/src/"
     "${CMAKE_SOURCE_DIR}/deps/curl/include/"
     "${CMAKE_SOURCE_DIR}/deps/casclib/src/"
-    "${CMAKE_SOURCE_DIR}/deps/xxHash/"
-    "${CMAKE_SOURCE_DIR}/deps/lz4/lib/"
-    "${CMAKE_SOURCE_DIR}/deps/zstd/lib/"
     "${CMAKE_SOURCE_DIR}/deps/salsa20/Source/"
-    "${CMAKE_SOURCE_DIR}/deps/Detours/src/"
-    "${CMAKE_SOURCE_DIR}/deps/rapidjson/include/"
     "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib/"
     "${CMAKE_SOURCE_DIR}/deps/json-rpc-cxx/include/"
-    "${CMAKE_SOURCE_DIR}/deps/json/include/"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src/"
     "${CMAKE_SOURCE_DIR}/deps/hw_break/HwBpLib/inc/"
-    "${CMAKE_SOURCE_DIR}/deps/glfw/include/"
-    "${CMAKE_SOURCE_DIR}/deps/imgui/"
     "${CMAKE_SOURCE_DIR}/deps/thread-pool/include/"
     "${CMAKE_SOURCE_DIR}/deps/stb/"
-    "${CMAKE_SOURCE_DIR}/deps/tomlplusplus/include/toml++/"
     "${CMAKE_SOURCE_DIR}/deps/miniz-cpp/"
     "${CMAKE_SOURCE_DIR}/deps/hash-library/"
     "${CMAKE_SOURCE_DIR}/deps/hksc/etc/"
     "${CMAKE_SOURCE_DIR}/deps/hksc/src/"
     "${CMAKE_SOURCE_DIR}/deps/crc_cpp/include/"
     "${CMAKE_SOURCE_DIR}/deps/libtomcrypt/src/headers/"
-    "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
-    "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
+    "${CMAKE_SOURCE_DIR}/deps/mstch/include"
     "${CMAKE_SOURCE_DIR}/include"
 )
 
@@ -110,7 +97,7 @@ target_link_libraries(AtianCodTools PRIVATE
     zlib
     minizip
     libps4debug
-    asmjit
+    asmjit::asmjit
     casclib
     lz4
     zstd
@@ -126,30 +113,24 @@ target_link_libraries(AtianCodTools PRIVATE
     hksc
     libtomcrypt
     mstch
+    magic_enum::magic_enum
+    nlohmann_json::nlohmann_json
+    RapidJSON
+    tomlplusplus::tomlplusplus
 )
 
 add_dependencies(AtianCodTools
-    detours
-    antlr4-runtime
     AtianCodToolsCopyConfig
     ACTSSharedLibrary
     ACTSLibrary
     ACTSVM
-    zlib
     minizip
     libps4debug
-    asmjit
     casclib
-    lz4
-    zstd
-    glfw
-    imgui
     hashlibrary
     xxhash
     hksc
     libtomcrypt
-    mstch
-    libcurl
 )
 target_compile_definitions(AtianCodTools PRIVATE 
     ANTLR4CPP_STATIC

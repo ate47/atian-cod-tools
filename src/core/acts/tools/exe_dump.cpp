@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <utils/memapi.hpp>
 #include <hook/library.hpp>
 #include <tools/exe_dump.hpp>
 #include <cli/cli_options.hpp>

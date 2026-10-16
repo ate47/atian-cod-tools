@@ -121,6 +121,8 @@ namespace platform {
     bool ResolveFileLine(void* address, const char** file, size_t* line);
     // last error
     uint32_t GetLastPlatformError();
+    // is debugger there
+    bool IsPlatformDebuggerPresent();
 
     //////////////////////// Process functions
 

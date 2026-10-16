@@ -17,7 +17,6 @@ set_target_properties(xsk-utils PROPERTIES
 
 target_include_directories(xsk-utils PRIVATE
     "${CMAKE_SOURCE_DIR}/deps/gsc-tool/include"
-    "${CMAKE_SOURCE_DIR}/deps/zlib"
 )
 append_common_defs(xsk-utils)
 target_link_libraries(xsk-utils PRIVATE

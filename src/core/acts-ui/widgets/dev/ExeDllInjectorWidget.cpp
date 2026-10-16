@@ -4,6 +4,7 @@
 #include <QListWidgetItem>
 #include <QVariant>
 #include <acts_api/config.h>
+#undef emit
 #include <utils/memapi.hpp>
 
 static struct InjectGame {

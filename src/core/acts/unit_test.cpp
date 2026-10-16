@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <unit_test.hpp>
 #include <cli/clicolor.hpp>
+#include <platform/platform.hpp>
 
 namespace acts::unit_test {
     std::unordered_map<uint64_t, UnitTest*>& GetTests() {
@@ -24,7 +25,7 @@ namespace acts::unit_test {
     UnitTest::UnitTest(uint64_t uid, const char* id, void (*func)()) : id(id), func(func) { GetTests()[uid] = this; }
 
     bool UnitTest::HandleTest() {
-        if (IsDebuggerPresent()) {
+        if (platform::IsPlatformDebuggerPresent()) {
             func();
             return true; // use error handling
         }

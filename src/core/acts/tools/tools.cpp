@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/memapi.hpp>
 #include <cli/clicolor.hpp>
 #include <actscli.hpp>
 #include <core/config.hpp>

@@ -34,7 +34,7 @@ namespace {
         }
     }
 
-    int cwdecrypt(Process& proc, int argc, const char* argv[]) {
+    int cwdecrypt(int argc, const char* argv[]) {
         std::vector<std::filesystem::path> files{};
 
         utils::GetFileRecurse("scriptparsetree_cw", files);
@@ -80,6 +80,6 @@ namespace {
 } // namespace
 #ifndef CI_BUILD
 
-ADD_TOOL(cwdecrypt, "cw", "", "decrypt tests", nullptr, cwdecrypt);
+ADD_TOOL(cwdecrypt, "cw", "", "decrypt tests", cwdecrypt);
 
 #endif

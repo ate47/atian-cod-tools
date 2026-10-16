@@ -7,6 +7,7 @@
 #include <utils/decrypt.hpp>
 #include <games/bo4/pool.hpp>
 #include <games/bo4/offsets.hpp>
+#include <utils/memapi.hpp>
 
 using namespace tool::pool;
 using namespace games::bo4;
@@ -231,7 +232,7 @@ class PoolOption {
     std::vector<bool> m_dump_types{};
     uint64_t flags{};
 
-    bool Compute(const char** args, INT startIndex, INT endIndex) {
+    bool Compute(const char** args, int startIndex, int endIndex) {
         m_dump_types.clear();
         m_dump_types.reserve(pool::ASSET_TYPE_COUNT);
         for (size_t i = 0; i < pool::ASSET_TYPE_COUNT; i++) {

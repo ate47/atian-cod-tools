@@ -6,9 +6,9 @@
 #include <DbgHelp.h>
 #pragma comment(lib, "imagehlp.lib")
 #pragma comment(lib, "dbghelp.lib")
-#if __has_include(<detours.h>)
+#if __has_include(<detours/detours.h>)
 #define __ACTS_PLATFORM_HAS_DETOURS
-#include <detours.h>
+#include <detours/detours.h>
 #endif
 #include <includes_shared.hpp>
 #include <process.h>
@@ -954,6 +954,7 @@ namespace platform {
         }
     }
     uint32_t GetLastPlatformError() { return GetLastError(); }
+    bool IsPlatformDebuggerPresent() { return IsDebuggerPresent(); }
 
     bool CreatePlatformProcess(char* cmd, bool attachConsole) {
         STARTUPINFOA si;

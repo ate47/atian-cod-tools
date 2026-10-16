@@ -1,4 +1,6 @@
 #pragma once
+#ifdef _WIN32
+#include <platform/platform_windows.hpp>
 #include <gl/GL.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -114,3 +116,5 @@ namespace tool::nui {
     static tool::nui::tooluifunctiondata __toolnuifunctiondata_##id(#id, desc, nullptr, function, true)
 #define ADD_TOOL_NUI2_DEV(id, desc, setup, function)                                                                   \
     static tool::nui::tooluifunctiondata __toolnuifunctiondata_##id(#id, desc, setup, function, true)
+
+#endif

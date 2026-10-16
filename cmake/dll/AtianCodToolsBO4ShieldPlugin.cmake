@@ -21,12 +21,8 @@ add_game_pack_target(AtianCodToolsBO4ShieldPluginGame bo4 "${CMAKE_SOURCE_DIR}/s
 target_include_directories(AtianCodToolsBO4ShieldPlugin PRIVATE
     "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin"
     "${CMAKE_SOURCE_DIR}/src/core/shared"
-    "${CMAKE_SOURCE_DIR}/deps/Detours/src"
-    "${CMAKE_SOURCE_DIR}/deps/asmjit/src"
     "${CMAKE_SOURCE_DIR}/deps/curl/include"
-    "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
     "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
-    "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src"
     "${CMAKE_SOURCE_DIR}/deps/libtomcrypt/src/headers/"
 )
@@ -35,14 +31,14 @@ append_common_defs(AtianCodToolsBO4ShieldPlugin)
 target_link_libraries(AtianCodToolsBO4ShieldPlugin PRIVATE
     ACTSSharedLibrary
     detours
-    asmjit
+    asmjit::asmjit
     libcurl
     libtomcrypt
+    RapidJSON
+    magic_enum::magic_enum
 )
 add_dependencies(AtianCodToolsBO4ShieldPlugin
     ACTSSharedLibrary
-    detours
-    asmjit
     libcurl
     libtomcrypt
     AtianCodToolsBO4ShieldPluginGame

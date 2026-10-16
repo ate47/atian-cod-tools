@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/memapi.hpp>
 #include <deps/miniz.hpp>
 
 namespace {

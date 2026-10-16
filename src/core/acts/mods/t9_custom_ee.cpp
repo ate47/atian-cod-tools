@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <mods/mods.hpp>
 #include "custom_ees.hpp"
 #include <tools/cw/cw.hpp>
 #include <tools/gsc/data/gsc_data_t9.hpp>

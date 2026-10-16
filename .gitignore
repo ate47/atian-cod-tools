@@ -52,6 +52,9 @@ src/**/_private_*.hpp
 /.vscode/
 /build/
 
+/vcpkg_installed/
+.github/copilot-instructions.md
+
 # tools files
 package_index*
 strings.txt

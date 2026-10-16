@@ -37,7 +37,7 @@ namespace tool::gsc::opcode {
         if (value - ((double)((int64_t)value)) > 0.00000000000001 && node->m_type != TYPE_FLOAT) {
             // we need to convert this node to a float
             delete node;
-            node = new ASMContextNodeValue<FLOAT>((FLOAT)value, TYPE_FLOAT);
+            node = new ASMContextNodeValue<float>((float)value, TYPE_FLOAT);
             return;
         }
 
@@ -60,7 +60,7 @@ namespace tool::gsc::opcode {
         }
 
         if (other->m_type == TYPE_FLOAT) {
-            PatchNumber(node, dynamic_cast<ASMContextNodeValue<FLOAT>*>(other)->m_value);
+            PatchNumber(node, dynamic_cast<ASMContextNodeValue<float>*>(other)->m_value);
         } else {
             PatchNumber(node, other->GetIntConst());
         }
@@ -88,8 +88,8 @@ namespace tool::gsc::opcode {
 
         switch (dt) {
         case ASCNVD_FLOAT:
-            return dynamic_cast<ASMContextNodeValue<FLOAT>*>(a)->m_value ==
-                   dynamic_cast<ASMContextNodeValue<FLOAT>*>(b)->m_value;
+            return dynamic_cast<ASMContextNodeValue<float>*>(a)->m_value ==
+                   dynamic_cast<ASMContextNodeValue<float>*>(b)->m_value;
         case ASCNVD_INT:
             return aa->GetIntConst() == bb->GetIntConst();
         case ASCNVD_STRING:
@@ -560,14 +560,14 @@ namespace tool::gsc::opcode {
                    // no opcode write
                    << std::setfill(' ') << std::setw((sizeof(int16_t) << 1) + 25 + 2) << " ";
     }
-    UINT ASMContext::FinalSize() const {
-        INT max = 0;
+    size_t ASMContext::FinalSize() const {
+        size_t max = 0;
         for (auto& [loc, ref] : m_locs) {
             if (max < ref.rloc) {
-                max = ref.rloc;
+                max = (size_t)ref.rloc;
             }
         }
-        return (UINT)max +
+        return max +
                (this->m_objctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16) ? 2 : 1); // +1 for the Return/End operator
     }
 

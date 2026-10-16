@@ -20,13 +20,13 @@ namespace {
 
         ASSERT_VAL("no field 1", reader.GotoNextField());
         ASSERT_EQ("bad type 1", reader.GetType(), core::raw_file::RFDT_STRING);
-        ASSERT_EQ("bad str 1", "test: #\""s, reader.GetString());
+        ASSERT_EQ("bad str 1", std::string{ "test: #\"" }, reader.GetString());
         ASSERT_VAL("no field 2", reader.GotoNextField());
         ASSERT_EQ("bad type 2", reader.GetType(), core::raw_file::RFDT_HASH);
         ASSERT_EQ("bad hash 2", hash::Hash64("test"), reader.GetHash());
         ASSERT_VAL("no field 3", reader.GotoNextField());
         ASSERT_EQ("bad type 3", reader.GetType(), core::raw_file::RFDT_STRING);
-        ASSERT_EQ("bad str 3", "\""s, reader.GetString());
+        ASSERT_EQ("bad str 3", std::string{ "\"" }, reader.GetString());
         ASSERT_VAL("field 4", !reader.GotoNextField());
     }
 

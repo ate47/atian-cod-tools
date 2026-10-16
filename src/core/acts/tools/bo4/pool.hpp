@@ -1,6 +1,7 @@
 #pragma once
 
 #include <includes.hpp>
+#include <utils/memapi.hpp>
 #include <games/bo4/pool.hpp>
 
 namespace tool::pool {

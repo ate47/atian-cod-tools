@@ -1,4 +1,5 @@
 #pragma once
+#include <tools/ps4/ps4.hpp>
 
 namespace utils::ps4 {
     enum PS4Notify : int32_t {

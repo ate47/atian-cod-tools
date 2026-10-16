@@ -5,7 +5,7 @@
 namespace {
     using namespace tool::hashes::compiled_files;
 
-    int cfd(Process& proc, int argc, const char* argv[]) {
+    int cfd(int argc, const char* argv[]) {
         if (argc < 3) {
             return tool::BAD_USAGE;
         }
@@ -123,6 +123,6 @@ namespace {
         return tool::OK;
     }
 
-    ADD_TOOL(cfd, "hash", " [dir] (output)", "decompile raw compiled file (.cf)", nullptr, cfd);
+    ADD_TOOL(cfd, "hash", " [dir] (output)", "decompile raw compiled file (.cf)", cfd);
 
 } // namespace

@@ -31,7 +31,7 @@ namespace tool::gsc {
             std::ostream& WritePadding(std::ostream& out, bool forceNoRLoc = false);
             void MarkLine(std::ostream& out);
         };
-        enum ASMContextNodePriority : UINT {
+        enum ASMContextNodePriority {
             PRIORITY_INST,
 
             PRIORITY_SET,
@@ -58,7 +58,7 @@ namespace tool::gsc {
 
             PRIORITY_VALUE
         };
-        enum ASMContextNodeType : UINT {
+        enum ASMContextNodeType {
             TYPE_BLOCK,
             TYPE_STATEMENT,
             TYPE_COMMENT,
@@ -410,7 +410,7 @@ namespace tool::gsc {
             std::ostream& WritePadding(std::ostream& out);
 
             // @return the Final size of the function by looking at the last position
-            UINT FinalSize() const;
+            size_t FinalSize() const;
 
             /*
              * Call LookupOpCode with the ctx vm

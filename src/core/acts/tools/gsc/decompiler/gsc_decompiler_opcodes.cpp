@@ -663,7 +663,7 @@ namespace tool::gsc::opcode {
                     if (vec->m_x && vec->m_x->IsConstNumber() && vec->m_y && vec->m_y->IsConstNumber() && vec->m_z &&
                         vec->m_z->IsConstNumber()) {
 
-                        FLOAT factorVal = GetFloatNumber(factor);
+                        float factorVal = GetFloatNumber(factor);
 
                         PatchNumber(vec->m_x, GetFloatNumber(vec->m_x) * factorVal);
                         PatchNumber(vec->m_y, GetFloatNumber(vec->m_y) * factorVal);
@@ -4225,7 +4225,7 @@ namespace tool::gsc::opcode {
 
     class OPCodeInfopushopn : public OPCodeInfo {
       public:
-        INT m_n;
+        size_t m_n;
         const char* m_op;
         ASMContextNodePriority m_priority;
         ASMContextNodeType m_type;
@@ -4234,7 +4234,7 @@ namespace tool::gsc::opcode {
         bool m_convertBool;
         bool m_isBoolValueRet;
         OPCodeInfopushopn(
-            OPCode id, const char* name, INT n, const char* op, ASMContextNodeType type,
+            OPCode id, const char* name, size_t n, const char* op, ASMContextNodeType type,
             ASMContextNodePriority priority, bool caller = false, bool forceFunc = false, bool convertBool = false,
             bool isBoolValueRet = false
         )
@@ -4965,7 +4965,7 @@ namespace tool::gsc::opcode {
             const OPCodeInfoGetNumber<int64_t> opGetLongInteger{ OPCODE_GetLongInteger, "GetLongInteger" };
             const OPCodeInfoGetNumber<uint32_t> opGetUnsignedInteger{ OPCODE_GetUnsignedInteger, "GetUnsignedInteger" };
             const OPCodeInfoGetNumber<uint16_t> opGetUnsignedShort{ OPCODE_GetUnsignedShort, "GetUnsignedShort" };
-            const OPCodeInfoGetNumber<FLOAT, FLOAT> opGetFloat{ OPCODE_GetFloat, "GetFloat", TYPE_FLOAT };
+            const OPCodeInfoGetNumber<float, float> opGetFloat{ OPCODE_GetFloat, "GetFloat", TYPE_FLOAT };
             const OPCodeInfoGetNumber<uintptr_t, uintptr_t> opGetUIntPtr{ OPCODE_GetUIntPtr, "GetUIntPtr" };
             const OPCodeInfoGetNumber<int8_t> opGetSignedByte{ OPCODE_GetSignedByte, "GetSignedByte" };
             const OPCodeInfoGetNumber<int16_t> opGetShort{ OPCODE_GetShort, "GetShort" };

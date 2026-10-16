@@ -107,7 +107,7 @@ namespace tool::gsc {
          * @param startIndex End index in args (exclusive)
          * @return if the arguments were correctly computed
          */
-        bool Compute(const char** args, INT startIndex, INT endIndex);
+        bool Compute(const char** args, int startIndex, int endIndex);
         /*
          * Print help in a stream
          */

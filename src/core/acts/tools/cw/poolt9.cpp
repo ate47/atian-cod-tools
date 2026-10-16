@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/memapi.hpp>
 #include <tools/bo4/pool.hpp>
 #include <tools/bo4/dump.hpp>
 #include "tools/gsc/gsc.hpp"
@@ -652,7 +653,7 @@ namespace {
         const char* m_output = "poolcw";
         const char* m_dump_hashmap = NULL;
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
 
             // default values
             for (size_t i = startIndex; i < endIndex; i++) {

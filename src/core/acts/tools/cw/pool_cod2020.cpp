@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <utils/memapi.hpp>
 #include <core/raw_file_json.hpp>
 #include "cw.hpp"
 #include "pool_cod2020.hpp"

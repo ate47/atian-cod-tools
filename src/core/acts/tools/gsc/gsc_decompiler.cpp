@@ -1813,7 +1813,7 @@ namespace tool::gsc {
         m_formatter = &tool::gsc::formatter::GetDefaultFormatter();
     }
 
-    bool GscInfoOption::Compute(const char** args, INT startIndex, INT endIndex) {
+    bool GscInfoOption::Compute(const char** args, int startIndex, int endIndex) {
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
             const char* arg = args[i];

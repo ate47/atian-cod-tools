@@ -1,10 +1,3 @@
-[submodule "deps/antlr4"]
-	path = deps/antlr4
-	url = https://github.com/antlr/antlr4
-[submodule "deps/Detours"]
-	path = deps/Detours
-	url = https://github.com/microsoft/Detours
-	branch = 4.0.1
 [submodule "deps/zlib"]
 	path = deps/zlib
 	url = https://github.com/madler/zlib
@@ -19,24 +12,12 @@
 	branch = master
 [submodule ".\\deps\\ps4debug\\"]
 	url = https://github.com/ate47/ps4debug
-[submodule "deps/asmjit"]
-	path = deps/asmjit
-	url = https://github.com/asmjit/asmjit
 [submodule "deps/casclib"]
 	path = deps/casclib
 	url = https://github.com/ladislav-zezula/CascLib
-[submodule "deps/lz4"]
-	path = deps/lz4
-	url = https://github.com/lz4/lz4
-[submodule "deps/imgui"]
-	path = deps/imgui
-	url = https://github.com/ocornut/imgui
 [submodule "deps/hw_break"]
 	path = deps/hw_break
 	url = https://github.com/ate47/hw_break
-[submodule "deps/rapidjson"]
-	path = deps/rapidjson
-	url = https://github.com/Tencent/rapidjson
 [submodule "deps/dbflib"]
 	path = deps/dbflib
 	url = https://github.com/ate47/dbflib
@@ -52,18 +33,12 @@
 [submodule "deps/curl"]
 	path = deps/curl
 	url = https://github.com/curl/curl
-[submodule "deps/glfw"]
-	path = deps/glfw
-	url = https://github.com/glfw/glfw
 [submodule "deps/thread-pool"]
 	path = deps/thread-pool
 	url = https://github.com/bshoshany/thread-pool
 [submodule "deps/stb"]
 	path = deps/stb
 	url = https://github.com/nothings/stb
-[submodule "deps/tomlplusplus"]
-	path = deps/tomlplusplus
-	url = https://github.com/marzer/tomlplusplus
 [submodule "deps/miniz-cpp"]
 	path = deps/miniz-cpp
 	url = https://github.com/tfussell/miniz-cpp
@@ -86,9 +61,6 @@
 	path = deps/hksc
 	url = https://github.com/ate47/hksc
 	branch = test_t8
-[submodule "deps/xxHash"]
-	path = deps/xxHash
-	url = https://github.com/Cyan4973/xxHash
 [submodule "deps/crc_cpp"]
 	path = deps/crc_cpp
 	url = https://github.com/AshleyRoll/crc_cpp
@@ -102,13 +74,10 @@
 	path = deps/gsc-tool
 	url = https://github.com/xensik/gsc-tool
 	branch = feature/hash-extraction
-[submodule "deps/mstch"]
-	path = deps/mstch
-	url = https://github.com/no1msd/mstch/
-	branch = no-boost
-[submodule "deps/magic_enum"]
-	path = deps/magic_enum
-	url = https://github.com/Neargye/magic_enum
 [submodule "deps/inja"]
 	path = deps/inja
 	url = https://github.com/pantor/inja.git
+[submodule "deps/mstch"]
+	path = deps/mstch
+	url = https://github.com/no1msd/mstch.git
+	branch = no-boost

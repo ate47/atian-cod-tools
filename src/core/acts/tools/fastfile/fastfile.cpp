@@ -415,7 +415,7 @@ namespace {
             }
         }
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
             // default values
             for (size_t i = startIndex; i < endIndex; i++) {
                 const char* arg = args[i];
@@ -1422,7 +1422,7 @@ namespace {
         return tool::OK;
     }
 
-    int casctest(Process& proc, int argc, const char* argv[]) {
+    int casctest(int argc, const char* argv[]) {
         if (argc < 3) {
             return tool::BAD_USAGE;
         }
@@ -1443,7 +1443,7 @@ namespace {
         return res;
     }
 
-    int h32ck(Process& proc, int argc, const char* argv[]) {
+    int h32ck(int argc, const char* argv[]) {
         if (argc < 3) {
             return tool::BAD_USAGE;
         }
@@ -1520,6 +1520,6 @@ namespace {
 ADD_TOOL(fdtest, "fastfile", " [fd]", "test fd file", fdtest);
 ADD_TOOL(fftest, "fastfile", " [ff]", "test fastfile", fftest);
 ADD_TOOL(ffexe, "fastfile", " [ff]", "test fastfile", ffexe);
-ADD_TOOL(casctest, "fastfile", " [path]", "test casc", nullptr, casctest);
-ADD_TOOL(h32ck, "fastfile", " [path]", "hash checksum", nullptr, h32ck);
+ADD_TOOL(casctest, "fastfile", " [path]", "test casc", casctest);
+ADD_TOOL(h32ck, "fastfile", " [path]", "hash checksum", h32ck);
 ADD_TOOL(bdiffinst, "fastfile", " [game]", "test bdiff", bdiffinst);

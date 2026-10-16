@@ -113,7 +113,7 @@ namespace fastfile {
         bool print_revId{};
         GameId m_gameId{};
         GameRevId m_gameRevId{};
-        HANDLE cascStorage{};
+        void* cascStorage{};
         std::filesystem::path m_output;
         std::vector<const char*> files{};
         FFHandler* handler{};

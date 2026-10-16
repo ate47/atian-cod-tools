@@ -14,8 +14,11 @@ set_target_properties(abp_game_config_packer PROPERTIES
 )
 
 target_include_directories(abp_game_config_packer PRIVATE
-    "${CMAKE_SOURCE_DIR}/deps/nlohmann-json/single_include/"
     "${CMAKE_SOURCE_DIR}/deps/inja/include/"
+)
+
+target_link_libraries(abp_game_config_packer PRIVATE
+    tomlplusplus::tomlplusplus
 )
 
 # add a target to generated a packed sig reader

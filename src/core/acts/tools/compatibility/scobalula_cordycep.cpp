@@ -1,6 +1,6 @@
 #include <includes.hpp>
 #include <hook/module_mapper.hpp>
-#include <toml.hpp>
+#include <toml++/toml.hpp>
 
 namespace {
     using namespace std::literals;

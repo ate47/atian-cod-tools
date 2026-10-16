@@ -190,7 +190,7 @@ namespace tool::cordycep::dump::t9 {
         return proc.ReadStringTmp(cordycep.stringsAddress + str);
     }
 
-    bool PoolOptionImpl::Compute(const char** args, INT startIndex, INT endIndex) {
+    bool PoolOptionImpl::Compute(const char** args, int startIndex, int endIndex) {
         m_dump_types.clear();
         m_dump_types.reserve(ASSET_TYPE_COUNT);
         for (size_t i = 0; i < ASSET_TYPE_COUNT; i++) {

@@ -156,7 +156,7 @@ namespace {
         std::vector<bool> m_dump_types{};
         uint64_t flags{};
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
             m_dump_types.clear();
             m_dump_types.reserve(T7_ASSET_TYPE_COUNT);
             for (size_t i = 0; i < T7_ASSET_TYPE_COUNT; i++) {

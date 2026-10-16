@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <deps/miniz.hpp>
 #include <core/memory_allocator.hpp>
+#include <zlib.h>
 
 namespace {
 

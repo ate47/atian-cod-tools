@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <mods/mods.hpp>
 
 std::map<std::string, mods::modfunctiondata*>& mods::mods() {
     static std::map<std::string, mods::modfunctiondata*> map{};

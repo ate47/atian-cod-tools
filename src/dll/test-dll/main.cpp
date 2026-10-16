@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <psapi.h> // For access to GetModuleFileNameEx
-#include <detours.h>
+#include <detours/detours.h>
 #include "includes_shared.hpp"
 #include <utils/memapi.hpp>
 

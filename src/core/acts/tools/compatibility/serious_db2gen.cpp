@@ -12,7 +12,7 @@ namespace {
         const VmInfo* vm;
     };
 
-    int builddb(Process& proc, int argc, const char* argv[]) {
+    int builddb(int argc, const char* argv[]) {
         if ((argc % 2) != 0) {
             return tool::BAD_USAGE;
         }
@@ -117,7 +117,7 @@ namespace {
         return tool::OK;
     }
 
-    int dumpdb(Process& proc, int argc, const char* argv[]) {
+    int dumpdb(int argc, const char* argv[]) {
         if (argc < 3) {
             return tool::BAD_USAGE;
         }
@@ -218,7 +218,7 @@ namespace {
         return tool::OK;
     }
 
-    int remapdb(Process& proc, int argc, const char* argv[]) {
+    int remapdb(int argc, const char* argv[]) {
         if (argc < 7) {
             return tool::BAD_USAGE;
         }
@@ -286,10 +286,7 @@ namespace {
         return tool::OK;
     }
 
-    ADD_TOOL(serious_db, "compatibility", " ([type] [vm])+", "Create a t7compiler database", nullptr, builddb);
-    ADD_TOOL(serious_dbd, "compatibility", " [database]", "Dump a t7compiler database", nullptr, dumpdb);
-    ADD_TOOL(
-        serious_remap, "compatibility", " [database] [vm] [plt] [old] [new]", "Remap an opcode in a vm", nullptr,
-        remapdb
-    );
+    ADD_TOOL(serious_db, "compatibility", " ([type] [vm])+", "Create a t7compiler database", builddb);
+    ADD_TOOL(serious_dbd, "compatibility", " [database]", "Dump a t7compiler database", dumpdb);
+    ADD_TOOL(serious_remap, "compatibility", " [database] [vm] [plt] [old] [new]", "Remap an opcode in a vm", remapdb);
 } // namespace

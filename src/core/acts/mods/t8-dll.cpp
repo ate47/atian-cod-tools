@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <mods/mods.hpp>
 #include <cli/clisync.hpp>
 
 namespace {

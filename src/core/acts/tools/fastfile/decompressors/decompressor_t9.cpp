@@ -8,7 +8,6 @@
 #include <hook/error.hpp>
 #include <hook/memory.hpp>
 #include <games/bo4/t8_errors.hpp>
-#include <wincrypt.h>
 #include <tools/fastfile/fastfile_bdiff.hpp>
 
 namespace {

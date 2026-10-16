@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <tools/ps4/ps4.hpp>
 #include <core/actsinfo.hpp>
 
 namespace {

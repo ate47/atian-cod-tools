@@ -134,6 +134,8 @@ Golf 668 Nuclear Cougar	998219219	parameter does not exist
 Golf 974 Urban Bison	1109572499	invalid session mode
 Hotel 151 Guerrilla Jackpot	3815761761	Error when loading fastfile
 Hotel 173 Tragic Goblin	3459949409	Failed to alloc client field - MAX_CLIENTFIELD_FIELDS_IN_SET=512 exceeded.
+Hotel 179 October Python	1052320545	Player anim type array size exceeded
+Hotel 317 Emerald Maelstrom	3954853217	Out of stream wrappers
 Hotel 39 Weak Outlaw	4048135393	Can't find variable
 Hotel 418 Grey Management	4229118753	Invalid threat bias group
 Hotel 422 Fake Helmet	1816372513	invalid session mode

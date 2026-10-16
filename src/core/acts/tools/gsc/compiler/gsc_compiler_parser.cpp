@@ -3069,10 +3069,7 @@ namespace tool::gsc::compiler {
             );
             return true;
         case gscParser::FLOATVAL:
-            fobj.AddNode(
-                term,
-                new AscmNodeData<FLOAT>((FLOAT)std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat)
-            );
+            fobj.AddNode(term, new AscmNodeData<float>(std::strtof(term->getText().c_str(), nullptr), OPCODE_GetFloat));
             return true;
         case gscParser::INTEGER10:
             fobj.AddNode(term, obj.BuildAscmNodeData(std::strtoll(term->getText().c_str(), nullptr, 10)));

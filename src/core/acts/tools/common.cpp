@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <utils/memapi.hpp>
 
 namespace {
     bool CommonToolTest(int argc, const char* argv[], int& ret, const char* name) {

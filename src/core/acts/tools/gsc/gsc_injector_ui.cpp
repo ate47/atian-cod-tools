@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <utils/memapi.hpp>
 #include "tools/tools_ui.hpp"
 #include "tools/tools_nui.hpp"
 #include "tools/cw/cw.hpp"

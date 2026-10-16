@@ -4,6 +4,7 @@
 #include <hook/module_mapper.hpp>
 #include <compatibility/xensik_gscbin.hpp>
 #include "mw19.hpp"
+#include <zlib.h>
 
 namespace tool::mw19 {
     namespace {

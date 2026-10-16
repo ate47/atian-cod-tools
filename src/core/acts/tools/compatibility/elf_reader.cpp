@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#ifdef _WIN32
+#include <platform/platform_windows.hpp>
 // remove ksdk
 #define KSDK_H
 #include <elf.h>
@@ -77,3 +79,4 @@ namespace {
 
     ADD_TOOL(elf_reader, "dev", " [elf]", "read elf data", elf_reader);
 } // namespace
+#endif

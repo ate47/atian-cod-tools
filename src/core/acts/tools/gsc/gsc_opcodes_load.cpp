@@ -404,7 +404,7 @@ namespace tool::gsc::opcode {
         auto it = table.nameToOp.find(op);
         return it != table.nameToOp.end() ? it->second : OPCODE_Undefined;
     }
-    int dop(Process& proc, int argc, const char* argv[]) {
+    int dop(int argc, const char* argv[]) {
         std::filesystem::path outFile;
         if (argc == 2) {
             outFile = "opcodes.actsop";
@@ -463,12 +463,12 @@ namespace tool::gsc::opcode {
         return tool::OK;
     }
 
-    int opcodetest(Process& proc, int argc, const char* argv[]) {
+    int opcodetest(int argc, const char* argv[]) {
         LOG_INFO("{}", utils::PtrOrElse(OpCodeName(OPCODE_End), "null"));
         return tool::OK;
     }
 
-    ADD_TOOL(opcodetest, "dev", "", "test opcodes names lookup", nullptr, opcodetest);
-    ADD_TOOL(dop, "gsc", " [file=opcodes.actsop]", "dump opcodes", nullptr, dop);
+    ADD_TOOL(opcodetest, "dev", "", "test opcodes names lookup", opcodetest);
+    ADD_TOOL(dop, "gsc", " [file=opcodes.actsop]", "dump opcodes", dop);
 
 } // namespace tool::gsc::opcode

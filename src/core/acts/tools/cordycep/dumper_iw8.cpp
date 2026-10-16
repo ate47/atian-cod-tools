@@ -21,7 +21,7 @@ namespace {
         uint64_t flags{};
         std::unordered_set<std::string> dstrings{};
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
             m_dump_types.clear();
             m_dump_types.reserve(tool::mw19::IW19_ASSETTYPE_COUNT);
             for (size_t i = 0; i < tool::mw19::IW19_ASSETTYPE_COUNT; i++) {
