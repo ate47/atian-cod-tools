@@ -505,7 +505,7 @@ namespace tool::exe_dump {
             { "bo6", "cod24-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
             { "bo6sp", "sp24-cod.exe", "oo2core_8_win64.dll\0", {} },
             { "bo7beta", "cod25-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
-            { "bo7", "../cod.exe", "../oo2core_8_win64.dll\0", { .rebuildIAT = true } },
+            { "bo7", "cod25-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
             { "vg", "Vanguard.exe", "oo2core_8_win64.dll\0", {} },
             { "mw19", "ModernWarfare.exe", "oo2core_7_win64.dll\0", {} },
             { "mw2", "cod22-cod.exe", "oo2core_8_win64.dll\0", {} },
@@ -513,7 +513,8 @@ namespace tool::exe_dump {
             { "mw3", "../cod23-cod.exe", "../oo2core_8_win64.dll\0", {} },
             { "mw3hq", "cod23-cod.exe", "oo2core_8_win64.dll\0", {} },
             { "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
-            { "mw4", "cod26-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
+            { "mw4beta", "cod26-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
+            { "mw4", "../cod.exe", "../oo2core_8_win64.dll\0", { .rebuildIAT = true } },
             //{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
         };
 
