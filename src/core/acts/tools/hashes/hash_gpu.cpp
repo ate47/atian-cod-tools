@@ -651,6 +651,8 @@ namespace tool::hash::scanner {
                 for (std::unique_ptr<AlgorithmHandlerData>& hd : handlerData) {
                     // one pass per algorithm
 
+                    AlgorithmHandlerData* currentData{};
+
                     if (startIndex < maxLen) {
                         CLKernel& bruteKernel{ hd->bruteKernel };
                         // pick buffer
@@ -663,6 +665,7 @@ namespace tool::hash::scanner {
 
                         // enqueue
                         gpu.EnqueueNDRangeKernelEvent(bruteKernel, 1, nullptr, &global, 0, nullptr, &kernelEvent);
+                        currentData = hd.get();
                     }
                     if (prevData) {
                         CLMem& prevBuf = useOutA ? gpuOutBufferB : gpuOutBufferA;
@@ -726,11 +729,13 @@ namespace tool::hash::scanner {
                         }
                         // if count = 0, no need to reset
                     }
-                    if (prevReadEvent) {
-                        clReleaseEvent(prevReadEvent);
+                    if (currentData) {
+                        if (prevReadEvent) {
+                            clReleaseEvent(prevReadEvent);
+                        }
+                        prevReadEvent = kernelEvent;
                     }
-                    prevReadEvent = kernelEvent;
-                    prevData = hd.get();
+                    prevData = currentData;
                     useOutA = !useOutA;
                 }
 
