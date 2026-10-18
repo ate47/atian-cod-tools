@@ -515,6 +515,7 @@ namespace tool::exe_dump {
             { "mw3sp", "sp23-cod.exe", "oo2core_8_win64.dll\0", {} },
             { "mw4beta", "cod26-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
             { "mw4", "../cod.exe", "../oo2core_8_win64.dll\0", { .rebuildIAT = true } },
+            { "mw4sp", "sp26-cod.exe", "oo2core_8_win64.dll\0", { .rebuildIAT = true } },
             //{ "deathloop", "Deathloop.exe", "oo2core_8_win64.dll\0oo2net_8_win64.dll\0", { .searchIAT = true } },
         };
 
