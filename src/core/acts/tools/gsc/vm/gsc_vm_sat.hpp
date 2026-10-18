@@ -282,6 +282,7 @@ namespace tool::gsc {
         }
         bool IsVTableImportFlags(byte flags) override { return flags == 0x15; }
         byte GetVTableImportFlags() override { return 0x15; }
+
         opcode::Platform ComputePlatform(T8GSCOBJContext& ctx) override {
             using namespace tool::gsc::opcode;
 
@@ -294,10 +295,13 @@ namespace tool::gsc {
                 return {}; // invalid func
             }
             byte* bytecode{ Ptr(ctx.exp->GetAddress()) };
+
+            constexpr OPCode getNotifyValOpCode = Magic == VMI_SAT_1A ? OPCODE_GetHash : OPCODE_GetString;
+
             VMExpectedValue expectedValues[]{
                 { OPCODE_CheckClearParams, bytecode[0] },
                 { OPCODE_PreScriptCall, bytecode[1] },
-                { OPCODE_GetString, bytecode[2] },
+                { getNotifyValOpCode, bytecode[2] },
             };
 
             return ctx.m_vmInfo->FindPlatform(expectedValues, ACTS_ARRAYSIZE(expectedValues));

@@ -70,7 +70,7 @@ The GSC file format contains the scripts used by the different games.
 
 **Supported games**
 
-| Name                     | Rev | Decompiler | Compiler | Type(s)      | Source\*                                                      |
+| Name                     | Rev | Decompiler | Compiler | Type(s)\*\*  | Source\*                                                      |
 | ------------------------ | --- | ---------- | -------- | ------------ | ------------------------------------------------------------- |
 | Black Ops 3 (T7)         | 1A  | ✅          | ✅        | pc           | None       |
 | Black Ops 3 (T7)         | 1B  | Partial    | ✅        | pc           | [ate47/oldcod-source](https://github.com/ate47/oldcod-source)       |
@@ -97,9 +97,10 @@ The GSC file format contains the scripts used by the different games.
 | Black Ops 7 (SAT)        | 16  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 | Black Ops 7 (SAT)        | 18  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 | Black Ops 7 (SAT)        | 19  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
-| Black Ops 7 (SAT)        | 1a  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
+| Black Ops 7 (SAT)        | 1a  | Dc         | ✅        | bo7+mw4     | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 
 - \* : Some source repositories might not be public yet.
+- \*\* : Some GSC vms aren't using the same opcodes
 - **Dc**: With pre-decode, see the [Using encrypted page](https://github.com/ate47/atian-cod-tools/wiki/GSC-Decompiler#using-encrypted-scripts).
 - **Ex**: With extensions, ***The extensions aren't provided publicly, at least not by me.***
 

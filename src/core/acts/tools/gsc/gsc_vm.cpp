@@ -42,6 +42,7 @@
 #include <tools/gsc/opcodes/gsc_opcodes_sat_18.hpp>
 #include <tools/gsc/opcodes/gsc_opcodes_sat_19.hpp>
 #include <tools/gsc/opcodes/gsc_opcodes_sat_1a.hpp>
+#include <tools/gsc/opcodes/gsc_opcodes_iw10_1a.hpp>
 
 // vm
 #include <tools/gsc/vm/gsc_vm_gscbin.hpp>
@@ -209,6 +210,8 @@ namespace tool::gsc::vm {
         OpCodeSat18Registry::OpCode();
         OpCodeSat19Registry::OpCode();
         OpCodeSat1ARegistry::OpCode();
+
+        OpCodeIW101ARegistry::OpCode();
     }
 } // namespace tool::gsc::vm
 
