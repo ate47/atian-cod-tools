@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <games/bo4/pool.hpp>
 #include <deps/idc_builder.hpp>
+#include <utils/memapi.hpp>
 
 namespace {
     union DvarValue {

@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include <utils/memapi.hpp>
+#include <tools/ps4/ps4.hpp>
 #include <hook/module_mapper.hpp>
 #include <tools/cw/cw.hpp>
 #include <tools/cw/pool_cod2020.hpp>

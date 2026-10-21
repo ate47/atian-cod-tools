@@ -24,7 +24,7 @@ namespace {
         uint64_t flags{};
         std::unordered_set<std::string> dstrings{};
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
             m_dump_types.clear();
             m_dump_types.reserve(sp23::ASSET_COUNT);
             for (size_t i = 0; i < sp23::ASSET_COUNT; i++) {

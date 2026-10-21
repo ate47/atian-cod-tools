@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <tools/ps4/ps4.hpp>
 #include <tools/bo4/dump.hpp>
 #include "tools/gsc/gsc.hpp"
 #include "tools/bo6/bo6.hpp"
@@ -1062,6 +1063,7 @@ namespace {
         return tool::OK;
     }
 
+#ifdef WIN32
     struct {
         HWND titleLabel{};
         HWND filePathEdit{};
@@ -1678,11 +1680,12 @@ namespace {
             tool::nui::SaveNextConfig();
     }
 
+    ADD_TOOL_UI(bo6_tools, L"BO6 PS4", Render, Update, Resize);
+    ADD_TOOL_NUI(bo6_tools, "BO6 PS4", bo6_tools);
+#endif
     ADD_TOOL(ps4cbufbo6, "bo6", " [ip:port] [cmd]", "", nullptr, ps4cbufbo6);
     ADD_TOOL(ps4dumpbo6, "bo6", " [ip:port]", "", nullptr, ps4dumpbo6);
     ADD_TOOL(ps4repbo6, "bo6", " [ip:port] [file]", "", nullptr, ps4repbo6);
-    ADD_TOOL_UI(bo6_tools, L"BO6 PS4", Render, Update, Resize);
-    ADD_TOOL_NUI(bo6_tools, "BO6 PS4", bo6_tools);
 } // namespace
 
 std::ostream& operator<<(std::ostream& os, const bo6::T10RAssetType& obj) { return os << bo6::PoolNameRelease(obj); }

@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#ifdef WIN32
+#include <platform/platform_windows.hpp>
 #include <CommCtrl.h>
 #include <core/config.hpp>
 #include <hook/error.hpp>
@@ -367,3 +369,5 @@ namespace tool::ui {
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 } // namespace tool::ui
+
+#endif

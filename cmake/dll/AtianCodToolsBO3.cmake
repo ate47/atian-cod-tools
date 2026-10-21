@@ -21,10 +21,7 @@ add_game_pack_target(AtianCodToolsBO3DLLGame bo3 "${CMAKE_SOURCE_DIR}/src/dll/bo
 target_include_directories(AtianCodToolsBO3DLL PRIVATE
     "${CMAKE_SOURCE_DIR}/src/dll/bo3-dll"
     "${CMAKE_SOURCE_DIR}/src/core/shared"
-    "${CMAKE_SOURCE_DIR}/deps/Detours/src"
-    "${CMAKE_SOURCE_DIR}/deps/asmjit/src"
     "${CMAKE_SOURCE_DIR}/deps/curl/include"
-    "${CMAKE_SOURCE_DIR}/deps/rapidjson/include"
     "${CMAKE_SOURCE_DIR}/deps/dbflib/src/lib"
     "${CMAKE_SOURCE_DIR}/deps/rapidcsv/src"
     "${CMAKE_SOURCE_DIR}/deps/miniz-cpp/"
@@ -35,14 +32,13 @@ append_common_defs(AtianCodToolsBO3DLL)
 target_link_libraries(AtianCodToolsBO3DLL PRIVATE
     ACTSSharedLibrary
     detours
-    asmjit
+    asmjit::asmjit
     libcurl
     libtomcrypt
+    RapidJSON
 )
 add_dependencies(AtianCodToolsBO3DLL
     ACTSSharedLibrary
-    detours
-    asmjit
     libcurl
     libtomcrypt
     AtianCodToolsBO3DLLGame

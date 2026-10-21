@@ -4,7 +4,7 @@
 
 namespace tool::gsc::gdb {
     namespace {
-        int gscgdbinfo(Process& proc, int argc, const char* argv[]) {
+        int gscgdbinfo(int argc, const char* argv[]) {
             std::vector<std::filesystem::path> paths{};
 
             for (size_t i = 2; i < argc; i++) {
@@ -76,7 +76,7 @@ namespace tool::gsc::gdb {
             const char* outputDir{};
             std::vector<const char*> inputs{};
 
-            bool Compute(const char** args, INT startIndex, INT endIndex) {
+            bool Compute(const char** args, int startIndex, int endIndex) {
                 // default values
                 for (size_t i = startIndex; i < endIndex; i++) {
                     const char* arg = args[i];
@@ -299,7 +299,7 @@ namespace tool::gsc::gdb {
         return true;
     }
 
-    int gscgdbc(Process& proc, int argc, const char* argv[]) {
+    int gscgdbc(int argc, const char* argv[]) {
         GSCGDBCompilerOption opt{};
         if (!opt.Compute(argv, 2, argc) || opt.m_help) {
             opt.PrintHelp();
@@ -365,6 +365,6 @@ namespace tool::gsc::gdb {
         return tool::OK;
     }
 
-    ADD_TOOL(gscgdbd, "gsc", "", "decompile GSC GDB file", nullptr, gscgdbinfo);
-    ADD_TOOL(gscgdbc, "gsc", " [dir]", "compile GSC GDB file", nullptr, gscgdbc);
+    ADD_TOOL(gscgdbd, "gsc", "", "decompile GSC GDB file", gscgdbinfo);
+    ADD_TOOL(gscgdbc, "gsc", " [dir]", "compile GSC GDB file", gscgdbc);
 } // namespace tool::gsc::gdb

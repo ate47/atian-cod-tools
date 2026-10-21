@@ -1,4 +1,6 @@
 #pragma once
+#ifdef _WIN32
+#include <platform/platform_windows.hpp>
 #include <windowsx.h>
 #include <CommCtrl.h>
 
@@ -50,7 +52,16 @@ namespace tool::ui {
 
     ActsWindow& window();
     std::wstring GetWindowTextVal(HWND hwnd);
-    std::wstring GetActsDesc(bool nui = false);
 } // namespace tool::ui
 #define ADD_TOOL_UI(id, desc, function, msg, resize)                                                                   \
     static tool::ui::tooluifunctiondata __tooluifunctiondata_##id(#id, desc, function, msg, resize)
+
+#else
+
+#define ADD_TOOL_UI(id, desc, function, msg, resize) /*ignored*/
+
+#endif
+
+namespace tool::ui {
+    std::wstring GetActsDesc(bool nui = false);
+} // namespace tool::ui

@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <mods/mods.hpp>
 #include "custom_ees.hpp"
 #include <tools/bo4/dump.hpp>
 #include "tools/gsc/gsc.hpp"

@@ -112,6 +112,7 @@ namespace tool::gsc::opcode {
         PLATFORM_BO6_V1 = 6,
         PLATFORM_BO6 = 7,
         PLATFORM_BO7 = 8,
+        PLATFORM_MW4 = 9,
         PLATFORM_COUNT,
 
         // if any add is made, reflect it in :

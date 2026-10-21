@@ -4,6 +4,7 @@
 #include "ddlParser.h"
 #include "ddlVisitor.h"
 #include <core/preprocessor.hpp>
+#include <zlib.h>
 
 using namespace antlr4;
 using namespace antlr4::tree;
@@ -35,7 +36,7 @@ class DDLCompilerOption {
     const char* m_bin{};
     core::preprocessor::PreProcessorOption m_processorOpt{};
 
-    bool Compute(const char** args, INT startIndex, INT endIndex) {
+    bool Compute(const char** args, int startIndex, int endIndex) {
         // default values
         for (size_t i = startIndex; i < endIndex; i++) {
             const char* arg = args[i];
@@ -136,7 +137,7 @@ DDLData ReadDDLMember(uint64_t offset, ACTSDDLType type, uint64_t size, byte* ra
     } break;
     case DDL_FLOAT_TYPE:
     case DDL_FIXEDPOINT_TYPE:
-        data.doubleValue = *(FLOAT*)buffer;
+        data.doubleValue = *(float*)buffer;
         break;
     default:
         data.intValue = 0;
@@ -703,7 +704,7 @@ namespace {
         return true;
     }
 
-    int ddlcheck(Process& proc, int argc, const char* argv[]) {
+    int ddlcheck(int argc, const char* argv[]) {
         DDLCompilerOption opt{};
 
         if (!opt.Compute(argv, 2, argc) || opt.m_help) {
@@ -731,4 +732,4 @@ namespace {
     }
 
 } // namespace
-ADD_TOOL(ddlcheck, "common", "", "ddl check", nullptr, ddlcheck);
+ADD_TOOL(ddlcheck, "common", "", "ddl check", ddlcheck);

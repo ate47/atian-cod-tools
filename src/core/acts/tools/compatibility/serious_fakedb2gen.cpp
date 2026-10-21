@@ -7,7 +7,7 @@ namespace {
     using namespace tool::gsc::opcode;
     using namespace compatibility::serious::db2;
 
-    int fakedb(Process& proc, int argc, const char* argv[]) {
+    int fakedb(int argc, const char* argv[]) {
         if (argc < 4) {
             return tool::BAD_USAGE;
         }
@@ -118,5 +118,5 @@ namespace {
         return tool::OK;
     }
 
-    ADD_TOOL(serious_fake_db, "compatibility", " [type] [vm]", "Create a FAKE t7compiler database", nullptr, fakedb);
+    ADD_TOOL(serious_fake_db, "compatibility", " [type] [vm]", "Create a FAKE t7compiler database", fakedb);
 } // namespace

@@ -1,5 +1,6 @@
 #include <includes.hpp>
 #ifdef _WIN32
+#include <utils/memapi.hpp>
 #include <utils/memapi_calls.hpp>
 #include <tools/bo4/pool.hpp>
 

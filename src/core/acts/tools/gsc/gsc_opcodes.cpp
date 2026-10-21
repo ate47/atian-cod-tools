@@ -19,9 +19,16 @@ namespace {
         const char* id;
         const char* name;
     } platformNames[]{
-        { "unk", "Unknown" },     { "pc", "PC" },     { "ps", "PlayStation" },          { "xbox", "Xbox" },
-        { "pc_alpha", "Alpha" },  { "test", "Test" }, { "bo6_v1", "Black Ops 6 (V1)" }, { "bo6", "Black Ops 6" },
+        { "unk", "Unknown" },
+        { "pc", "PC" },
+        { "ps", "PlayStation" },
+        { "xbox", "Xbox" },
+        { "pc_alpha", "Alpha" },
+        { "test", "Test" },
+        { "bo6_v1", "Black Ops 6 (V1)" },
+        { "bo6", "Black Ops 6" },
         { "bo7", "Black Ops 7" },
+        { "mw4", "Modern Warfare 4" },
     };
     static_assert(ACTS_ARRAYSIZE(platformNames) == PLATFORM_COUNT && "platform(s) added without names");
 } // namespace
@@ -120,6 +127,9 @@ namespace tool::gsc::opcode {
         }
         if (!_strcmpi("bo7", name)) {
             return PLATFORM_BO7;
+        }
+        if (!_strcmpi("mw4", name)) {
+            return PLATFORM_MW4;
         }
         return PLATFORM_UNKNOWN;
     }
@@ -450,6 +460,13 @@ namespace tool::gsc::opcode {
             }
 
             if (!anyMatch) {
+                LOG_TRACE(
+                    "no platform match for {}",
+                    utils::data::ArrayAsString<
+                        VMExpectedValue>(values, count, " ", "", "", [](const VMExpectedValue& e) {
+                        return std::format("0x{:x}({})", e.value, OpCodeName(e.opcode));
+                    })
+                );
                 return {}; // no platform matching
             }
         }

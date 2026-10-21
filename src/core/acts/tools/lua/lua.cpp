@@ -41,7 +41,7 @@ namespace tool::lua {
         const char* m_outputDir{};
         std::vector<const char*> m_inputFiles{};
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
             // default values
             for (size_t i = startIndex; i < endIndex; i++) {
                 const char* arg = args[i];

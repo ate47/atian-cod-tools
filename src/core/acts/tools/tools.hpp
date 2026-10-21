@@ -1,7 +1,8 @@
 #pragma once
-#include <utils/memapi.hpp>
-#include <utils/utils.hpp>
 #include "tools_data.hpp"
+
+// include <utils/memapi.hpp> to use
+class Process;
 
 namespace tool {
     typedef std::function<int(Process& proc, int argc, const char* argv[])> toolfunction;

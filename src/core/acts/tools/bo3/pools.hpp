@@ -1,4 +1,5 @@
 #pragma once
+class Process;
 
 namespace bo3::pool {
     constexpr size_t xassetpools = 0x94073F0;

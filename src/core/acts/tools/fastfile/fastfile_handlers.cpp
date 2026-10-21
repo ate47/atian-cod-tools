@@ -3,11 +3,14 @@
 #include <acts_api/fastfile_loader.h>
 #include <acts_api_impl/api_impl.hpp>
 #include <decryptutils.hpp>
+#ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable : 4996)
 #include <CascLib.h>
 #include <CascCommon.h>
 #pragma warning(pop)
+#define __ACTS_CASC_LIB
+#endif
 #include <core/actsinfo.hpp>
 #include <HwBpLib.h>
 #include <regex>
@@ -293,20 +296,24 @@ namespace fastfile {
     }
 
     FastFileOption::~FastFileOption() {
+#ifdef __ACTS_CASC_LIB
         if (cascStorage) {
             CascCloseStorage(cascStorage);
         }
+#endif
     }
 
     bool FastFileOption::SetGameHandler(const char* id) { return (handler = FindHandler(id)); }
     void FastFileOption::SetGamePath(const char* gamePath) {
         this->gamePath = gamePath;
 
+#ifdef __ACTS_CASC_LIB
         // we try to open a casc storage
-        if (!CascOpenStorage(gamePath, 0, &cascStorage)) {
+        if (!CascOpenStorage(gamePath, 0, (HANDLE*)&cascStorage)) {
             m_casc = gamePath;
             cascStorage = nullptr;
         }
+#endif
     }
 
     bool FastFileOption::Compute(const char** args, size_t startIndex, size_t endIndex) {
@@ -339,6 +346,7 @@ namespace fastfile {
                     LOG_ERROR("Missing value for param '{}'!", arg);
                     return false;
                 }
+#ifdef __ACTS_CASC_LIB
                 m_casc = args[++i];
                 gamePath = m_casc;
 
@@ -346,6 +354,10 @@ namespace fastfile {
                     LOG_ERROR("Can't open casc storage {}: 0x{:x}", m_casc, GetCascError());
                     return false;
                 }
+#else
+                LOG_ERROR("Can't open casc storage {}: Not available", m_casc);
+                return false;
+#endif
             } else if (!strcmp("-r", arg) || !_strcmpi("--handler", arg)) {
                 if (i + 1 == endIndex) {
                     LOG_ERROR("Missing value for param '{}'!", arg);
@@ -514,7 +526,9 @@ namespace fastfile {
         LOG_INFO("-R --handlers             : Print handlers");
         LOG_INFO("-D --decompressors        : Print decompressors");
         LOG_INFO("-d --dump                 : Dump decompressed");
+#ifdef __ACTS_CASC_LIB
         LOG_INFO("-C --casc [c]             : Use casc db");
+#endif
         LOG_INFO("-g --game [g]             : exe");
         LOG_INFO("-G --game-path [g]        : Game path");
         LOG_INFO("-p --patch                : Use patch files (fd/fp)");
@@ -608,6 +622,7 @@ namespace fastfile {
 
     std::vector<std::string> FastFileOption::GetFileRecurse(const char* path) {
         std::vector<std::string> res{};
+#ifdef __ACTS_CASC_LIB
         if (cascStorage) {
             CASC_FIND_DATA data;
 
@@ -624,7 +639,9 @@ namespace fastfile {
                     res.push_back(data.szFileName);
                 }
             } while (CascFindNextFile(firstFileHandle, &data));
-        } else if (gamePath) {
+        } else
+#endif
+            if (gamePath) {
             std::filesystem::path root{ gamePath };
 
             std::vector<std::filesystem::path> files{};
@@ -647,6 +664,7 @@ namespace fastfile {
     }
 
     bool FastFileOption::ReadFile(const char* path, std::vector<byte>& buff) {
+#ifdef __ACTS_CASC_LIB
         if (cascStorage) {
             CASC_FIND_DATA data;
 
@@ -671,7 +689,7 @@ namespace fastfile {
             DWORD read{};
             return CascReadFile(fhandle, buff.data(), (DWORD)data.FileSize, &read) && read == data.FileSize;
         }
-
+#endif
         return utils::ReadFile(path, buff) && !buff.empty();
     }
     const char* FastFileOption::GetTranslation(uint64_t key) {

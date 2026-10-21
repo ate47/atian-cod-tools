@@ -1,4 +1,8 @@
 #include <includes.hpp>
+#ifdef _WIN32
+// fixme: move to windows
+#include "tools_ui.hpp"
+#include <utils/memapi.hpp>
 #include <core/config.hpp>
 #include <gl/GL.h>
 #include <gl/GLU.h>
@@ -7,11 +11,10 @@
 #include <stb_image.h>
 #include <cmath>
 #include <imgui.h>
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_opengl2.h>
+#include <imgui_impl_opengl2.h>
+#include <imgui_impl_glfw.h>
 #include <core/actsinfo.hpp>
 #include "tools_nui.hpp"
-#include "tools_ui.hpp"
 #include "tools/nui/cascadia.hpp"
 #include "console_ui.hpp"
 
@@ -522,9 +525,8 @@ namespace tool::nui {
         }
     }
     namespace {
-        int newui(Process& proc, int argc, const char* argv[]) {
+        int newui(int argc, const char* argv[]) {
             tool::nui::OpenNuiWindow();
-
             return tool::OK;
         }
 
@@ -594,8 +596,9 @@ namespace tool::nui {
             ImGui::Text(txt.c_str());
         }
 
-        ADD_TOOL(newui, "acts", "", "Launch new UI", nullptr, newui);
+        ADD_TOOL(newui, "acts", "", "Launch new UI", newui);
         ADD_TOOL_NUI(aaaa_acts, "Atian Tools", acts);
         ADD_TOOL_NUI(zzzz9_newui_cfg, "Config", newui_bg);
     } // namespace
 } // namespace tool::nui
+#endif

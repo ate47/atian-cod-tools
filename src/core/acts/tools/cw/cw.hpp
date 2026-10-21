@@ -3,6 +3,8 @@
 
 #define CW_INCLUDES
 
+class Process;
+
 namespace cw {
     constexpr uint64_t GSC_MAGIC = 0x38000a0d43534780;
     constexpr uint64_t GSC_MAGIC_37 = 0x37000a0d43534780;

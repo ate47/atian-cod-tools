@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <tools/ps4/ps4.hpp>
 #include <tools/bo4/dump.hpp>
 #include <games/bo4/pool.hpp>
 #include <core/actsinfo.hpp>

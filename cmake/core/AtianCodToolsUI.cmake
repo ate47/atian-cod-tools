@@ -48,8 +48,7 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui"
         "${CMAKE_SOURCE_DIR}/src/core/shared"
-        "${CMAKE_SOURCE_DIR}/deps/mstch/include/"
-        "${CMAKE_SOURCE_DIR}/deps/magic_enum/include/"
+        "${CMAKE_SOURCE_DIR}/deps/mstch/include"
     )
 
     append_common_defs(AtianCodToolsUI QT)
@@ -61,12 +60,13 @@ if (NOT NO_QT_BUILD)
         Qt6::Widgets
         Qt6::Concurrent
         mstch
+        asmjit::asmjit
+        magic_enum::magic_enum
     )
 
     add_dependencies(AtianCodToolsUI 
         AtianCodTools 
         ACTSSharedLibrary
-        mstch
     )
     target_compile_definitions(AtianCodToolsUI PRIVATE 
         ACTS_COMMON_UI_DLL

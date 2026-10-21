@@ -29,8 +29,17 @@ try {
     Write-Host "-- Update submodules"
     git submodule update --init --recursive
 
-    Write-Host "-- Install packages"
-    vcpkg install "@.\packages.txt"
+    $vcpkgCommand = Get-Command vcpkg -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($null -eq $vcpkgCommand) {
+        throw "vcpkg was not found on PATH. Install vcpkg and add it to PATH before running setup."
+    }
+
+    $env:VCPKG_ROOT = Split-Path -Parent $vcpkgCommand.Path
+    $vcpkgToolchain = Join-Path $env:VCPKG_ROOT "scripts/buildsystems/vcpkg.cmake"
+    if (-not (Test-Path $vcpkgToolchain)) {
+        throw "The vcpkg toolchain was not found at $vcpkgToolchain."
+    }
 
     .\scripts\copydata.ps1
 
@@ -52,6 +61,11 @@ try {
     if ($allPlatform) {
         $params += @( "-DALL_PLATFORM_ACTS=ON" )
     }
+
+    $params += @(
+        "-DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain"
+        "-DVCPKG_TARGET_TRIPLET=x64-windows"
+    )
 
     if ($verbose) {
         $params += @( "--log-level", "VERBOSE" )

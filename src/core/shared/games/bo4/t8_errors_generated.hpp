@@ -9,6 +9,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 1047459117, "Entity is not a rocket" }, // Cast 82 Disguised Python
     { 1047729873, "exitlevel already called" }, // Papa 859 Fierce Python
     { 104978404, "cannot cast type to canon" }, // Yankee 541 Numbered Boar
+    { 1052320545, "Player anim type array size exceeded" }, // Hotel 179 October Python
     { 1053986869, "GScr_UseBuildKitWeaponModel: called with weapon 'none'" }, // Queen 254 Unfriendly Python
     { 1056823939, "Invalid type passed in from array into waittill parameter list" }, // XRay 775 Split Python
     { 1064295945, "Could not allocate asset - increase XASSET_ENTRY_POOL_SIZE" }, // Uniform 58 Guerrilla Boa
@@ -392,6 +393,7 @@ static const struct { uint32_t code; const char* msg; } ERRORS[] {
     { 3913663257, "Failed to create database thread" }, // Ocean 281 Conflicted Outlander
     { 3922439973, "ArraySort: array can only contain entities or structs or vectors" }, // Sail 946 Due Outlander
     { 3923586368, "Kill failed" }, // Spring 741 Area Outlander
+    { 3954853217, "Out of stream wrappers" }, // Hotel 317 Emerald Maelstrom
     { 3964856290, "kill called on an entity with magic bullet shield (FL_DISABLE_DEATH)" }, // Ida 736 Quick Lamprey
     { 3967909977, "Trying to get version of a demo when the demo system is idle." }, // Ocean 529 Broken Lamprey
     { 3971544690, "time cannot be negative" }, // Boy 44 Blood Lamprey

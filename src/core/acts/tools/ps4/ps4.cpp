@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#include <tools/ps4/ps4.hpp>
 #include <tools/utils/ps4_process.hpp>
 #include <tools/tools_nui.hpp>
 #include <core/config.hpp>

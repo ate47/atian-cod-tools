@@ -16,14 +16,6 @@
 #include <cstdint>
 #include <cstdarg>
 
-#if __has_include("asmjit/asmjit.h")
-#define ASMJIT_STATIC
-#define ASMJIT_NO_AARCH64
-#define ASMJIT_BUILD_RELEASE
-#define ASMJIT_NO_FOREIGN
-#include <asmjit/asmjit.h>
-#endif
-
 #include <core/logs.hpp>
 
 typedef uint8_t byte;
@@ -55,6 +47,16 @@ constexpr char (*ActsArraySizeCounter(T (&)[N]))[N];
 #endif
 #else
 #define actssec(str) str
+#endif
+
+#ifndef DECLSPEC_NORETURN
+#if defined(_MSC_VER)
+#define DECLSPEC_NORETURN __declspec(noreturn)
+#elif defined(__GNUC__) || defined(__clang__)
+#define DECLSPEC_NORETURN __attribute__((noreturn))
+#else
+#define DECLSPEC_NORETURN
+#endif
 #endif
 
 #include <platform/platform.hpp>

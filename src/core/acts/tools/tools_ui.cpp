@@ -1,4 +1,5 @@
 #include <includes.hpp>
+#ifdef _WIN32
 #include <tools/tools_ui.hpp>
 #include <tools/tools_nui.hpp>
 #include <core/actsinfo.hpp>
@@ -23,43 +24,6 @@ namespace tool::ui {
 
     bool tooluifunctiondata::operatorbool() const { return m_id != NULL; }
 
-    std::wstring GetActsDesc(bool nui) {
-        std::filesystem::path dir = utils::GetProgDir();
-        return std::format(
-            L"-- Atian Tools {} \n\r"
-            "Version: {} (0x{:x})"
-#ifdef DEBUG
-            " (DEBUG)"
-#endif
-#ifdef CI_BUILD
-            " (CI)"
-#else
-            " (DEV)"
-#endif
-            "\n\r"
-            "UI Tools: {} \n\r"
-            "NUI Tools: {} \n\r"
-            "CLI Tools: {} \n\r"
-            "Hash(es) loaded: {} \n\r"
-            "Path: {} \n\r"
-            "\n\r"
-            "-- Games \n\r"
-            "Black Ops 4 loaded: {} \n\r"
-            "Black Ops Cold War loaded: {} \n\r"
-            "Cordycep loaded: {} \n\r",
-            nui ? L"NUI" : L"UI",
-            core::actsinfo::VERSIONW,
-            core::actsinfo::VERSION_ID,
-            tools().size(),
-            tool::nui::tools().size(),
-            tool::tools().size(),
-            hashutils::GetMap().size(),
-            utils::StrToWStr(dir.string()),
-            !!Process{ L"BlackOps4.exe" },
-            !!Process{ L"BlackOpsColdWar.exe" },
-            !!Process{ L"Cordycep.CLI.exe" }
-        );
-    }
 } // namespace tool::ui
 namespace {
     struct {
@@ -95,3 +59,38 @@ namespace {
     }
 } // namespace
 ADD_TOOL_UI(acts, L"Atian Tools", RenderActs, UpdateActs, ResizeActs);
+#endif
+
+namespace tool::ui {
+
+    std::wstring GetActsDesc(bool nui) {
+        std::filesystem::path dir = utils::GetProgDir();
+        return std::format(
+            L"-- Atian Tools {} \n\r"
+            "Version: {} (0x{:x})"
+#ifdef DEBUG
+            " (DEBUG)"
+#endif
+#ifdef CI_BUILD
+            " (CI)"
+#else
+            " (DEV)"
+#endif
+            "\n\r"
+            "UI Tools: {} \n\r"
+            "NUI Tools: {} \n\r"
+            "CLI Tools: {} \n\r"
+            "Hash(es) loaded: {} \n\r"
+            "Path: {} \n\r"
+            "\n\r",
+            nui ? L"NUI" : L"UI",
+            core::actsinfo::VERSIONW,
+            core::actsinfo::VERSION_ID,
+            tools().size(),
+            tool::nui::tools().size(),
+            tool::tools().size(),
+            hashutils::GetMap().size(),
+            utils::StrToWStr(dir.string())
+        );
+    }
+} // namespace tool::ui

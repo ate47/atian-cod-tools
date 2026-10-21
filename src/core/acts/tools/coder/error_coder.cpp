@@ -279,8 +279,8 @@ namespace error_coder {
 } // namespace error_coder
 
 namespace {
-    int errenc(Process& proc, int argc, const char* argv[]) {
-        if (argc < 3) {
+    int errenc(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 1)) {
             return tool::BAD_USAGE;
         }
         error_coder::ErrorCode code{};
@@ -306,8 +306,35 @@ namespace {
         return tool::OK;
     }
 
-    int errdec(Process& proc, int argc, const char* argv[]) {
-        if (argc < 6) {
+    int errencl(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 1)) {
+            return tool::BAD_USAGE;
+        }
+        error_coder::ErrorCode code{};
+
+        size_t i = 2;
+
+        bool alternative{};
+        if (utils::EqualIgnoreCase(argv[i], "true")) {
+            alternative = true;
+            i++;
+        } else if (utils::EqualIgnoreCase(argv[i], "false")) {
+            i++;
+        }
+
+        for (; i < argc; i++) {
+            uint32_t codedec = (uint32_t)std::strtoull(argv[i], nullptr, 10);
+
+            error_coder::Encode(code, codedec, false);
+
+            LOG_INFO("{}\t{}\ttext", error_coder::ToStr(code), codedec);
+        }
+
+        return tool::OK;
+    }
+
+    int errdec(int argc, const char* argv[]) {
+        if (tool::NotEnoughParam(argc, 4)) {
             return tool::BAD_USAGE;
         }
         error_coder::ErrorCode code{};
@@ -332,6 +359,7 @@ namespace {
         return tool::OK;
     }
 
+#ifdef _WIN32
     struct {
         std::string encodeStr{};
         std::string decodeStr{};
@@ -587,7 +615,7 @@ namespace {
 
         tool::ui::window().SetTitleFont(info.titleLabel);
     }
-
+#endif
     void errenc_nui() {
         tool::nui::NuiUseDefaultWindow dw{};
         static char encodeInput[0x100]{ 0 };
@@ -781,5 +809,6 @@ namespace {
 ADD_TOOL_UI(errenc, L"T8/9 Error encoder", Render, Update, Resize);
 ADD_TOOL_NUI(errenc, "T8/9 Error", errenc_nui);
 
-ADD_TOOL(errenc, "hash", "[error]", "encode an error", nullptr, errenc);
-ADD_TOOL(errdec, "hash", "[w1] [w2] [w3] [w4]", "decode an error", nullptr, errdec);
+ADD_TOOL(errenc, "hash", "[error]", "encode an error", errenc);
+ADD_TOOL(errencl, "hash", "[error]", "encode an error line", errencl);
+ADD_TOOL(errdec, "hash", "[w1] [w2] [w3] [w4]", "decode an error", errdec);

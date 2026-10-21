@@ -289,24 +289,24 @@ namespace {
 
         return true;
     }
-    int exitcli(Process& proc, int argc, const char* argv[]) {
+    int exitcli(int argc, const char* argv[]) {
         actscli::options().exitAfterEnd = true;
         return tool::OK;
     }
 
-    int replcli(Process& proc, int argc, const char* argv[]) {
+    int replcli(int argc, const char* argv[]) {
         actscli::options().type = actscli::ACTS_REPL;
         return tool::OK;
     }
 
-    int echocli(Process& proc, int argc, const char* argv[]) {
+    int echocli(int argc, const char* argv[]) {
         for (size_t i = 2; i < argc; i++) {
             LOG_INFO("{}", argv[i]);
         }
         return tool::OK;
     }
 
-    int packfile(Process& proc, int argc, const char* argv[]) {
+    int packfile(int argc, const char* argv[]) {
         // params
         const char* output = "acts.acpf";
 
@@ -606,10 +606,10 @@ namespace actscli {
         return res;
     }
 } // namespace actscli
-ADD_TOOL(packfile, "acts", " [file=acts.acpf]", "Create ACTS pack file", nullptr, packfile);
-ADD_TOOL(exit, "acts", "", "Exit repl cli", nullptr, exitcli);
-ADD_TOOL(echo, "acts", "", "echo", nullptr, echocli);
-ADD_TOOL(repl, "acts", "", "Use repl cli", nullptr, replcli);
+ADD_TOOL(packfile, "acts", " [file=acts.acpf]", "Create ACTS pack file", packfile);
+ADD_TOOL(exit, "acts", "", "Exit repl cli", exitcli);
+ADD_TOOL(echo, "acts", "", "echo", echocli);
+ADD_TOOL(repl, "acts", "", "Use repl cli", replcli);
 ADD_TOOL(forceupdate, "acts", "", "force update", forceupdate);
 ADD_TOOL(checkupdate, "acts", "", "check update", checkupdate);
 ADD_TOOL(updateinfo, "acts", "", "get update info", updateinfo);

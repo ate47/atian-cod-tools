@@ -1,6 +1,7 @@
 #include <includes.hpp>
 
 #ifndef CI_BUILD
+#include <utils/memapi.hpp>
 #include <deps/oodle.hpp>
 #include <hook/module_mapper.hpp>
 #include <utils/io_utils.hpp>

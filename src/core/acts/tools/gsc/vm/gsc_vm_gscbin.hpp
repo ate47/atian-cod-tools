@@ -6,6 +6,7 @@
 #include <tools/gsc/gsc.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <tools/gsc/gsc_iw.hpp>
+#include <utils/compress_utils.hpp>
 
 // GSCBIN
 
@@ -82,19 +83,24 @@ namespace tool::gsc {
         int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout) override {
             compatibility::xensik::gscbin::GscBinHeader& header{ Ref<compatibility::xensik::gscbin::GscBinHeader>() };
 
-            auto decompressedData{ std::make_unique<byte[]>(header.len) };
+            std::unique_ptr<byte[]> decompressedData{ std::make_unique<byte[]>(header.len) };
 
-            uLongf sizef = (uLongf)header.len;
-            uLongf sizef2{ header.compressedLen };
             int ret;
-            if (header.len && (ret = uncompress2(
-                                         decompressedData.get(),
-                                         &sizef,
-                                         reinterpret_cast<const Bytef*>(header.GetBuffer()),
-                                         &sizef2
-                                     ) < 0)) {
+            if (header.len && (ret = utils::compress::Decompress2(
+                                   utils::compress::COMP_ZLIB,
+                                   decompressedData.get(),
+                                   header.len,
+                                   header.GetBuffer(),
+                                   header.compressedLen
+                               )) < 0) {
                 std::string fileName{ originalFile ? originalFile->string() : "<unk>" };
-                throw std::runtime_error(utils::va("Can't decompress file %s: %s", fileName.c_str(), zError(ret)));
+                throw std::runtime_error(
+                    utils::va(
+                        "Can't decompress file %s: %s",
+                        fileName.c_str(),
+                        utils::compress::DecompressResultName(ret)
+                    )
+                );
             }
 
             std::vector<BINGSCExport> functions{};
@@ -122,7 +128,7 @@ namespace tool::gsc {
 
             if (header.bytecodeLen) {
 
-                core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), sizef };
+                core::bytebuffer::ByteBuffer sourceReader{ decompressedData.get(), (size_t)ret };
                 core::bytebuffer::ByteBuffer bytecodeReader{ header.GetByteCode(), header.bytecodeLen };
 
                 auto AddTokenID = [&ctx, &sourceReader, &tokens](uint32_t* base, uint32_t id) {

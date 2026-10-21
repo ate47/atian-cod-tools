@@ -37,7 +37,7 @@ namespace tool::cordycep::dump::t10 {
         uint64_t flags{};
         std::unordered_set<std::string> dstrings{};
 
-        bool Compute(const char** args, INT startIndex, INT endIndex);
+        bool Compute(const char** args, int startIndex, int endIndex);
         void PrintHelp();
 
         const char* AddString(const char* str) override;

@@ -325,7 +325,7 @@ namespace tool::cordycep::dump::t10 {
         }
     } // namespace
 
-    bool PoolOptionImpl::Compute(const char** args, INT startIndex, INT endIndex) {
+    bool PoolOptionImpl::Compute(const char** args, int startIndex, int endIndex) {
         m_dump_types.clear();
         m_dump_types.reserve(T10R_ASSET_COUNT);
         for (size_t i = 0; i < T10R_ASSET_COUNT; i++) {

@@ -1,0 +1,27 @@
+{
+  "name": "atian-cod-tools",
+  "version-string": "0.0.0",
+  "dependencies": [
+    "antlr4",
+    "asmjit",
+    "detours",
+    "glfw3",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "opengl2-binding"
+      ]
+    },
+    "libuv",
+    "llhttp",
+    "lz4",
+    "magic-enum",
+    "nlohmann-json",
+    "rapidjson",
+    "tomlplusplus",
+    "xxhash",
+    "zlib",
+    "zstd"
+  ]
+}

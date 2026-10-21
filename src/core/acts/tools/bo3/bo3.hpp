@@ -1,4 +1,5 @@
 #pragma once
+#include <utils/memapi.hpp>
 
 namespace bo3 {
     constexpr uint64_t GSC_MAGIC = 0x1C000a0d43534780;

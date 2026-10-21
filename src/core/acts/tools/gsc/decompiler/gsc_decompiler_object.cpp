@@ -666,7 +666,7 @@ namespace tool::gsc {
                     utils::Padding(asmout, padding)
                         << prefix << std::hex << "Size: 0x" << std::hex << knownSize << std::endl;
                 } else {
-                    UINT size = ctx.FinalSize();
+                    size_t size = ctx.FinalSize();
                     if (size > 1) { // at least one opcode
                         utils::Padding(asmout, padding)
                             << prefix << std::hex << "Size: 0x" << std::hex << size << std::endl;

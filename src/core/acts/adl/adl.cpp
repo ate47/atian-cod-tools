@@ -24,7 +24,7 @@ namespace acts::compiler::adl {
         const char* output{};
         core::preprocessor::PreProcessorOption processorOpt{};
 
-        bool Compute(const char** args, INT startIndex, INT endIndex) {
+        bool Compute(const char** args, int startIndex, int endIndex) {
             // default values
             for (size_t i = startIndex; i < endIndex; i++) {
                 const char* arg = args[i];
@@ -929,7 +929,7 @@ namespace acts::compiler::adl {
         return out << std::dec << ":" << (id & ADF_ID) << "]";
     }
 
-    int adlcompiler(Process& proc, int argc, const char* argv[]) {
+    int adlcompiler(int argc, const char* argv[]) {
         AdlCompilerOption opt;
         if (!opt.Compute(argv, 2, argc) || opt.m_help) {
             opt.PrintHelp();
@@ -1008,5 +1008,5 @@ namespace acts::compiler::adl {
         return tool::OK;
     }
 
-    ADD_TOOL(adlc, "common", " [def] ([data] [output])", "ADL compiler", nullptr, adlcompiler);
+    ADD_TOOL(adlc, "common", " [def] ([data] [output])", "ADL compiler", adlcompiler);
 } // namespace acts::compiler::adl

@@ -1,6 +1,7 @@
 #include <includes.hpp>
 #include <core/bytebuffer.hpp>
 #include <deps/oodle.hpp>
+#include <zlib.h>
 #include "pools.hpp"
 #include <tools/gsc/gsc_opcodes_load.hpp>
 

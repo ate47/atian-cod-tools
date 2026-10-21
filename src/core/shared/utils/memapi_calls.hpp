@@ -1,5 +1,6 @@
 #pragma once
 #include <includes_shared.hpp>
+#include <deps/asmjit.hpp>
 #include "memapi.hpp"
 
 namespace memapi {

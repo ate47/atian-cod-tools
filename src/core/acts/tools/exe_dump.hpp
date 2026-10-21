@@ -1,5 +1,7 @@
 #pragma once
 
+class Process;
+
 namespace tool::exe_dump {
     struct DumpProcessOpt {
         bool dumpHeader{};
