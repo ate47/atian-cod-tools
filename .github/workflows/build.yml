@@ -39,32 +39,6 @@ jobs:
         with:
           version: "22.1.7"
           force-url: "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.7/LLVM-22.1.7-win64.exe"
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        # only install qt in shared context
-        with:
-          version: "6.11.0"
-          host: "windows"
-          target: "desktop"
-          arch: "win64_msvc2022_64"
-          cache: true
-          use-official: true
-          email: ${{ secrets.QT_EMAIL }}
-          pw: ${{ secrets.QT_PASSWORD }}
-      # Install Khronos OpenCL SDK (headers + .lib only, no OpenCL.dll)
-      - name: Install OpenCL SDK
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2025.07.23/OpenCL-SDK-v2025.07.23-Win-x64.zip" -OutFile "OpenCL-SDK.zip"
-          Expand-Archive OpenCL-SDK.zip -DestinationPath OpenCL-SDK
-
-          Write-Host "OpenCL_ROOT=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64"
-          Write-Host "OpenCL_INCLUDE_DIR=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/include"
-          Write-Host "OpenCL_LIBRARY=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/lib/OpenCL.lib"
-
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_ROOT=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64"
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_INCLUDE_DIR=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/include"
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_LIBRARY=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/lib/OpenCL.lib"
       - name: Create project
         shell: pwsh
         run: |

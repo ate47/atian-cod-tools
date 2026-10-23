@@ -1,6 +1,11 @@
 {
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "atian-cod-tools",
-  "version-string": "0.0.0",
+  "version": "0.0.0",
+  "description": "Random things",
+  "license": "MIT OR GPL-3.0",
+  "homepage": "https://github.com/ate47/atian-cod-tools",
+  "documentation": "https://github.com/ate47/atian-cod-tools/wiki",
   "dependencies": [
     "antlr4",
     "asmjit",
@@ -18,10 +23,26 @@
     "lz4",
     "magic-enum",
     "nlohmann-json",
+    "opencl",
+    {
+      "name": "qtbase",
+      "default-features": false,
+      "features": [
+        "concurrent",
+        "widgets",
+        "windeployqt"
+      ]
+    },
     "rapidjson",
     "tomlplusplus",
     "xxhash",
     "zlib",
     "zstd"
+  ],
+  "overrides": [
+    {
+      "name": "qtbase",
+      "version": "6.11.2"
+    }
   ]
 }
