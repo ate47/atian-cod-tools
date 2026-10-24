@@ -70,10 +70,10 @@ jobs:
         shell: pwsh
         run: scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
       - name: Create project (GPL)
-        if: inputs.gpl
+        if: ${{ inputs.gpl }}
         run: cmake -S . -B build --preset ci-gpl
       - name: Create project (MIT)
-        if: !inputs.gpl
+        if: ${{ !inputs.gpl }}
         run: cmake -S . -B build --preset ci
       - name: Validate project format
         run: cmake --build build --target check-format
