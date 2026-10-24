@@ -1,4 +1,14 @@
 # vcpkg dependencies
+if (NOT NO_QT_BUILD)
+    find_package(Qt6 REQUIRED COMPONENTS Core)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    find_package(Qt6 REQUIRED COMPONENTS Concurrent)
+endif()
+
+if (NOT NO_OPEN_CL_BUILD)
+    find_package(OpenCL REQUIRED)
+endif()
+
 find_package(antlr4-runtime CONFIG REQUIRED)
 if(NOT TARGET antlr4-runtime)
 	add_library(antlr4-runtime ALIAS antlr4_shared)

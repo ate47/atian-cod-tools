@@ -15,15 +15,39 @@ on:
         description: "Release after build"
         required: true
         type: boolean
+      gpl:
+        description: "GPL build"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
     name: Atian Tools Build
     runs-on: windows-latest
+    env:
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/vcpkg-downloads
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      ACTS_REPOSITORY: "https://github.com/${{ github.repository }}"
     steps:
       - uses: actions/checkout@v3.5.3
         with:
-          submodules: true
+          submodules: recursive
+      - name: Cache vcpkg downloads
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-downloads
+          key: downloads-${{ runner.os }}
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: vcpkg/bootstrap-vcpkg.bat
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
         with:
@@ -39,12 +63,18 @@ jobs:
         with:
           version: "22.1.7"
           force-url: "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.7/LLVM-22.1.7-win64.exe"
-      - name: Create project
+      - name: clang format version
         shell: pwsh
-        run: |
-          . "$env:LLVM_PATH/bin/clang-format.exe" --version
-          scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
-          scripts/setup.ps1 -ci -clangFormatPath "$env:LLVM_PATH/bin/clang-format.exe"
+        run: . "$env:LLVM_PATH/bin/clang-format.exe" --version
+      - name: Prepare project
+        shell: pwsh
+        run: scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
+      - name: Create project (GPL)
+        if: inputs.gpl
+        run: cmake -S . -B build --preset ci-gpl
+      - name: Create project (MIT)
+        if: !inputs.gpl
+        run: cmake -S . -B build --preset ci
       - name: Validate project format
         run: cmake --build build --target check-format
       - name: Build project
