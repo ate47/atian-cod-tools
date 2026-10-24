@@ -25,6 +25,9 @@ jobs:
   build:
     name: Atian Tools Build
     runs-on: windows-latest
+    permissions:
+      contents: read
+      packages: write
     env:
       VCPKG_DOWNLOADS: ${{ github.workspace }}/vcpkg-downloads
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
@@ -45,9 +48,21 @@ jobs:
           key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
           restore-keys: |
             vcpkg-${{ runner.os }}-
-      - name: Bootstrap vcpkg
+              
+      - name: Bootstrap vcpkg (Windows)
+        if: ${{ runner.os == 'Windows' }}
         shell: pwsh
-        run: vcpkg/bootstrap-vcpkg.bat
+        run: |
+          New-Item -ItemType Directory -Force -Path vcpkg-cache
+          New-Item -ItemType Directory -Force -Path vcpkg-downloads
+          ./vcpkg/bootstrap-vcpkg.bat
+      - name: Bootstrap vcpkg (Not Windows)
+        if: ${{ runner.os != 'Windows' }}
+        shell: bash
+        run: |
+          mkdir -p vcpkg-cache
+          mkdir -p vcpkg-downloads
+          ./vcpkg/bootstrap-vcpkg.sh
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
         with:
