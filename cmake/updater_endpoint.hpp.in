@@ -1,10 +1,13 @@
 #pragma once
+// Do not write in this file, it is updated by cmake
 
 namespace core::updater {
-    // Do not write in this file, it is updated by cmake
-
+    /* Version endpoint, match release\version format */
     constexpr const char* VERSION_ENDPOINT = "${RELEASE_VERSION_FILE}";
+    /* ZIP endpoint, the archive to download */
     constexpr const char* ZIP_ENDPOINT = "${RELEASE_ZIP_FILE}";
+    /* Project name */
     constexpr const char* PROJECT = "${RELEASE_PROJECT}";
+    /* Project URL */
     constexpr const char* PROJECT_URL = "${RELEASE_PROJECT_URL}";
-}
+} // namespace core::updater
