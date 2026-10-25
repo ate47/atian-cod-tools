@@ -44,8 +44,8 @@ namespace tool::gsc::opcode {
             t101a->RegisterVMOperatorFunction(
                 "endon",
                 "<caller> endon(event+)",
-                OPCODE_EndOn,
-                VPFD_SELF_PARAM | VPFD_USE_COUNT,
+                OPCODE_SAT_Endon,
+                VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL,
                 1
             );
             t101a->RegisterVMOperatorFunction("wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
