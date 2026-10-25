@@ -23,7 +23,7 @@ namespace tool::gsc::opcode {
                 "waittill",
                 "<caller> waittill(event, var*)",
                 OPCODE_IW_SingleWaitTill,
-                VPFD_SELF_PARAM | VPFD_UNPACK | VPFD_RETURN_VALUE,
+                VPFD_SELF_PARAM | VPFD_UNPACK | VPFD_RETURN_VALUE | VPFD_EVENT_HASH,
                 1
             );
             t101a->RegisterVMOperatorFunction(
@@ -38,14 +38,14 @@ namespace tool::gsc::opcode {
                 "notify",
                 "<caller> notify(event, param*)",
                 OPCODE_IW_Notify,
-                VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL,
+                VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL | VPFD_EVENT_HASH,
                 1
             );
             t101a->RegisterVMOperatorFunction(
                 "endon",
                 "<caller> endon(event+)",
                 OPCODE_SAT_Endon,
-                VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL,
+                VPFD_SELF_PARAM | VPFD_USE_PRE_SCRIPT_CALL | VPFD_EVENT_HASH_ALL,
                 1
             );
             t101a->RegisterVMOperatorFunction("wait", "wait(time)", OPCODE_Wait, VPFD_NONE, 1, 1);
