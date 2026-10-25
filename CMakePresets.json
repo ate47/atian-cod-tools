@@ -20,6 +20,7 @@
         {
             "name": "ci",
             "inherits": "default",
+            "generator": "Ninja",
             "cacheVariables": {
                 "CI_BUILD": "ON"
             }
@@ -33,9 +34,8 @@
         },
         {
             "name": "ci-gpl",
-            "inherits": "default",
+            "inherits": "ci",
             "cacheVariables": {
-                "CI_BUILD": "ON",
                 "GPL_BUILD": "ON"
             }
         }
