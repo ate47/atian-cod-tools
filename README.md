@@ -171,6 +171,12 @@ This project is open for more features, see [CONTRIBUTING.md](.github\CONTRIBUTI
 - `clang-format` is required to format the project, a formatted code is mandatory for pull requests.
 - `antlr4` is required to recompile the grammar files used by the different compilers. It can be downloaded using [`scripts/antlr.ps1`](scripts/antlr.ps1).
 
+**Packaging**
+
+Building the solution automatically creates `build/package/acts.zip` and
+`build/package/acts-dev.zip`. Build the `Release` configuration for release archives. To include
+Qt deployment files, configure with `-DACTS_PACKAGE_DEPLOY_QT=ON`.
+
 **Path structure**
 
 - [`/cmake`](/cmake) : cmake scripts

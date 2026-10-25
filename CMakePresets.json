@@ -13,7 +13,8 @@
                 "CI_BUILD": "OFF",
                 "GPL_BUILD": "OFF",
                 "STATIC_ACTS": "OFF",
-                "ALL_PLATFORM_ACTS": "OFF"
+                "ALL_PLATFORM_ACTS": "OFF",
+                "NO_QT_BUILD": "OFF"
             }
         },
         {

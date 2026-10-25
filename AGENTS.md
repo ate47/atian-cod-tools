@@ -41,6 +41,9 @@ The rest of the repository is managed by cmake, to create the base project, use 
 By default the preset use the generated build system or Visual Studio to build the required configuration. CMake options
 and setup behavior are defined by the root `CMakeLists.txt` and `scripts/setup.ps1`.
 
+This project uses QT, it should be installed by the user, otherwise the cmake option `NO_QT_BUILD`,
+can be used to turn off the QT parts.
+
 The project is intended to be build on a Github CI using the `ci` cmake preset, it defines
 `CI_BUILD` for explicitly configuring a ci/dev build codes.
 

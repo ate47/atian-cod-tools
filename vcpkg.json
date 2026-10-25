@@ -24,25 +24,10 @@
     "magic-enum",
     "nlohmann-json",
     "opencl",
-    {
-      "name": "qtbase",
-      "default-features": false,
-      "features": [
-        "concurrent",
-        "widgets",
-        "windeployqt"
-      ]
-    },
     "rapidjson",
     "tomlplusplus",
     "xxhash",
     "zlib",
     "zstd"
-  ],
-  "overrides": [
-    {
-      "name": "qtbase",
-      "version": "6.11.2"
-    }
   ]
 }
