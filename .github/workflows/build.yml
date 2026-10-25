@@ -28,7 +28,7 @@ on:
 jobs:
   build:
     name: Atian Tools Build
-    runs-on: windows-latest
+    runs-on: windows-2025
     env:
       VCPKG_DOWNLOADS: ${{ github.workspace }}/vcpkg-downloads
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
