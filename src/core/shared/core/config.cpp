@@ -269,6 +269,13 @@ namespace core::config {
         utils::WriteFile(path, json);
     }
 
+    std::string JsonToString(const RapidJsonGeneric& doc) {
+        rapidjson::StringBuffer sb{};
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+        doc.Accept(writer);
+        return std::string{ sb.GetString(), sb.GetSize() };
+    }
+
     void __test() {
         Config cfg{};
 

@@ -47,6 +47,7 @@ namespace core::config {
 
     bool ParseJson(std::filesystem::path path, RapidJsonDocument& doc);
     void WriteJson(std::filesystem::path path, const RapidJsonGeneric& value);
+    std::string JsonToString(const RapidJsonGeneric& doc);
 #endif
 
     class ConfigGenericRefs {
