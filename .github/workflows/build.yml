@@ -65,8 +65,6 @@ jobs:
           mkdir -p vcpkg-downloads
           ./vcpkg/bootstrap-vcpkg.sh
       - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          vsversion: 17
       - name: Get version
         id: get_version
         shell: pwsh
