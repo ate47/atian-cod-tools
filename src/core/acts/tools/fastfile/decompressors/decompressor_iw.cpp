@@ -18,13 +18,6 @@ namespace {
         IWFV_MW22 = 0x17,
         IWFV_MW23 = 0x18,
         IWFV_BO6 = 0x19,
-        // PS4 "Black Ops" (2010 T5 zones) remaster, ~2025. Same IWffu100 magic family, but a much
-        // simpler container: 16 byte header (magic + headerVersion + xfileVersion), then a flat
-        // stream of [u32 compressedSize][raw deflate data] chunks (no zlib/gzip wrapper, no secure/
-        // IWC header, no encryption), each inflating to at most 0xBFC0 bytes, terminated by a chunk
-        // with compressedSize == 0 followed by a small zero trailer. Reverse engineered from the
-        // title's own executable (DB_DecompressIOStreamWorker / header validator) and confirmed by
-        // decompressing real zone files (bone tag names etc. show up correctly).
         IWFV_BO1_REMASTER = 0x1D9,
 
         IWFV_MW19_PATCH = 0x06,
@@ -34,26 +27,6 @@ namespace {
     // BO1 remaster fastfile chunks are raw deflate (no zlib/gzip wrapper). Every full chunk inflates
     // to exactly 0xBFC0 bytes; only the very first (tiny descriptor) and last chunk of a file differ.
     constexpr size_t BO1_REMASTER_CHUNK_MAX = 0xC000;
-
-    int InflateRaw(const void* src, size_t srcSize, void* dest, size_t destCap) {
-        z_stream strm{};
-        if (inflateInit2(&strm, -15) != Z_OK) {
-            return -1;
-        }
-        strm.next_in = (Bytef*)src;
-        strm.avail_in = (uInt)srcSize;
-        strm.next_out = (Bytef*)dest;
-        strm.avail_out = (uInt)destCap;
-
-        int ret{ inflate(&strm, Z_FINISH) };
-        size_t written{ destCap - strm.avail_out };
-        inflateEnd(&strm);
-
-        if (ret != Z_STREAM_END) {
-            return -1;
-        }
-        return (int)written;
-    }
 
     constexpr char FFMagicType(byte* b) { return b[5]; }
     struct sha256Val {
@@ -512,16 +485,13 @@ namespace {
             DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };
 
             if (header->headerVersion == IWFV_BO1_REMASTER) {
-                // Simple flat chunk stream, see IWFV_BO1_REMASTER comment above. No secure header, no
-                // XBlockCompressionBlockHeader, no encryption: just read + inflate until the terminator.
-                reader.Skip(16); // magic[8] + headerVersion + xfileVersion
 
                 ctx.hasGSCBin = false;
                 ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PLAYSTATION;
                 ctx.blocksCount = 0;
 
                 ffdata.clear();
-                auto chunkBuff{ std::make_unique<byte[]>(BO1_REMASTER_CHUNK_MAX) };
+                std::unique_ptr<byte[]> chunkBuff{ std::make_unique<byte[]>(BO1_REMASTER_CHUNK_MAX) };
 
                 while (reader.CanRead(sizeof(uint32_t))) {
                     size_t chunkLoc{ reader.Loc() };
@@ -534,7 +504,13 @@ namespace {
                     }
                     byte* compData{ reader.ReadPtr<byte>(compressedSize) };
 
-                    int written{ InflateRaw(compData, compressedSize, chunkBuff.get(), BO1_REMASTER_CHUNK_MAX) };
+                    int written{ utils::compress::Decompress2(
+                        utils::compress::COMP_ZLIB_DEFLATE,
+                        chunkBuff.get(),
+                        BO1_REMASTER_CHUNK_MAX,
+                        compData,
+                        compressedSize
+                    ) };
                     if (written < 0) {
                         throw std::runtime_error(std::format("Can't inflate chunk at 0x{:x}", chunkLoc));
                     }
