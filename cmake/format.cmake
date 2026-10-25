@@ -1,9 +1,11 @@
 if(DEFINED CLANG_FORMAT_PATH)
     set(CLANG_FORMAT "${CLANG_FORMAT_PATH}")
 else()
-    find_program(CLANG_FORMAT
-        NAMES clang-format clang-format.exe
-    )
+    if(DEFINED LLVM_PATH)
+        set(CLANG_FORMAT "${LLVM_PATH}/bin/clang-format.exe")
+    else()
+        find_program(CLANG_FORMAT NAMES clang-format clang-format.exe)
+    endif()
 endif()
 
 message(STATUS "CLANG_FORMAT=${CLANG_FORMAT}")

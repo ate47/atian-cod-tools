@@ -1,5 +1,6 @@
 # AtianCodTools
 file(GLOB_RECURSE ACTS_SOURCES
+    CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/core/acts/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/core/acts/*.h"
     "${CMAKE_SOURCE_DIR}/src/core/acts/*.hpp"
@@ -115,8 +116,11 @@ target_link_libraries(AtianCodTools PRIVATE
     mstch
     magic_enum::magic_enum
     nlohmann_json::nlohmann_json
+    libuv::uv
+    llhttp::llhttp_static
     RapidJSON
     tomlplusplus::tomlplusplus
+    OpenCL::OpenCL
 )
 
 add_dependencies(AtianCodTools
@@ -138,12 +142,6 @@ target_compile_definitions(AtianCodTools PRIVATE
     ACTS_COMMON_DLL
     LTM_DESC
 )
-
-if (NOT NO_OPEN_CL_BUILD)
-    target_link_libraries(AtianCodTools PRIVATE 
-        OpenCL::OpenCL
-    )
-endif()
 
 if (GPL_BUILD)
     target_link_libraries(AtianCodTools PRIVATE

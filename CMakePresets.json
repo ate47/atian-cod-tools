@@ -1,0 +1,43 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "default",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "toolset": "v143",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-windows",
+                "CI_BUILD": "OFF",
+                "GPL_BUILD": "OFF",
+                "STATIC_ACTS": "OFF",
+                "ALL_PLATFORM_ACTS": "OFF",
+                "NO_QT_BUILD": "OFF"
+            }
+        },
+        {
+            "name": "ci",
+            "inherits": "default",
+            "cacheVariables": {
+                "CI_BUILD": "ON"
+            }
+        },
+        {
+            "name": "gpl",
+            "inherits": "default",
+            "cacheVariables": {
+                "GPL_BUILD": "ON"
+            }
+        },
+        {
+            "name": "ci-gpl",
+            "inherits": "default",
+            "cacheVariables": {
+                "CI_BUILD": "ON",
+                "GPL_BUILD": "ON"
+            }
+        }
+    ]
+}

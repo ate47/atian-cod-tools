@@ -81,3 +81,6 @@
 	path = deps/mstch
 	url = https://github.com/no1msd/mstch.git
 	branch = no-boost
+[submodule "vcpkg"]
+	path = vcpkg
+	url = https://github.com/microsoft/vcpkg

@@ -35,21 +35,22 @@ inline statements without braces for `if`, `else`, loops, or similar constructs.
 
 ## Setup and Build
 
-Run `scripts/setup.ps1` from the repository root to initialize submodules, install packages from
-`packages.txt` through vcpkg, copy required data, and generate the build files. The generated
-Visual Studio solution and project files are placed under `build/`; do not edit them directly.
-
-Use the generated build system or Visual Studio to build the required configuration. CMake options
+This repository has multiple submodules, it is suggested to run `git submodule update --init --recursive`,
+The dependencies are managed by vcpkg, run `.\vcpkg\bootstrap-vcpkg.bat` (or `./vcpkg/bootstrap-vcpkg.sh` for linux )
+The rest of the repository is managed by cmake, to create the base project, use `cmake -S . -B build --preset default`.
+By default the preset use the generated build system or Visual Studio to build the required configuration. CMake options
 and setup behavior are defined by the root `CMakeLists.txt` and `scripts/setup.ps1`.
 
-Qt6 is required for UI development. It can be disabled with the `-noQT` setup option. OpenCL is
-required for OpenCL functionality and can be disabled with the `-noOpenCL` setup option. The `-ci`
-option defines `CI_BUILD` for project code that needs different behavior in CI builds.
+This project uses QT, it should be installed by the user, otherwise the cmake option `NO_QT_BUILD`,
+can be used to turn off the QT parts.
+
+The project is intended to be build on a Github CI using the `ci` cmake preset, it defines
+`CI_BUILD` for explicitly configuring a ci/dev build codes.
 
 The project is MIT-licensed by default and must not contain GPL code in the normal build. The
-`-gpl` setup option defines `GPL_BUILD` for explicitly configuring a GPL build. Use this option
+`gpl` or `ci-gpl` cmake presets define `GPL_BUILD` for explicitly configuring a GPL build. Use this define
 only when GPL code is intentionally being developed; be careful not to introduce GPL code into the
-default MIT-licensed project.
+default MIT-licensed project..
 
 The `include/` directory contains the C SDK headers for the common and common UI DLLs. Headers
 whose names end with `_ui` belong to the common UI DLL; the other headers belong to the common DLL.

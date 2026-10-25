@@ -1,0 +1,276 @@
+/* an AI wrote that */
+
+QWidget
+{
+    background: #F3F3F3;
+    color: #1F1F1F;
+    font-family: "Segoe UI";
+    font-size: 9pt;
+}
+
+QMdiArea
+{
+    background: #F0F0F0;
+}
+
+/* ------------------------------------------------------
+   Buttons
+   ------------------------------------------------------ */
+
+QPushButton
+{
+    background: #FFFFFF;
+    border: 1px solid #D6D6D6;
+    border-radius: 6px;
+    padding: 6px 16px;
+    min-height: 24px;
+}
+
+QPushButton:hover
+{
+    background: #F8F8F8;
+    border: 1px solid #CFCFCF;
+}
+
+QPushButton:pressed
+{
+    background: #EDEDED;
+}
+
+QPushButton:disabled
+{
+    background: #F5F5F5;
+    color: #9C9C9C;
+    border: 1px solid #E5E5E5;
+}
+
+/* Accent button */
+
+QPushButton#accentButton
+{
+    background: #0078D4;
+    color: white;
+    border: none;
+}
+
+QPushButton#accentButton:hover
+{
+    background: #106EBE;
+}
+
+QPushButton#accentButton:pressed
+{
+    background: #005EA6;
+}
+
+/* ------------------------------------------------------
+   Text Inputs
+   ------------------------------------------------------ */
+
+QLineEdit,
+QTextEdit,
+QPlainTextEdit,
+QComboBox,
+QSpinBox,
+QDoubleSpinBox
+{
+    background: white;
+    border: 1px solid #C5C5C5;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+QLineEdit:focus,
+QTextEdit:focus,
+QPlainTextEdit:focus,
+QComboBox:focus
+{
+    border: 2px solid #0078D4;
+}
+
+/* ------------------------------------------------------
+   ComboBox
+   ------------------------------------------------------ */
+
+QComboBox
+{
+    padding-right: 20px;
+}
+
+QComboBox::drop-down
+{
+    border: none;
+}
+
+/* ------------------------------------------------------
+   CheckBoxes
+   ------------------------------------------------------ */
+
+QCheckBox
+{
+    spacing: 8px;
+}
+
+QCheckBox::indicator
+{
+    width: 18px;
+    height: 18px;
+}
+
+QCheckBox::indicator:unchecked
+{
+    background: white;
+    border: 1px solid #8A8A8A;
+    border-radius: 4px;
+}
+
+QCheckBox::indicator:checked
+{
+    background: #0078D4;
+    border: 1px solid #0078D4;
+    border-radius: 4px;
+}
+
+/* ------------------------------------------------------
+   Group Box
+   ------------------------------------------------------ */
+
+QGroupBox
+{
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    background: #FBFBFB;
+}
+
+QGroupBox::title
+{
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 4px;
+}
+
+/* ------------------------------------------------------
+   Tree / List / Table
+   ------------------------------------------------------ */
+
+QTreeView,
+QTableView,
+QListView
+{
+    background: white;
+    border: 1px solid #D8D8D8;
+    border-radius: 6px;
+    alternate-background-color: #F8F8F8;
+    outline: none;
+}
+
+QTreeView::item:selected,
+QTableView::item:selected,
+QListView::item:selected
+{
+    background: #CCE4F7;
+    color: black;
+}
+
+QHeaderView::section
+{
+    background: #F6F6F6;
+    border: none;
+    border-bottom: 1px solid #D8D8D8;
+    padding: 6px;
+}
+
+/* ------------------------------------------------------
+   Tabs
+   ------------------------------------------------------ */
+
+QTabWidget::pane
+{
+    border: 1px solid #D8D8D8;
+    border-radius: 6px;
+    background: white;
+}
+
+QTabBar::tab
+{
+    background: transparent;
+    padding: 8px 16px;
+    border-bottom: 2px solid transparent;
+}
+
+QTabBar::tab:selected
+{
+    border-bottom: 2px solid #0078D4;
+}
+
+QTabBar::tab:hover
+{
+    background: #F3F3F3;
+}
+
+/* ------------------------------------------------------
+   Scrollbars
+   ------------------------------------------------------ */
+
+QScrollBar:vertical
+{
+    border: none;
+    background: transparent;
+    width: 12px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical
+{
+    background: #C8C8C8;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical:hover
+{
+    background: #AFAFAF;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical
+{
+    height: 0;
+}
+
+QScrollBar:horizontal
+{
+    border: none;
+    background: transparent;
+    height: 12px;
+}
+
+QScrollBar::handle:horizontal
+{
+    background: #C8C8C8;
+    border-radius: 6px;
+}
+
+/* ------------------------------------------------------
+   Menu
+   ------------------------------------------------------ */
+
+QMenu
+{
+    background: white;
+    border: 1px solid #DADADA;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+QMenu::item
+{
+    padding: 6px 24px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected
+{
+    background: #E8F3FF;
+}

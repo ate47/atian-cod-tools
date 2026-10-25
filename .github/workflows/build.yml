@@ -15,15 +15,51 @@ on:
         description: "Release after build"
         required: true
         type: boolean
+      gpl:
+        description: "GPL build"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
     name: Atian Tools Build
     runs-on: windows-latest
+    env:
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/vcpkg-downloads
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      ACTS_REPOSITORY: "https://github.com/${{ github.repository }}"
     steps:
       - uses: actions/checkout@v3.5.3
         with:
-          submodules: true
+          submodules: recursive
+      - name: Cache vcpkg downloads
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-downloads
+          key: downloads-${{ runner.os }}
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
+              
+      - name: Bootstrap vcpkg (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path vcpkg-cache
+          New-Item -ItemType Directory -Force -Path vcpkg-downloads
+          ./vcpkg/bootstrap-vcpkg.bat
+      - name: Bootstrap vcpkg (Not Windows)
+        if: ${{ runner.os != 'Windows' }}
+        shell: bash
+        run: |
+          mkdir -p vcpkg-cache
+          mkdir -p vcpkg-downloads
+          ./vcpkg/bootstrap-vcpkg.sh
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
         with:
@@ -34,43 +70,32 @@ jobs:
         run: "\"version=$(scripts/getversion.ps1)\" | Out-File $env:GITHUB_OUTPUT"
       - name: Version
         run: "\"version: ${{ steps.get_version.outputs.version }}\""
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.11.2
+          aqtsource: git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7
+          host: "windows"
+          target: "desktop"
+          arch: "win64_msvc2022_64"
+          cache: true
       - name: Install LLVM Clang
         uses: KyleMayes/install-llvm-action@v2.0.9
         with:
           version: "22.1.7"
           force-url: "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.7/LLVM-22.1.7-win64.exe"
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        # only install qt in shared context
-        with:
-          version: "6.11.0"
-          host: "windows"
-          target: "desktop"
-          arch: "win64_msvc2022_64"
-          cache: true
-          use-official: true
-          email: ${{ secrets.QT_EMAIL }}
-          pw: ${{ secrets.QT_PASSWORD }}
-      # Install Khronos OpenCL SDK (headers + .lib only, no OpenCL.dll)
-      - name: Install OpenCL SDK
+      - name: clang format version
         shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2025.07.23/OpenCL-SDK-v2025.07.23-Win-x64.zip" -OutFile "OpenCL-SDK.zip"
-          Expand-Archive OpenCL-SDK.zip -DestinationPath OpenCL-SDK
-
-          Write-Host "OpenCL_ROOT=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64"
-          Write-Host "OpenCL_INCLUDE_DIR=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/include"
-          Write-Host "OpenCL_LIBRARY=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/lib/OpenCL.lib"
-
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_ROOT=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64"
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_INCLUDE_DIR=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/include"
-          Add-Content -Path $env:GITHUB_ENV -Value "OpenCL_LIBRARY=$env:GITHUB_WORKSPACE/OpenCL-SDK/OpenCL-SDK-v2025.07.23-Win-x64/lib/OpenCL.lib"
-      - name: Create project
+        run: . "$env:LLVM_PATH/bin/clang-format.exe" --version
+      - name: Prepare project
         shell: pwsh
-        run: |
-          . "$env:LLVM_PATH/bin/clang-format.exe" --version
-          scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
-          scripts/setup.ps1 -ci -clangFormatPath "$env:LLVM_PATH/bin/clang-format.exe"
+        run: scripts/setupdater.ps1 -versionEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/version" -zipEndpoint "https://github.com/${{ github.repository }}/releases/latest/download/acts.zip" -projectUrl "https://github.com/${{ github.repository }}" -project "${{ github.repository }}" 
+      - name: Create project (GPL)
+        if: ${{ inputs.gpl }}
+        run: cmake -S . -B build --preset ci-gpl
+      - name: Create project (MIT)
+        if: ${{ !inputs.gpl }}
+        run: cmake -S . -B build --preset ci
       - name: Validate project format
         run: cmake --build build --target check-format
       - name: Build project

@@ -26,7 +26,7 @@ if (NOT NO_QT_BUILD)
     target_link_libraries(AtianCodToolsUI3 PRIVATE AtianCodToolsUI ACTSSharedLibrary)
     add_dependencies(AtianCodToolsUI3 AtianCodToolsUI ACTSSharedLibrary)
     append_common_defs(AtianCodToolsUI3)
-    
+
 
     get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
     get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
@@ -50,7 +50,6 @@ if (NOT NO_QT_BUILD)
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qjpeg.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/imageformats/qgif.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/Qt6Network.dll"
-                "$<TARGET_FILE_DIR:AtianCodToolsUI3>/Qt6Svg.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/D3Dcompiler_47.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/dxcompiler.dll"
                 "$<TARGET_FILE_DIR:AtianCodToolsUI3>/opengl32sw.dll"
