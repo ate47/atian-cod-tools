@@ -25,9 +25,6 @@ jobs:
   build:
     name: Atian Tools Build
     runs-on: windows-latest
-    permissions:
-      contents: read
-      packages: write
     env:
       VCPKG_DOWNLOADS: ${{ github.workspace }}/vcpkg-downloads
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
