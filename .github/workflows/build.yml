@@ -4,7 +4,11 @@ on:
   push:
     paths:
       - "src/**"
-      - "premake5.lua"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "cmake/**"
+      - "vcpkg.json"
+      - "vcpkg-configuration.json"
       - ".github/workflows/build.yml"
   pull_request:
     paths:
@@ -61,6 +65,8 @@ jobs:
           mkdir -p vcpkg-downloads
           ./vcpkg/bootstrap-vcpkg.sh
       - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          toolset: 14.3
       - name: Get version
         id: get_version
         shell: pwsh

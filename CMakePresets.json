@@ -4,7 +4,6 @@
         {
             "name": "base",
             "binaryDir": "${sourceDir}/build",
-            "toolset": "v143",
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
                 "VCPKG_TARGET_TRIPLET": "x64-windows",
@@ -19,6 +18,7 @@
             "name": "default",
             "inherits": "base",
             "generator": "Visual Studio 18 2026",
+            "toolset": "v143",
             "architecture": "x64"
         },
         {
