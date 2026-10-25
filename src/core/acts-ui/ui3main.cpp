@@ -5,6 +5,7 @@
 #include <core/shared_cfg_data.hpp>
 #include <QApplication>
 #include <QWidget>
+#include <QFile>
 #include <MainWindow.h>
 #include <config_ui.hpp>
 #include <platform/platform_windows.hpp>
@@ -46,9 +47,6 @@ namespace {
         } else {
             category = "QT/default";
         }
-        if (!std::strcmp(category, "QT/qt:core:plugin:factoryloader")) {
-            LOG_TRACE("test");
-        }
         core::logs::log(lvl, category, context.line, localMsg.constData());
     }
 } // namespace
@@ -86,8 +84,8 @@ int MainActsUI(int argc, const char** argv) {
 
     qInstallMessageHandler(ActsQTMessageHandler);
 
-    qCDebug(lcActs) << "Starting acts-ui3 " << core::actsinfo::VERSION << " with QT " QT_VERSION_STR << " (q"
-                    << qVersion() << ") mscv version" << _MSC_VER;
+    qCDebug(lcActs) << "Starting acts-ui3 " << core::actsinfo::VERSION << " with QT " QT_VERSION_STR << "("
+                    << QT_VERSION << ", q" << qVersion() << ") mscv version" << _MSC_VER;
 
     std::filesystem::path workDir{ utils::GetProgDir() / "platforms" };
     std::string workDirStr{ workDir.string() };
@@ -95,6 +93,11 @@ int MainActsUI(int argc, const char** argv) {
     const char* argv2[]{ argv[0], "--platformpluginpath", workDirStr.data() };
     int argc2 = ACTS_ARRAYSIZE(argv2);
     QApplication app{ argc2, (char**)argv2 };
+
+    QFile file(":/theme.qss");
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        app.setStyleSheet(file.readAll());
+    }
 
     MainWindow window;
     mainWindow = &window;

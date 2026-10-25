@@ -3,5 +3,6 @@
         <file>images/icon.ico</file>
         <file>templates/about.mustache</file>
         <file>images/heart.svg</file>
+        <file>theme.qss</file>
     </qresource>
 </RCC>
