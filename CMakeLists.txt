@@ -24,11 +24,16 @@ file(STRINGS "${CMAKE_SOURCE_DIR}/release/version" _VER_LINES)
 list(GET _VER_LINES 0 VERSION)
 list(GET _VER_LINES 1 VERSION_ID)
 
-file(STRINGS "${CMAKE_SOURCE_DIR}/release/updater" _UPDATER_LINES)
-list(GET _UPDATER_LINES 0 RELEASE_VERSION_FILE)
-list(GET _UPDATER_LINES 1 RELEASE_ZIP_FILE)
-list(GET _UPDATER_LINES 2 RELEASE_PROJECT)
-list(GET _UPDATER_LINES 3 RELEASE_PROJECT_URL)
+set(ACTS_REPOSITORY "$ENV{ACTS_REPOSITORY}")
+if(NOT ACTS_REPOSITORY)
+    set(ACTS_REPOSITORY "ate47/atian-cod-tools")
+endif()
+
+set(RELEASE_VERSION_FILE "https://github.com/${ACTS_REPOSITORY}/releases/latest/download/version")
+set(RELEASE_ZIP_FILE "https://github.com/${ACTS_REPOSITORY}/releases/latest/download/acts.zip")
+set(RELEASE_PROJECT_URL "https://github.com/${ACTS_REPOSITORY}")
+set(RELEASE_PROJECT "${ACTS_REPOSITORY}")
+
 
 if(CI_BUILD)
     set(ACTSAVI_DEV "")

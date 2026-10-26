@@ -8,6 +8,7 @@
 #include <utils/compress_utils.hpp>
 #include <utils/data_utils.hpp>
 #include <tools/fastfile/fastfile_bdiff.hpp>
+#include <zlib.h>
 
 namespace {
     constexpr uint64_t IW_FF_MAGIC_MASK = 0xFFFFFF00FFFFFFFF;
@@ -17,10 +18,15 @@ namespace {
         IWFV_MW22 = 0x17,
         IWFV_MW23 = 0x18,
         IWFV_BO6 = 0x19,
+        IWFV_BO1_REMASTER = 0x1D9,
 
         IWFV_MW19_PATCH = 0x06,
         IWFV_BO6_PATCH = 0x12,
     };
+
+    // BO1 remaster fastfile chunks are raw deflate (no zlib/gzip wrapper). Every full chunk inflates
+    // to exactly 0xBFC0 bytes; only the very first (tiny descriptor) and last chunk of a file differ.
+    constexpr size_t BO1_REMASTER_CHUNK_MAX = 0xC000;
 
     constexpr char FFMagicType(byte* b) { return b[5]; }
     struct sha256Val {
@@ -477,6 +483,47 @@ namespace {
             }
 
             DB_FFHeader* header{ reader.Ptr<DB_FFHeader>() };
+
+            if (header->headerVersion == IWFV_BO1_REMASTER) {
+
+                ctx.hasGSCBin = false;
+                ctx.gscPlatform = ActsAPIGsc_Platform::PLATFORM_PLAYSTATION;
+                ctx.blocksCount = 0;
+
+                ffdata.clear();
+                std::unique_ptr<byte[]> chunkBuff{ std::make_unique<byte[]>(BO1_REMASTER_CHUNK_MAX) };
+
+                while (reader.CanRead(sizeof(uint32_t))) {
+                    size_t chunkLoc{ reader.Loc() };
+                    uint32_t compressedSize{ reader.Read<uint32_t>() };
+                    if (!compressedSize) {
+                        break; // terminator, rest of the file is a small zero trailer
+                    }
+                    if (!reader.CanRead(compressedSize)) {
+                        throw std::runtime_error(std::format("Truncated fastfile chunk at 0x{:x}", chunkLoc));
+                    }
+                    byte* compData{ reader.ReadPtr<byte>(compressedSize) };
+
+                    int written{ utils::compress::Decompress2(
+                        utils::compress::COMP_ZLIB_DEFLATE,
+                        chunkBuff.get(),
+                        BO1_REMASTER_CHUNK_MAX,
+                        compData,
+                        compressedSize
+                    ) };
+                    if (written < 0) {
+                        throw std::runtime_error(std::format("Can't inflate chunk at 0x{:x}", chunkLoc));
+                    }
+
+                    size_t loc{ utils::Allocate(ffdata, (size_t)written) };
+                    std::memcpy(&ffdata[loc], chunkBuff.get(), (size_t)written);
+                }
+
+                if (opt.m_header) {
+                    LOG_INFO("Decompressed size: 0x{:x}", ffdata.size());
+                }
+                return;
+            }
 
             enum SecureType { ST_NONE = 0, ST_MW19, ST_MW22 };
 
