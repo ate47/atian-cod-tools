@@ -47,7 +47,7 @@ namespace core::config {
 
     bool ParseJson(std::filesystem::path path, RapidJsonDocument& doc);
     void WriteJson(std::filesystem::path path, const RapidJsonGeneric& value);
-    std::string JsonToString(const RapidJsonGeneric& doc);
+    std::string JsonToString(const RapidJsonGeneric& doc, bool pretty = false);
 #endif
 
     class ConfigGenericRefs {
@@ -156,6 +156,8 @@ namespace core::config {
         void SetNull(const char* path);
 
         operator bool() const;
+
+        std::string ToString(bool pretty = false) const;
     };
 
     class BaseTypeGetters;

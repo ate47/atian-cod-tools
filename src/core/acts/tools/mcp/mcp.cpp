@@ -1,10 +1,12 @@
 #include <includes.hpp>
 #include <core/config.hpp>
+#include <cli/clicolor.hpp>
 #include <tools/mcp/mcp.hpp>
 #include <tools/mcp/mcp_tool.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <core/actsinfo.hpp>
 
 namespace tool::mcp {
 
@@ -25,64 +27,56 @@ namespace tool::mcp {
 
         // Build a JSON-RPC error response
         std::string RpcError(const rapidjson::Value* id, int code, const char* message) {
-            rapidjson::Document doc{};
-            doc.SetObject();
-            rapidjson::Document::AllocatorType& alloc{ doc.GetAllocator() };
-            doc.AddMember("jsonrpc", "2.0", alloc);
-            rapidjson::Value idVal{};
+            core::config::JDoc doc{};
+            doc.SetString("jsonrpc", "2.0");
             if (id) {
-                idVal.CopyFrom(*id, alloc);
+                doc.Set("id", *id);
             }
-            doc.AddMember("id", idVal, alloc);
-            rapidjson::Value err{ rapidjson::kObjectType };
-            err.AddMember("code", code, alloc);
-            err.AddMember("message", MakeString(message, alloc), alloc);
-            doc.AddMember("error", err, alloc);
-            return core::config::JsonToString(doc);
+            core::config::ConfigGeneric err{ doc.GetSubVal("error", true) };
+            err.SetInteger("code", code);
+            err.SetString("message", message);
+
+            return doc.ToString();
         }
     } // namespace
 
     std::string HandleRpc(const std::string& body, int& status) {
         status = 200;
-        rapidjson::Document req{};
-        req.Parse(body.data(), body.size());
-        if (req.HasParseError()) {
+        core::config::JDoc req{};
+        if (!req.ParseDocument(body.data(), body.size())) {
             return RpcError(nullptr, RPC_PARSE_ERROR, "Parse error");
         }
-        if (!req.IsObject() || !req.HasMember("method") || !req["method"].IsString()) {
+
+        const char* method{ req.GetCString("method") };
+
+        if (!method) {
             return RpcError(nullptr, RPC_INVALID_REQUEST, "Invalid request");
         }
 
-        const rapidjson::Value* id{ req.HasMember("id") ? &req["id"] : nullptr };
-        const char* method{ req["method"].GetString() };
-
+        core::config::RapidJsonGeneric* id{ &req.GetVal("id") };
         // notifications don't have any response
-        if (!id) {
+        if (id->IsNull()) {
             status = 202;
             return "";
         }
 
-        rapidjson::Document doc{};
-        doc.SetObject();
-        rapidjson::Document::AllocatorType& alloc{ doc.GetAllocator() };
-        doc.AddMember("jsonrpc", "2.0", alloc);
-        rapidjson::Value idVal{};
-        idVal.CopyFrom(*id, alloc);
-        doc.AddMember("id", idVal, alloc);
+        core::config::JDoc doc{};
+        doc.SetString("jsonrpc", "2.0");
+        doc.Set("id", *id);
 
-        rapidjson::Value result{ rapidjson::kObjectType };
+        core::config::ConfigGeneric result{ doc.GetSubVal("result", true) };
+
+        const char* logInfo{};
 
         switch (hash::HashX64(method)) {
             using namespace hash::literals;
         case "initialize"_x: {
-            result.AddMember("protocolVersion", MakeString(MCP_PROTOCOL_VERSION, alloc), alloc);
-            rapidjson::Value caps{ rapidjson::kObjectType };
-            caps.AddMember("tools", rapidjson::Value{ rapidjson::kObjectType }, alloc);
-            result.AddMember("capabilities", caps, alloc);
-            rapidjson::Value info{ rapidjson::kObjectType };
-            info.AddMember("name", "acts-mcp", alloc);
-            info.AddMember("version", "0.0.1", alloc);
-            result.AddMember("serverInfo", info, alloc);
+            result.SetString("protocolVersion", MCP_PROTOCOL_VERSION);
+            result.Set("capabilities.tools", rapidjson::Value{ rapidjson::kObjectType });
+            core::config::ConfigGeneric serverInfo{ result.GetSubVal("serverInfo", true) };
+
+            serverInfo.SetString("name", "acts-mcp");
+            serverInfo.SetString("version", core::actsinfo::VERSION);
             break;
         }
         case "ping"_x: {
@@ -92,35 +86,32 @@ namespace tool::mcp {
         case "tools/list"_x: {
             rapidjson::Value list{ rapidjson::kArrayType };
             for (const McpTool* tool : GetMcpTools()) {
-                rapidjson::Value t{ rapidjson::kObjectType };
-                t.AddMember("name", MakeString(tool->name, alloc), alloc);
-                t.AddMember("description", MakeString(tool->description, alloc), alloc);
+                core::config::ConfigGeneric toolVal{ result.GetSubVal("tools[]", true) };
+                toolVal.SetString("name", tool->name);
+                toolVal.SetString("description", tool->description);
+
                 rapidjson::Document schema{};
                 schema.Parse(tool->inputSchema ? tool->inputSchema : EMPTY_SCHEMA);
                 if (schema.HasParseError()) {
                     schema.Parse(EMPTY_SCHEMA);
                 }
-                rapidjson::Value schemaVal{};
-                schemaVal.CopyFrom(schema, alloc);
-                t.AddMember("inputSchema", schemaVal, alloc);
-                list.PushBack(t, alloc);
+                toolVal.Set("inputSchema", schema);
             }
-            result.AddMember("tools", list, alloc);
             break;
         }
         case "tools/call"_x: {
-            const rapidjson::Value* params{ req.HasMember("params") ? &req["params"] : nullptr };
-            if (!params || !params->IsObject() || !params->HasMember("name") || !(*params)["name"].IsString()) {
+            const char* name{ req.GetCString("params.name") };
+            if (!name) {
                 return RpcError(id, RPC_INVALID_PARAMS, "Missing tool name");
             }
-            const char* name{ (*params)["name"].GetString() };
+            logInfo = name;
             const McpTool* tool{ FindMcpTool(name) };
             if (!tool) {
                 return RpcError(id, RPC_INVALID_PARAMS, "Unknown tool");
             }
 
             rapidjson::Value noArgs{};
-            const rapidjson::Value& args{ params->HasMember("arguments") ? (*params)["arguments"] : noArgs };
+            const rapidjson::Value& args{ req.GetVal("params.arguments") };
 
             bool isError{};
             std::string text{};
@@ -131,19 +122,21 @@ namespace tool::mcp {
                 text = e.what();
             }
 
-            rapidjson::Value content{ rapidjson::kArrayType };
-            rapidjson::Value item{ rapidjson::kObjectType };
-            item.AddMember("type", "text", alloc);
-            item.AddMember("text", MakeString(text.c_str(), alloc), alloc);
-            content.PushBack(item, alloc);
-            result.AddMember("content", content, alloc);
-            result.AddMember("isError", isError, alloc);
+            core::config::ConfigGeneric item{ result.GetSubVal("content[]", true) };
+            item.SetString("type", "text");
+            item.SetString("text", text);
+            result.SetBool("isError", isError);
             break;
         }
         default:
             return RpcError(id, RPC_METHOD_NOT_FOUND, "Method not found");
         }
-        doc.AddMember("result", result, alloc);
-        return core::config::JsonToString(doc);
+
+        LOG_INFO(
+            "[RPC/MCP] {} {}",
+            cli::clicolor::COLOR_AMBER.Text(method),
+            cli::clicolor::COLOR_CORAL.Text(logInfo ? logInfo : "")
+        );
+        return doc.ToString();
     }
 } // namespace tool::mcp

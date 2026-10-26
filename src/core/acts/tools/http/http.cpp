@@ -8,6 +8,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <core/actsinfo.hpp>
 #include <core/config.hpp>
 
 namespace tool::http {
@@ -95,10 +96,7 @@ namespace tool::http {
         int OnMessageComplete(llhttp_t* parser) {
             Connection* con{ static_cast<Connection*>(parser->data) };
             int status{ 200 };
-            std::string resp{
-                con->server
-                    ->HandleRequest(llhttp_method_name((llhttp_method_t)parser->method), con->url, con->body, status)
-            };
+            std::string resp{ con->server->HandleRequest(parser->method, con->url, con->body, status) };
             SendResponse(con, status, resp);
             return HPE_PAUSED; // stop parsing, only one request per connection
         }
@@ -216,11 +214,8 @@ namespace tool::http {
             LOG_INFO("init {} mcp tool(s)", tool::mcp::GetMcpTools().size());
         }
         LOG_INFO(
-            "http server listening on {}http://{}:{}{} (Ctrl+C to stop)",
-            cli::clicolor::COLOR_GREEN,
-            cfg.host,
-            cfg.port,
-            cli::clicolor::CD_RESET
+            "http server listening on {} (Ctrl+C to stop)",
+            cli::clicolor::COLOR_GREEN.Format("http://{}:{}", cfg.host, cfg.port)
         );
         uv_run(&loop, UV_RUN_DEFAULT);
         LOG_INFO("http server stopped");
@@ -232,35 +227,52 @@ namespace tool::http {
         }
     }
     std::string
-    HttpServer::HandleRequest(const char* method, const std::string& url, const std::string& body, int& status) {
+    HttpServer::HandleRequest(uint8_t method, const std::string& url, const std::string& body, int& status) {
         LOG_INFO(
-            "[HTTP] {}{}{} ({}/{} bytes)",
-            cli::clicolor::COLOR_AZURE,
-            url,
-            cli::clicolor::COLOR_DARK_GRAY,
-            method,
-            body.size(),
-            cli::clicolor::CD_RESET
+            "[HTTP] {} {}",
+            cli::clicolor::COLOR_AZURE.Text(url),
+            cli::clicolor::COLOR_DARK_GRAY
+                .Format("({}/{} bytes)", llhttp_method_name((llhttp_method_t)method), body.size())
         );
 
-        if (!cfg.noMCPServer && !strcmp(method, "POST") && url == "/mcp") {
+        if (!cfg.noMCPServer && method == HTTP_POST && url == "/mcp") {
             return tool::mcp::HandleRpc(body, status);
         }
 
-        rapidjson::Document doc{};
-        doc.SetObject();
-        rapidjson::Document::AllocatorType& alloc{ doc.GetAllocator() };
+        core::config::JDoc res{};
 
-        if (url == "/") {
-            status = 200;
-            doc.AddMember("name", "acts", alloc);
-            doc.AddMember("status", "ok", alloc);
+        if (method == HTTP_GET && url == "/") {
+            status = HTTP_STATUS_OK;
+            core::config::ConfigGeneric acts{ res.GetSubVal("server", true) };
+            acts.SetString("name", "acts");
+            acts.SetString("version", core::actsinfo::VERSION);
+            acts.SetInteger("versionId", core::actsinfo::VERSION_ID);
+            core::config::ConfigGeneric features{ acts.GetSubVal("features", true) };
+            features.SetBool("hasMCPServer", !cfg.noMCPServer);
+
+            if (!cfg.noMCPServer) {
+                res.SetString("mcp.endpoint", std::format("http://{}:{}/mcp", cfg.host, cfg.port));
+                for (const tool::mcp::McpTool* tool : tool::mcp::GetMcpTools()) {
+                    core::config::ConfigGeneric toolJson{ res.GetSubVal("mcp.tools[]", true) };
+                    toolJson.SetString("name", tool->name);
+                    toolJson.SetString("description", tool->description);
+                    if (tool->inputSchema) {
+                        rapidjson::Document schema{};
+                        schema.Parse(tool->inputSchema);
+                        if (schema.HasParseError()) {
+                            LOG_WARNING("Failed to parse schema for tool {}: {}", tool->name, tool->inputSchema);
+                            continue;
+                        }
+                        toolJson.Set(utils::va("schema", tool->name), schema);
+                    }
+                }
+            }
         } else {
-            status = 404;
-            doc.AddMember("error", "not found", alloc);
+            status = HTTP_STATUS_NOT_FOUND;
+            res.SetString("error", llhttp_status_name(HTTP_STATUS_NOT_FOUND));
         }
 
-        return core::config::JsonToString(doc);
+        return res.ToString(true);
     }
 
     namespace {

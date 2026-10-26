@@ -57,7 +57,7 @@ namespace tool::http {
          * @param status [out] HTTP status code
          * @return JSON response body
          */
-        std::string HandleRequest(const char* method, const std::string& url, const std::string& body, int& status);
+        std::string HandleRequest(uint8_t method, const std::string& url, const std::string& body, int& status);
 
         uv_loop_t* GetLoop() { return &loop; }
     };
