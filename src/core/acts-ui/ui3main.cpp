@@ -1,14 +1,22 @@
 #include <ui_includes.hpp>
 #include <acts_api/internal.h>
 #include <acts_api/internal_ui.h>
+#include <acts_api/http_server.h>
 #include <core/actsinfo.hpp>
 #include <core/shared_cfg_data.hpp>
 #include <QApplication>
 #include <QWidget>
 #include <QFile>
+#include <QTimer>
 #include <MainWindow.h>
 #include <config_ui.hpp>
 #include <platform/platform_windows.hpp>
+#include <QMessageBox>
+
+UI_CONFIG_VAL(cfgHttpServerHost, "http.server.host", QString(ACTS_HTTP_DEFAULT_HOST), "http server host");
+UI_CONFIG_VAL(cfgHttpServerPort, "http.server.port", (uint16_t)ACTS_HTTP_DEFAULT_PORT, "http server port");
+UI_CONFIG_VAL(cfgHttpServerEnabled, "http.server.enabled", false, "enable http server");
+UI_CONFIG_VAL(cfgHttpServerMcpTools, "http.server.mcpTools", true, "enable mcp server");
 
 namespace {
     static MainWindow* mainWindow{};
@@ -110,5 +118,31 @@ int MainActsUI(int argc, const char** argv) {
         }
     }
 
-    return app.exec();
+    // sync the http server loop to qt
+    QTimer httpTimer{};
+    ActsHandle httpServerHandle{ INVALID_ACTS_HANDLE_VALUE };
+    if (cfgHttpServerEnabled) {
+        ActsAPIHttpServer_Options httpOpts{};
+        httpOpts.structSize = sizeof(httpOpts);
+        QByteArray host{ cfgHttpServerHost.Get().toUtf8() };
+        httpOpts.host = host.constData();
+        httpOpts.port = cfgHttpServerPort.Get();
+        httpOpts.noMCP = !cfgHttpServerMcpTools.Get();
+
+        httpServerHandle = ActsAPIHttpServer_Start(&httpOpts);
+        if (IS_ACTS_HANDLE_VALID(httpServerHandle)) {
+            QObject::connect(&httpTimer, &QTimer::timeout, [httpServerHandle]() {
+                ActsAPIHttpServer_Poll(httpServerHandle);
+            });
+            httpTimer.start(10);
+        } else {
+            LOG_ERROR("Can't start the http server: {}", ActsGetAPILastMessage());
+        }
+    }
+
+    int exitCode{ app.exec() };
+
+    httpTimer.stop();
+    ActsAPICloseHandle(httpServerHandle);
+    return exitCode;
 }

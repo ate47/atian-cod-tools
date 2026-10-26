@@ -6,6 +6,8 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QCheckBox>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
 
 namespace ui3::config {
     template<class>
@@ -31,10 +33,10 @@ namespace ui3::config {
     constexpr PropertyType GetPropertyType() {
         if constexpr (std::is_same_v<T, bool>) {
             return PT_BOOL;
-        } else if constexpr (std::is_same_v<T, int64_t>) {
-            return PT_INT;
-        } else if constexpr (std::is_same_v<T, double>) {
+        } else if constexpr (std::is_floating_point_v<T>) {
             return PT_DOUBLE;
+        } else if constexpr (std::is_integral_v<T>) {
+            return PT_INT;
         } else if constexpr (std::is_same_v<T, QString>) {
             return PT_STRING;
         } else {
@@ -159,6 +161,34 @@ namespace ui3::config {
             });
 
             box->setChecked(Get());
+        }
+
+        template<typename Widget>
+            requires std::same_as<Widget, QSpinBox> && std::integral<T> && (!std::same_as<T, bool>)
+        void Bind(Widget* spin) {
+            PropertyContainer<T>& cc{ container };
+            QObject::connect(spin, &QSpinBox::valueChanged, &container.GetNotifier(), [&cc](int val) {
+                cc.Set((T)val);
+            });
+            QObject::connect(&container.GetNotifier(), &PropertyNotifier::changed, spin, [spin, &cc]() {
+                spin->setValue((int)cc.Get());
+            });
+
+            spin->setValue((int)Get());
+        }
+
+        template<typename Widget>
+            requires std::same_as<Widget, QDoubleSpinBox> && std::floating_point<T>
+        void Bind(Widget* spin) {
+            PropertyContainer<T>& cc{ container };
+            QObject::connect(spin, &QDoubleSpinBox::valueChanged, &container.GetNotifier(), [&cc](double val) {
+                cc.Set((T)val);
+            });
+            QObject::connect(&container.GetNotifier(), &PropertyNotifier::changed, spin, [spin, &cc]() {
+                spin->setValue((double)cc.Get());
+            });
+
+            spin->setValue((double)Get());
         }
 
         void OnUpdate(QObject* receiver, std::function<void(T)> action) {

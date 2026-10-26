@@ -1,4 +1,6 @@
 #include <includes.hpp>
+#include <acts_api/http_server.h>
+#include <acts_api_impl/api_impl.hpp>
 #include <tools/http/http.hpp>
 #include <tools/mcp/mcp.hpp>
 #include <tools/mcp/mcp_tool.hpp>
@@ -182,7 +184,7 @@ namespace tool::http {
         }
 
         sockaddr_in addr{};
-        int r{ uv_ip4_addr(cfg.host, cfg.port, &addr) };
+        int r{ uv_ip4_addr(cfg.host.c_str(), cfg.port, &addr) };
         if (r < 0) {
             LOG_ERROR("Invalid address {}:{}: {}", cfg.host, cfg.port, uv_strerror(r));
             return false;
@@ -207,6 +209,13 @@ namespace tool::http {
         uv_signal_init(&loop, &sigint);
         uv_signal_start(&sigint, [](uv_signal_t* h, int) { uv_stop(h->loop); }, SIGINT);
         return true;
+    }
+
+    bool HttpServer::Poll() {
+        if (!started) {
+            return false;
+        }
+        return uv_run(&loop, UV_RUN_NOWAIT) != 0;
     }
 
     void HttpServer::Run() {
@@ -299,5 +308,55 @@ namespace tool::http {
         }
 
         ADD_TOOL(http_server, "dev", "", "start the http server", http_server);
+
+        // embedded server, driven by ActsAPIHttpServer_Poll
+        class EmbeddedServer {
+          public:
+            HttpServerConfig cfg{};
+            HttpServer server;
+
+            EmbeddedServer() : server(cfg) {}
+            ~EmbeddedServer() { LOG_INFO("http server stopped"); }
+        };
     } // namespace
 } // namespace tool::http
+
+ActsHandle ActsAPIHttpServer_Start(const ActsAPIHttpServer_Options* options) {
+    if (!options || options->structSize == 0) {
+        ActsAPISetLastMessage("Invalid structSize for options");
+        return INVALID_ACTS_HANDLE_VALUE;
+    }
+
+    tool::http::EmbeddedServer* srv{ ActsAPIImpl_New<tool::http::EmbeddedServer>() };
+    ActsHandle ah{ (ActsHandle)srv };
+
+    const char* host{ SIZED_STRUCT_MEMBER(options, host, nullptr) };
+    uint16_t port{ SIZED_STRUCT_MEMBER(options, port, (uint16_t)0) };
+    bool noMCP{ SIZED_STRUCT_MEMBER(options, noMCP, false) };
+
+    if (host && *host) {
+        srv->cfg.host = host;
+    }
+    if (port) {
+        srv->cfg.port = port;
+    }
+    srv->cfg.noMCPServer = noMCP;
+
+    if (!srv->server.Start()) {
+        std::string address{ std::format("{}:{}", srv->cfg.host, srv->cfg.port) };
+        ActsAPICloseHandle(ah);
+        ActsAPISetLastMessage("Can't start the http server on %s", address.c_str());
+        return INVALID_ACTS_HANDLE_VALUE;
+    }
+    LOG_INFO(
+        "http server listening on {}",
+        cli::clicolor::COLOR_GREEN.Format("http://{}:{}", srv->cfg.host, srv->cfg.port)
+    );
+    return ah;
+}
+
+ActsStatus ActsAPIHttpServer_Poll(ActsHandle server) {
+    ACTS_API_ASSERT_VALID_HANDLE(server);
+    reinterpret_cast<tool::http::EmbeddedServer*>(server)->server.Poll();
+    return ACTS_STATUS_OK;
+}
