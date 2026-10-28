@@ -1,6 +1,7 @@
 #pragma once
 #include "gsc_opcodes_load.hpp"
 #include <unordered_map>
+#include <magic_enum/magic_enum.hpp>
 
 namespace tool::gsc {
     class T8GSCOBJContext;
@@ -41,7 +42,7 @@ namespace tool::gsc::opcode {
         VMF_FUNC_REF_24 = 1 << 28,
         VMF_SWITCH_32 = 1 << 29,
         VMF_UNIQUE_HASH = 1 << 30,
-        VMF_HASH_ACTS = 1 << 31,
+        VMF_HASH_ACTS = 1ull << 31,
         VMF_NO_PLATFORM = 1ull << 32,
         VMF_WAITTILL_RETURN = 1ull << 33,
     };
@@ -250,3 +251,8 @@ namespace tool::gsc::opcode {
     void RegisterOpCodes();
 
 } // namespace tool::gsc::opcode
+
+template<>
+struct magic_enum::customize::enum_range<tool::gsc::opcode::VmFlags> {
+    static constexpr bool is_flags = true;
+};
