@@ -29,6 +29,10 @@ This software depends on other libraries.
 - [libtom/libtommath](https://github.com/libtom/libtommath) - [LibTom license](https://github.com/libtom/libtommath/blob/main/LICENSE).
 - [libtom/libtomcrypt](https://github.com/libtom/libtomcrypt) - [LibTom license](https://github.com/libtom/libtomcrypt/blob/main/LICENSE).
 - [QT](https://www.qt.io/development/download-open-source) - [LGPL 3](https://www.gnu.org/licenses/lgpl-3.0.en.html)
+- [nlohmann/json](https://github.com/nlohmann/json) - [MIT license](https://github.com/nlohmann/json/blob/develop/LICENSE.MIT)
+- [Neargye/magic_enum](https://github.com/Neargye/magic_enum) - [MIT license](https://github.com/Neargye/magic_enum/blob/master/LICENSE)
+- [nodejs/llhttp](https://github.com/nodejs/llhttp) - [MIT license](https://github.com/nodejs/llhttp/blob/main/LICENSE)
+- [libuv/libuv](https://github.com/libuv/libuv) - [MIT-like license](https://github.com/libuv/libuv/blob/master/LICENSE)
 
 ## GPL-3 dependencies
 
