@@ -1550,11 +1550,13 @@ namespace tool::gsc::compiler {
                                 while (term && term->getTreeType() == TREE_RULE && term->children.size() == 1) {
                                     term = term->children[0];
                                 }
-                                TerminalNode* termNode{ term && term->getTreeType() == TREE_TERMINAL ? dynamic_cast<TerminalNode*>(term) : nullptr };
+                                TerminalNode* termNode{ term && term->getTreeType() == TREE_TERMINAL
+                                                            ? dynamic_cast<TerminalNode*>(term)
+                                                            : nullptr };
                                 tool::gsc::opcode::VmHashFunc* hashFunc{ obj.vmInfo->GetVMHashOPCode('#') };
                                 std::string eventStr{};
-                                if (termNode && hashFunc && termNode->getSymbol()->getType() == gscParser::STRING
-                                    && obj.TryStringNodeValue(eventNode, eventStr)) {
+                                if (termNode && hashFunc && termNode->getSymbol()->getType() == gscParser::STRING &&
+                                    obj.TryStringNodeValue(eventNode, eventStr)) {
                                     const char* ss{ eventStr.c_str() };
                                     uint64_t eventHash{};
                                     if (!hash::TryHashPattern(ss, eventHash)) {
@@ -1584,7 +1586,8 @@ namespace tool::gsc::compiler {
                                 );
                                 paramError = true;
                             } else {
-                                if (!ParseEventParam(paramsList->children[0], f.HasFlag(VPFD_EVENT_HASH) || f.HasFlag(VPFD_EVENT_HASH_ALL))) {
+                                bool isEvent{ f.HasFlag(VPFD_EVENT_HASH) || f.HasFlag(VPFD_EVENT_HASH_ALL) };
+                                if (!ParseEventParam(paramsList->children[0], isEvent)) {
                                     paramError = true;
                                 }
 
@@ -1675,7 +1678,8 @@ namespace tool::gsc::compiler {
                                 removedStart += 2; // use the first param as hash
                             }
                             for (int i = (int)paramsList->children.size() - 1; i >= removedStart; i -= 2) {
-                                bool isEvent{ f.HasFlag(VPFD_EVENT_HASH_ALL) || (f.HasFlag(VPFD_EVENT_HASH) && i == removedStart) };
+                                bool isEvent{ f.HasFlag(VPFD_EVENT_HASH_ALL) ||
+                                              (f.HasFlag(VPFD_EVENT_HASH) && i == removedStart) };
                                 if (!ParseEventParam(paramsList->children[i], isEvent)) {
                                     paramError = true;
                                 }
