@@ -1,17 +1,15 @@
 #pragma once
+#include <acts_api/http_server.h>
 #include <uv.h>
 #include <rapidjson/document.h>
 
 namespace tool::http {
-    constexpr uint16_t DEFAULT_PORT = 8080;
-    constexpr const char* DEFAULT_HOST = "127.0.0.1";
-
     /*
      * Server configuration
      */
     struct HttpServerConfig {
-        uint16_t port{ DEFAULT_PORT };
-        const char* host{ DEFAULT_HOST };
+        uint16_t port{ ACTS_HTTP_DEFAULT_PORT };
+        std::string host{ ACTS_HTTP_DEFAULT_HOST };
         bool noMCPServer{};
     };
 
@@ -45,6 +43,13 @@ namespace tool::http {
         void Run();
 
         /*
+         * Process the pending events without blocking, to drive the server from the loop of another application.
+         * Must be called from the same thread every time. Start must have succeeded.
+         * @return true if there are still active handles
+         */
+        bool Poll();
+
+        /*
          * Request the event loop to stop, can be called from any thread while Run is active
          */
         void Stop();
@@ -57,7 +62,7 @@ namespace tool::http {
          * @param status [out] HTTP status code
          * @return JSON response body
          */
-        std::string HandleRequest(const char* method, const std::string& url, const std::string& body, int& status);
+        std::string HandleRequest(uint8_t method, const std::string& url, const std::string& body, int& status);
 
         uv_loop_t* GetLoop() { return &loop; }
     };

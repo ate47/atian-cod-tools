@@ -163,7 +163,7 @@ namespace core::logs {
                     out << cli::clicolor::Color(5, 4, 1);
                     break;
                 case LVL_INFO:
-                    out << cli::clicolor::Color(5, 5, 5);
+                    out << cli::clicolor::CD_RESET;
                     break;
                 case LVL_DEBUG:
                     out << cli::clicolor::Color(4, 5, 1);
@@ -173,7 +173,7 @@ namespace core::logs {
                     out << cli::clicolor::Color(1, 5, 5);
                     break;
                 default:
-                    out << cli::clicolor::Reset();
+                    out << cli::clicolor::CD_RESET;
                     break;
                 }
             }

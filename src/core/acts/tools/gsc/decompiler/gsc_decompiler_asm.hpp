@@ -547,6 +547,10 @@ namespace tool::gsc {
              * Disable the decompiler
              */
             void DisableDecompiler(const std::string& reason);
+            /*
+             * Write status error
+             */
+            void StatusError(const std::string& reason);
         };
 
         size_t SizeNoEmptyNode(const std::vector<ASMContextStatement>& statements);

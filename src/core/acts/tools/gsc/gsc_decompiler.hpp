@@ -96,6 +96,8 @@ namespace tool::gsc {
         const char* (*LookupLocalizedFunc)(uint64_t hash){};
         void (*WriteAsmFunction)(const char* str, size_t len, void* ud){};
         void* udWriteAsmFunction{};
+        void (*WriteErrorFunction)(const char* str, size_t len, NameLocated& origin, void* ud){};
+        void* udWriteErrorFunction{};
 
         std::vector<const char*> m_inputFiles{};
 
@@ -148,6 +150,7 @@ namespace tool::gsc {
             uint64_t, std::unordered_map<uint64_t, std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals>>>
             vtables{};
         std::unordered_map<NameLocated, GscExportInformation, NameLocatedHash, NameLocatedEquals> exportInfos{};
+        std::unordered_set<NameLocated, NameLocatedHash, NameLocatedEquals> exportFilters{};
         std::unordered_map<uint64_t, std::unordered_set<uint32_t>>* opcodesLocs{};
         std::unordered_set<std::string>* dumpStringsStore{};
         std::vector<const char*>* stringsLoc{};

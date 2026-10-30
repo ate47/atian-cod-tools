@@ -665,6 +665,18 @@ namespace tool::gsc::opcode {
         m_disableDecompilerError = reason;
     }
 
+    void ASMContext::StatusError(const std::string& reason) {
+        if (m_objctx.gdctx.opt.WriteErrorFunction) {
+            m_exp.SetHandle(m_readerHandle);
+            NameLocated loc{};
+            loc.name = m_exp.GetName();
+            loc.name_space = m_exp.GetNamespace();
+            loc.script = m_objctx.scriptfile->GetName();
+            m_objctx.gdctx.opt
+                .WriteErrorFunction(reason.data(), reason.size(), loc, m_objctx.gdctx.opt.udWriteErrorFunction);
+        }
+    }
+
     void ASMContext::ComputeDefaultParamValue() {
         if (m_funcBlock.m_statements.size() < 2) {
             return; // we need at least 2 elements

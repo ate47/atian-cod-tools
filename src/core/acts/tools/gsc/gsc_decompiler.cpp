@@ -1070,7 +1070,23 @@ namespace tool::gsc {
                 void* handle = scriptfile->Ptr(scriptfile->GetExportsOffset() + i * exp->SizeOf());
                 exp->SetHandle(handle);
 
-                // if we aren't dumping the ASM, we compute all the nodes first
+                if (!ctx.gdctx.exportFilters.empty()) {
+                    NameLocated loc{};
+                    loc.name = exp->GetName();
+                    if (!ctx.gdctx.exportFilters.contains(loc)) {
+                        loc.name_space = exp->GetNamespace();
+                        if (!ctx.gdctx.exportFilters.contains(loc)) {
+                            loc.script = scriptfile->GetName();
+                            if (!ctx.gdctx.exportFilters.contains(loc)) {
+                                // search name, name/nsp or name/nsp/script
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                // exportFilters
+                //  if we aren't dumping the ASM, we compute all the nodes first
                 std::ostream& output{ opt.m_dasm ? asmout : nullstream };
 
                 if (exp->GetNamespace() != currentNSP) {

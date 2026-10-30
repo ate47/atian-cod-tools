@@ -41,7 +41,10 @@ namespace core::config {
             return nullAnswer; // not a valid path
         }
         if (loc.IsNull()) {
-            return loc; // invalid object
+            if (!createEmpty) {
+                return loc; // invalid object
+            }
+            loc.SetObject();
         }
         if (path[0] == '~' && !path[1]) {
             return loc;
@@ -55,6 +58,15 @@ namespace core::config {
 
         if (idx == std::string::npos) {
             std::string node{ path + off, sv.length() };
+            bool isArray{ node.ends_with("[]") };
+            if (isArray) {
+                node.resize(node.size() - 2);
+                if (!createEmpty) {
+                    throw std::runtime_error(
+                        std::format("Config [] path not supported without createEmpty", node, path)
+                    );
+                }
+            }
 
             if (!loc.HasMember(node.c_str())) {
                 if (!createEmpty) {
@@ -63,12 +75,36 @@ namespace core::config {
 
                 RapidJsonGeneric key{ rapidjson::kStringType };
                 key.SetString(node.c_str(), main.GetAllocator());
-                loc.AddMember(key, RapidJsonGeneric{ rapidjson::kNullType }, main.GetAllocator());
+                loc.AddMember(
+                    key,
+                    RapidJsonGeneric{ isArray ? rapidjson::kArrayType : rapidjson::kNullType },
+                    main.GetAllocator()
+                );
             }
 
-            return loc[node.c_str()];
+            RapidJsonGeneric& v{ loc[node.c_str()] };
+            if (!isArray) {
+                return v;
+            }
+
+            if (!v.IsArray()) {
+                if (createEmpty) {
+                    throw std::runtime_error(std::format("Trying to use {}[{}] as array, but it isn't", node, path));
+                }
+                return nullAnswer;
+            }
+
+            v.PushBack(RapidJsonGeneric{ rapidjson::kObjectType }, main.GetAllocator());
+            return v[v.Size() - 1];
         }
         std::string node{ path + off, idx };
+        bool isArray{ node.ends_with("[]") };
+        if (isArray) {
+            node.resize(node.size() - 2);
+            if (!createEmpty) {
+                throw std::runtime_error(std::format("Config [] path not supported without createEmpty", node, path));
+            }
+        }
 
         if (!loc.HasMember(node.c_str())) {
             if (!createEmpty) {
@@ -76,19 +112,35 @@ namespace core::config {
             }
             RapidJsonGeneric key{ rapidjson::kStringType };
             key.SetString(node.c_str(), main.GetAllocator());
-            loc.AddMember(key, RapidJsonGeneric{ rapidjson::kObjectType }, main.GetAllocator());
+            loc.AddMember(
+                key,
+                RapidJsonGeneric{ isArray ? rapidjson::kArrayType : rapidjson::kObjectType },
+                main.GetAllocator()
+            );
         }
 
         RapidJsonGeneric& val{ loc[node.c_str()] };
 
-        if (!val.IsObject()) {
+        if (!isArray) {
+            if (!val.IsObject()) {
+                if (createEmpty) {
+                    throw std::runtime_error(std::format("Trying to use {}[{}] as object, but it isn't", node, path));
+                }
+                return nullAnswer;
+            }
+
+            return GetVal(path + off, idx + 1, val, createEmpty);
+        }
+
+        if (!val.IsArray()) {
             if (createEmpty) {
-                throw std::runtime_error(std::format("Trying to use {}[{}] as object, but it isn't", node, path));
+                throw std::runtime_error(std::format("Trying to use {}[{}] as array, but it isn't", node, path));
             }
             return nullAnswer;
         }
 
-        return GetVal(path + off, idx + 1, val);
+        val.PushBack(RapidJsonGeneric{ rapidjson::kObjectType }, main.GetAllocator());
+        return GetVal(path + off, idx + 1, val[val.Size() - 1], createEmpty);
     }
 
     void ConfigGenericRefs::SetVal(const char* path, rapidjson::Value& value, size_t off, RapidJsonGeneric& loc) {
@@ -225,6 +277,8 @@ namespace core::config {
         SetVal(path, v, 0, base);
     }
 
+    std::string ConfigGenericRefs::ToString(bool pretty) const { return JsonToString(base, pretty); }
+
     int64_t ConfigGenericRefs::GetEnum(
         const char* path, const ConfigEnumData* data, size_t dataCount, int64_t defaultEnumValue
     ) {
@@ -269,10 +323,16 @@ namespace core::config {
         utils::WriteFile(path, json);
     }
 
-    std::string JsonToString(const RapidJsonGeneric& doc) {
+    std::string JsonToString(const RapidJsonGeneric& doc, bool pretty) {
         rapidjson::StringBuffer sb{};
-        rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
-        doc.Accept(writer);
+        if (pretty) {
+            rapidjson::PrettyWriter<rapidjson::StringBuffer> writer{ sb };
+            doc.Accept(writer);
+        } else {
+            rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+            doc.Accept(writer);
+        }
+
         return std::string{ sb.GetString(), sb.GetSize() };
     }
 
@@ -320,6 +380,8 @@ namespace core::config {
     void ConfigGenericRefs::SetString(const char* path, const std::string& defaultValue) {}
 
     void ConfigGenericRefs::SetNull(const char* path) {}
+
+    std::string ConfigGenericRefs::ToString(bool pretty) const { return {}; }
 
     void ConfigGenericRefs::SetBool(const char* path, bool defaultValue) {}
     int64_t ConfigGenericRefs::GetEnum(

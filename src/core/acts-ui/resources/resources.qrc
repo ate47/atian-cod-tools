@@ -1,8 +1,10 @@
 <RCC>
     <qresource prefix="/">
         <file>images/icon.ico</file>
+        <file>images/logo.png</file>
         <file>templates/about.mustache</file>
         <file>images/heart.svg</file>
-        <file>theme.qss</file>
+        <file>images/check.svg</file>
+        <file>theme.qss</file> 
     </qresource>
 </RCC>

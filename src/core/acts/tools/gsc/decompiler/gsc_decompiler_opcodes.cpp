@@ -86,11 +86,14 @@ namespace tool::gsc::opcode {
         ) const override {
             bool isValid{ value <= objctx.m_vmInfo->maxOpCode };
 
+            std::string text;
             if (isValid) {
-                out << "Unknown operator: " << std::hex << value << std::endl;
+                text = std::format("Invalid operator: {:x}", value);
             } else {
-                out << "Invalid operator: " << std::hex << value << " (Something went wrong)" << std::endl;
+                text = std::format("Unknown operator: {:x} (Something went wrong)", value);
             }
+            out << text << std::endl;
+            context.StatusError(text);
 
             byte* oldBcl = context.m_bcl;
             for (size_t j = 0; j < 0x4; j++) {
@@ -2718,6 +2721,8 @@ namespace tool::gsc::opcode {
             out << std::endl;
             if (context.m_runDecompiler) {
                 ASMContextNodeMultOp* node = new ASMContextNodeMultOp("InvalidOpCode", false);
+
+                context.StatusError("InvalidOpCode");
 
                 node->AddParam(new ASMContextNodeValue<uint16_t>(value, TYPE_VALUE, true));
                 // convert it to statement

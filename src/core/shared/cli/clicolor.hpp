@@ -3,22 +3,42 @@
 
 namespace cli::clicolor {
 
-    enum ColorData : uint32_t {
+    enum ColorInfo : uint32_t {
         CD_RESET = 0,
         CD_BACKGROUND = 0x10000000,
         CD_COLOR_MASK = ~(CD_BACKGROUND),
     };
 
+    struct ColoredText;
+
+    class ColorData {
+      public:
+        ColorInfo color;
+        constexpr ColorData(ColorInfo color) : color(color) {}
+
+        ColoredText Text(const std::string& text) const;
+
+        template<typename... Args>
+        ColoredText Format(std::format_string<Args...> format, Args&&... args) const {
+            return Text(std::format<Args...>(format, std::forward<Args>(args)...));
+        }
+    };
+
+    struct ColoredText {
+        std::string text;
+        ColorData color;
+    };
+
     bool ConsoleAllowColor();
 
-    constexpr ColorData Reset() { return CD_RESET; }
+    constexpr ColorInfo Reset() { return CD_RESET; }
 
-    constexpr ColorData Color(int r, int g, int b) { return (ColorData)(16 + 36 * r + 6 * g + b); }
+    constexpr ColorInfo Color(int r, int g, int b) { return (ColorInfo)(16 + 36 * r + 6 * g + b); }
 
-    constexpr ColorData ResetBackground() { return CD_RESET; }
+    constexpr ColorInfo ResetBackground() { return CD_RESET; }
 
-    constexpr ColorData ColorBackground(int r, int g, int b) {
-        return (ColorData)(16 + 36 * r + 6 * g + b | CD_BACKGROUND);
+    constexpr ColorInfo ColorBackground(int r, int g, int b) {
+        return (ColorInfo)(16 + 36 * r + 6 * g + b | CD_BACKGROUND);
     }
 
     // Gray
@@ -89,6 +109,13 @@ namespace cli::clicolor {
     constexpr ColorData COLOR_CHOCOLATE = Color(4, 2, 1);
     constexpr ColorData COLOR_TAN = Color(4, 3, 2);
 } // namespace cli::clicolor
+
 std::ostream& operator<<(std::ostream& out, cli::clicolor::ColorData data);
+std::ostream& operator<<(std::ostream& out, cli::clicolor::ColoredText data);
+std::ostream& operator<<(std::ostream& out, cli::clicolor::ColorInfo data);
 template<>
 struct std::formatter<cli::clicolor::ColorData, char> : utils::BasicFormatter<cli::clicolor::ColorData> {};
+template<>
+struct std::formatter<cli::clicolor::ColoredText, char> : utils::BasicFormatter<cli::clicolor::ColoredText> {};
+template<>
+struct std::formatter<cli::clicolor::ColorInfo, char> : utils::BasicFormatter<cli::clicolor::ColorInfo> {};
