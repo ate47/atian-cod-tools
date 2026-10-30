@@ -55,6 +55,10 @@ namespace tool::gsc::opcode {
         VPFD_HASH_PARAM = 1 << 4,
         VPFD_UNPACK = 1 << 5,
         VPFD_STRING_PARAM = 1 << 6,
+        // string literal event names are compiled as hashes (first param only), engine events are hashes
+        VPFD_EVENT_HASH = 1 << 7,
+        // same as VPFD_EVENT_HASH for every param (endon(event+))
+        VPFD_EVENT_HASH_ALL = 1 << 8,
     };
     struct GlobalVariableDef {
         const char* name;
