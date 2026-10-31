@@ -3,7 +3,6 @@
 QWidget
 {
     background: #F3F3F3;
-    qproperty-background: #F3F3F3;
     color: #1F1F1F;
     font-family: "Segoe UI";
     font-size: 9pt;
