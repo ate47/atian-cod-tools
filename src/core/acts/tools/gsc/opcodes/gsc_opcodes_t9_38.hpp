@@ -10,7 +10,7 @@ namespace tool::gsc::opcode {
                 "t9",
                 "cw",
                 VmFlags::VMF_CRC_DUMP | VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT |
-                    VmFlags::VMF_CLIENT_VM
+                    VmFlags::VMF_CLIENT_VM | VmFlags::VMF_LINK_IMPORT_OPCODES
             );
             vt938->RegisterVmName("t9", "cw", "coldwar");
             vt938->AddPlatform(PLATFORM_PC);

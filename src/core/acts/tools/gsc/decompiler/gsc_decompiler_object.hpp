@@ -433,6 +433,8 @@ namespace tool::gsc {
         virtual int PatchCode(T8GSCOBJContext& ctx);
         virtual int PreLoadCode(T8GSCOBJContext& ctx, std::ostream& asmout);
         virtual opcode::Platform ComputePlatform(T8GSCOBJContext& ctx);
+        void
+        PatchImportOPCode(T8GSCOBJContext& ctx, size_t offset, tool::gsc::opcode::OPCode* possibilities, size_t count);
 
         bool IsInsideScript(byte* bytecodeLocation);
         void CheckInsideScript(byte* location);

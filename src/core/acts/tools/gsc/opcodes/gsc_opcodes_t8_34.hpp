@@ -9,7 +9,8 @@ namespace tool::gsc::opcode {
                 "Call of Duty: Black ops 4 (34)",
                 "t8",
                 "bo4_34",
-                VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM
+                VmFlags::VMF_OPCODE_U16 | VmFlags::VMF_ALIGN | VmFlags::VMF_INV_ADD_TO_OBJECT | VmFlags::VMF_CLIENT_VM |
+                    VmFlags::VMF_LINK_IMPORT_OPCODES
             );
             vt834->RegisterVmName("t8_34", "blackops4_34");
             vt834->AddPlatform(PLATFORM_PC);

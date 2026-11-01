@@ -10,7 +10,8 @@ namespace tool::gsc::opcode {
                 "t7",
                 "bo3_1b",
                 VmFlags::VMF_CLIENT_VM | VmFlags::VMF_NO_FILE_NAMESPACE | VmFlags::VMF_ALIGN |
-                    VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7 | VmFlags::VMF_ISTRING | VmFlags::VMF_UNIQUE_HASH
+                    VmFlags::VMF_ANIMTREE_T7 | VmFlags::VMF_HASH_T7 | VmFlags::VMF_ISTRING | VmFlags::VMF_UNIQUE_HASH |
+                    VmFlags::VMF_LINK_IMPORT_OPCODES
             ); // | VmFlags::VMF_CALL_NO_PARAMS
             vt71b->RegisterVmName("t7_1b", "blackops3_1b");
             vt71b->AddPlatform(PLATFORM_PC);

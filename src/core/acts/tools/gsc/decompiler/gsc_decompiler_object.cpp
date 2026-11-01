@@ -1034,6 +1034,56 @@ namespace tool::gsc {
     opcode::Platform GSCOBJHandler::ComputePlatform(T8GSCOBJContext& ctx) {
         return PLATFORM_UNKNOWN; // can't compute platform for that
     }
+    void GSCOBJHandler::PatchImportOPCode(T8GSCOBJContext& ctx, size_t offset, OPCode* possibilities, size_t count) {
+        if (!ctx.m_vmInfo->HasFlag(VmFlags::VMF_LINK_IMPORT_OPCODES) || !count) {
+            return;
+        }
+        uint16_t v;
+        if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
+            if (offset + sizeof(uint16_t) > GetFileSize()) {
+                return;
+            }
+            if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+                v = RefAlign<uint16_t>(offset);
+            } else {
+                v = Ref<uint16_t>(offset);
+            }
+        } else {
+            if (offset + sizeof(uint8_t) > GetFileSize()) {
+                return;
+            }
+            v = Ref<uint8_t>(offset);
+        }
+
+        const OPCodeInfo* nfo{ !v ? nullptr : ctx.m_vmInfo->LookupOpCode(ctx.currentPlatform, v) };
+        if (nfo && nfo->m_id) {
+            for (size_t i = 0; i < count; i++) {
+                if (nfo->m_id == possibilities[i]) {
+                    return; // good candidate
+                }
+            }
+        }
+
+        // not a valid op, we need to patch it
+        for (size_t i = 0; i < count; i++) {
+            auto [ok, op] = ctx.m_vmInfo->GetOpCodeId(ctx.currentPlatform, possibilities[i]);
+
+            if (!ok) {
+                continue;
+            }
+
+            if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_OPCODE_U16)) {
+                if (ctx.m_vmInfo->HasFlag(VmFlags::VMF_ALIGN)) {
+                    RefAlign<uint16_t>(offset) = op;
+                } else {
+                    Ref<uint16_t>(offset) = op;
+                }
+            } else {
+                Ref<uint8_t>(offset) = (uint8_t)op;
+            }
+            return;
+        }
+    }
 
     bool GSCOBJHandler::IsInsideScript(byte* bytecodeLocation) {
         return Ptr() <= bytecodeLocation && Ptr(GetFileSize()) > bytecodeLocation;
@@ -1294,12 +1344,43 @@ namespace tool::gsc {
                 return tool::BASIC_ERROR;
             }
 
-            const auto* imports = reinterpret_cast<const uint32_t*>(&imp[1]);
+            const auto* imports{ reinterpret_cast<const uint32_t*>(&imp[1]) };
+            byte remapedFlags{ RemapFlagsImport(imp->flags) };
+            OPCode availableOp[2]{};
+            size_t availableOpCount{ 1 };
+
+            switch (remapedFlags & CALLTYPE_MASK) {
+            case FUNC_METHOD:
+                availableOp[0] = OPCODE_GetResolveFunction;
+                availableOp[1] = OPCODE_GetFunction;
+                availableOpCount = 2;
+                break;
+            case FUNCTION:
+                availableOp[0] = OPCODE_ScriptFunctionCall;
+                break;
+            case FUNCTION_THREAD:
+                availableOp[0] = OPCODE_ScriptThreadCall;
+                break;
+            case FUNCTION_CHILDTHREAD:
+                availableOp[0] = OPCODE_ScriptThreadCallEndOn;
+                break;
+            case METHOD:
+                availableOp[0] = OPCODE_ScriptMethodCall;
+                break;
+            case METHOD_THREAD:
+                availableOp[0] = OPCODE_ScriptMethodThreadCall;
+                break;
+            case METHOD_CHILDTHREAD:
+                availableOp[0] = OPCODE_ScriptMethodThreadCallEndOn;
+                break;
+            default:
+                availableOpCount = 0;
+            }
+
             for (size_t j = 0; j < imp->num_address; j++) {
                 uint32_t* loc;
-                auto remapedFlags = RemapFlagsImport(imp->flags);
 
-                if (imports[j] > fileSize) {
+                if (imports[j] + opcodeSize > fileSize) {
                     LOG_ERROR(
                         "Invalid import {}::{} address 0x{:x} > 0x{:x} for i{}#{}",
                         hashutils::ExtractTmp("namespace", imp->import_namespace),
@@ -1311,6 +1392,8 @@ namespace tool::gsc {
                     );
                     break;
                 }
+
+                PatchImportOPCode(ctx, imports[j], availableOp, availableOpCount);
 
                 switch (remapedFlags & CALLTYPE_MASK) {
                 case FUNC_METHOD:
