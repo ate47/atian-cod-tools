@@ -372,6 +372,20 @@ namespace tool::gsc {
              * @param location pointer
              */
             void CheckInsideScript(byte* location) const;
+            /*
+             * Register a local variable
+             * @name var name ref, it might be replaced with a new name if name=0
+             * @flags variable flags
+             * @defaultValueNode default value
+             * @return the local var
+             */
+            ASMContextLocalVar&
+            RegisterLocalVariable(uint64_t& name, byte flags = 0, ASMContextNode* defaultValueNode = nullptr);
+            /*
+             * Reserve a local variables before calling multiple times RegisterLocalVariable
+             * @param added added vars
+             */
+            void ReserveLocalVariables(size_t added);
 
             // @return if the endian is switched
             bool SwitchEndian() const;

@@ -245,12 +245,7 @@ namespace tool::gsc::opcode {
                 context.m_bcl += 1;
             }
 
-            if (!context.m_localvars.size()) {
-                // the local variables starts at 1
-                context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
-            }
-
-            context.m_localvars.insert(context.m_localvars.begin(), { name, 0 });
+            context.RegisterLocalVariable(name);
             out << hashutils::ExtractTmp("var", name) << " (-" << std::dec << context.m_localvars.size() << ")"
                 << std::endl;
             // don't create statement, we can ignore it
@@ -271,16 +266,12 @@ namespace tool::gsc::opcode {
 
             out << "count: " << std::dec << (int)count << std::endl;
 
+            context.ReserveLocalVariables((size_t)count);
             for (size_t i = 0; i < count; i++) {
                 uint64_t name = context.Read<uint64_t>(context.m_bcl);
                 context.m_bcl += 8;
 
-                if (!context.m_localvars.size()) {
-                    // the local variables starts at 1
-                    context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
-                }
-
-                context.m_localvars.insert(context.m_localvars.begin(), { name, 0 });
+                context.RegisterLocalVariable(name);
                 context.WritePadding(out) << hashutils::ExtractTmp("var", name) << " (-" << std::dec
                                           << context.m_localvars.size() << ")" << std::endl;
             }
@@ -304,12 +295,7 @@ namespace tool::gsc::opcode {
             hashutils::AddPrecomputed(name, ids);
             context.m_bcl += 1;
 
-            if (!context.m_localvars.size()) {
-                // the local variables starts at 1
-                context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
-            }
-
-            context.m_localvars.insert(context.m_localvars.begin(), { name, 0 });
+            context.RegisterLocalVariable(name);
             out << hashutils::ExtractTmp("var", name) << " (-" << std::dec << context.m_localvars.size() << ")"
                 << std::endl;
 
@@ -368,13 +354,9 @@ namespace tool::gsc::opcode {
         ) const override {
             byte count = context.Read<byte>(context.m_bcl++);
 
-            context.m_localvars.reserve((size_t)count + 1);
+            context.ReserveLocalVariables((size_t)count);
 
             out << std::hex << "count: 0x" << (int)count << std::endl;
-            if (!context.m_localvars.size()) {
-                // the local variables starts at 1
-                context.m_localvars.insert(context.m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
-            }
 
             bool lastVa{};
             for (size_t i = 0; i < count; i++) {
@@ -416,7 +398,7 @@ namespace tool::gsc::opcode {
                 }
 
                 // the variables are in reversed order
-                context.m_localvars.insert(context.m_localvars.begin(), { varName, flagsGen });
+                context.RegisterLocalVariable(varName, flagsGen);
 
                 out << hashutils::ExtractTmp("var", varName);
 

@@ -540,6 +540,23 @@ namespace tool::gsc::opcode {
         return m_objctx.scriptfile->IsInsideScript(bytecodeLocation);
     }
     void ASMContext::CheckInsideScript(byte* location) const { m_objctx.scriptfile->CheckInsideScript(location); }
+    ASMContextLocalVar&
+    ASMContext::RegisterLocalVariable(uint64_t& name, byte flags, ASMContextNode* defaultValueNode) {
+        if (!m_localvars.size()) {
+            // the local variables starts at 1
+            m_localvars.insert(m_localvars.begin(), { hash::HashT89Scr("<error>"), 0 });
+        }
+        if (!name) {
+            // we put a error local name if the name is 0 so we display something (#64)
+            const char* varName{ utils::va("a%d", (int)m_localvars.size() - 1) };
+            name = hash::Hash64A(varName);
+            hashutils::AddPrecomputed(name, varName);
+        }
+        m_localvars.insert(m_localvars.begin(), { name, flags, defaultValueNode });
+        return *m_localvars.begin();
+    }
+    void ASMContext::ReserveLocalVariables(size_t added) { m_localvars.reserve(added + m_localvars.empty() ? 1 : 0); }
+
     bool ASMContext::SwitchEndian() const { return m_objctx.SwitchEndian(); }
 
     byte* ASMContext::Aligned(byte* loc, size_t align) {
