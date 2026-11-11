@@ -386,11 +386,9 @@ namespace tool::exe_dump {
             break;
         }
     }
-
-    void DumpProcessExe(const std::filesystem::path& in, const std::filesystem::path& out, DumpProcessOpt* opt) {
+    void InitProcessExe(const std::filesystem::path& in, std::function<void(Process& proc)> callback) {
         std::filesystem::path abs{ std::filesystem::absolute(in) };
         std::wstring instr{ abs.wstring() };
-        LOG_TRACE("dump process {} -> {}", in.string(), out.string());
 
         HANDLE ht;
         if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &ht)) {
@@ -442,11 +440,18 @@ namespace tool::exe_dump {
             }
 
             LOG_TRACE("received end dbg event");
+            callback(proc);
+            break;
+        }
+    }
+
+    void DumpProcessExe(const std::filesystem::path& in, const std::filesystem::path& out, DumpProcessOpt* opt) {
+        LOG_TRACE("dump process {} -> {}", in.string(), out.string());
+        InitProcessExe(in, [opt, &out](Process& proc) {
             if (!opt->noDump) {
                 DumpProcess(proc, out, opt);
             }
-            break;
-        }
+        });
     }
 
     namespace {

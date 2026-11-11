@@ -28,4 +28,11 @@ namespace tool::exe_dump {
      */
     void
     DumpProcessExe(const std::filesystem::path& in, const std::filesystem::path& out, DumpProcessOpt* opt = nullptr);
+
+    /*
+     * Init a process and call the callback when it asks to die
+     * @param in exe path
+     * @param callback function callback
+     */
+    void InitProcessExe(const std::filesystem::path& in, std::function<void(Process& proc)> callback);
 } // namespace tool::exe_dump
