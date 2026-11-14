@@ -64,10 +64,7 @@ jobs:
           mkdir -p vcpkg-cache
           mkdir -p vcpkg-downloads
           ./vcpkg/bootstrap-vcpkg.sh
-      - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        with:
-          msbuild-architecture: x64
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Get version
         id: get_version
         shell: pwsh
@@ -100,8 +97,7 @@ jobs:
       - name: Validate project format
         run: cmake --build build --target check-format
       - name: Build project
-        shell: pwsh
-        run: msbuild build/AtianCodTools.slnx /p:Configuration=Release /p:Platform=x64
+        run: cmake --build build --config Release --parallel
       - name: Run tests
         run: build/bin/Release/acts.exe --noUpdater -l p -d -t utest
       - name: Package project
