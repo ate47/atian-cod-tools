@@ -7,6 +7,9 @@
 #include <cli/clicolor.hpp>
 #include <core/bytebuffer.hpp>
 #include <acts_api/process.h>
+#include <tools/mcp/mcp_tool.hpp>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 namespace tool::exe_dump {
     const char* ImageDirName(size_t id) {
@@ -588,6 +591,228 @@ namespace tool::exe_dump {
             LOG_INFO("game {} dumped, it can now be used.", cfg->id);
             return tool::OK;
         }
+
+        // MCP tools
+
+        // Get a string argument, nullptr if missing
+        const char* GetMcpStringArg(const rapidjson::Value& args, const char* key) {
+            if (!args.IsObject() || !args.HasMember(key) || !args[key].IsString() || !*args[key].GetString()) {
+                return nullptr;
+            }
+            return args[key].GetString();
+        }
+
+        // Get a bool argument, false if missing
+        bool GetMcpBoolArg(const rapidjson::Value& args, const char* key) {
+            return args.IsObject() && args.HasMember(key) && args[key].IsBool() && args[key].GetBool();
+        }
+
+        // Default dump path of an exe: deps/<exe name>_dump.exe
+        std::filesystem::path GetDefaultDumpPath(const std::filesystem::path& exe) {
+            std::filesystem::path name{ exe.filename() };
+            name.replace_extension();
+            return utils::GetProgDir() / "deps" / std::format("{}_dump.exe", name.string());
+        }
+
+        // Find a game config by its id, nullptr if not found
+        GameConfig* FindGameConfig(const char* id) {
+            for (GameConfig& cfg : gameConfigs) {
+                if (!_strcmpi(cfg.id, id)) {
+                    return &cfg;
+                }
+            }
+            return nullptr;
+        }
+
+        std::string ToMcpJson(rapidjson::StringBuffer& sb) { return std::string{ sb.GetString(), sb.GetSize() }; }
+
+        std::string McpDumpResult(const std::filesystem::path& out) {
+            rapidjson::StringBuffer sb{};
+            rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+            writer.StartObject();
+            writer.Key("output");
+            writer.String(out.string().c_str());
+            writer.EndObject();
+            return ToMcpJson(sb);
+        }
+
+        std::string mcp_dump_exe(const rapidjson::Value& args, bool& isError) {
+            const char* exe{ GetMcpStringArg(args, "exe") };
+            if (!exe) {
+                isError = true;
+                return "Missing 'exe' argument";
+            }
+            std::filesystem::path exePath{ exe };
+            std::error_code ec;
+            if (!std::filesystem::is_regular_file(exePath, ec)) {
+                isError = true;
+                return std::format("'{}' isn't a file", exe);
+            }
+            const char* output{ GetMcpStringArg(args, "output") };
+            std::filesystem::path outPath{ output ? std::filesystem::path{ output } : GetDefaultDumpPath(exePath) };
+
+            DumpProcessOpt opt{};
+            opt.rebuildIAT = GetMcpBoolArg(args, "rebuildIAT");
+            try {
+                std::filesystem::create_directories(outPath.parent_path(), ec);
+                DumpProcessExe(exePath, outPath, &opt);
+            } catch (std::exception& e) {
+                isError = true;
+                return e.what();
+            }
+            return McpDumpResult(outPath);
+        }
+
+        std::string mcp_dump_process(const rapidjson::Value& args, bool& isError) {
+            if (!args.IsObject() || !args.HasMember("pid") || !args["pid"].IsUint()) {
+                isError = true;
+                return "Missing 'pid' argument";
+            }
+            const char* output{ GetMcpStringArg(args, "output") };
+
+            try {
+                Process proc{ NULL, args["pid"].GetUint() };
+                if (!proc.Open()) {
+                    isError = true;
+                    return std::format("Can't open process {}", args["pid"].GetUint());
+                }
+                std::filesystem::path outPath;
+                if (output) {
+                    outPath = output;
+                } else {
+                    proc.ComputeModules();
+                    outPath = GetDefaultDumpPath(proc.GetMainModule().path);
+                }
+
+                DumpProcessOpt opt{};
+                opt.rebuildIAT = GetMcpBoolArg(args, "rebuildIAT");
+                std::error_code ec;
+                std::filesystem::create_directories(outPath.parent_path(), ec);
+                DumpProcess(proc, outPath, &opt);
+                return McpDumpResult(outPath);
+            } catch (std::exception& e) {
+                isError = true;
+                return e.what();
+            }
+        }
+
+        std::string mcp_list_game_dumps(const rapidjson::Value& args, bool& isError) {
+            rapidjson::StringBuffer sb{};
+            rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+            writer.StartArray();
+            for (const GameConfig& cfg : gameConfigs) {
+                writer.StartObject();
+                writer.Key("id");
+                writer.String(cfg.id);
+                writer.Key("exe");
+                writer.String(cfg.exe);
+                writer.Key("dlls");
+                writer.StartArray();
+                // the dlls are \0 separated
+                for (const char* dll{ cfg.ddls }; *dll; dll += std::strlen(dll) + 1) {
+                    writer.String(dll);
+                }
+                writer.EndArray();
+                writer.Key("rebuildIAT");
+                writer.Bool(cfg.opt.rebuildIAT);
+                writer.EndObject();
+            }
+            writer.EndArray();
+            return ToMcpJson(sb);
+        }
+
+        std::string mcp_dump_game(const rapidjson::Value& args, bool& isError) {
+            const char* id{ GetMcpStringArg(args, "id") };
+            const char* root{ GetMcpStringArg(args, "path") };
+            if (!id || !root) {
+                isError = true;
+                return "Missing 'id' or 'path' argument";
+            }
+            GameConfig* cfg{ FindGameConfig(id) };
+            if (!cfg) {
+                std::string ids{};
+                for (const GameConfig& c : gameConfigs) {
+                    ids += std::format("{}{}", ids.empty() ? "" : ", ", c.id);
+                }
+                isError = true;
+                return std::format("Unknown game id '{}', available ids: {}", id, ids);
+            }
+
+            std::filesystem::path rootPath{ root };
+            std::filesystem::path exePath{ rootPath / cfg->exe };
+            std::error_code ec;
+            if (!std::filesystem::is_regular_file(exePath, ec)) {
+                isError = true;
+                return std::format("Can't find the game exe '{}', check the game path", exePath.string());
+            }
+
+            const char* output{ GetMcpStringArg(args, "output") };
+            std::filesystem::path outPath{ output ? std::filesystem::path{ output } : GetDefaultDumpPath(exePath) };
+            // the dlls are copied next to the dump
+            std::filesystem::path depsDir{ outPath.parent_path() };
+
+            try {
+                std::filesystem::create_directories(depsDir);
+
+                rapidjson::StringBuffer sb{};
+                rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+                writer.StartObject();
+
+                writer.Key("installedDlls");
+                writer.StartArray();
+                for (const char* dll{ cfg->ddls }; *dll; dll += std::strlen(dll) + 1) {
+                    std::filesystem::path dllPath{ rootPath / dll };
+                    std::filesystem::path depsPath{ depsDir / dllPath.filename() };
+                    std::filesystem::copy_file(dllPath, depsPath, std::filesystem::copy_options::skip_existing);
+                    writer.String(depsPath.string().c_str());
+                }
+                writer.EndArray();
+
+                DumpProcessExe(exePath, outPath, &cfg->opt);
+
+                writer.Key("output");
+                writer.String(outPath.string().c_str());
+                writer.EndObject();
+                return ToMcpJson(sb);
+            } catch (std::exception& e) {
+                isError = true;
+                return e.what();
+            }
+        }
+
+        ADD_MCP_TOOL(
+            dump_exe,
+            "Dump an exe protected by an anti-cheat/packer: the exe is started under a debugger and its unpacked image "
+            "is written into 'output' (default: deps/<exe name>_dump.exe in the ACTS directory). WARNING: this runs "
+            "the "
+            "exe. 'rebuildIAT' rebuilds the import table, required for the games where the anti-cheat mixes it. To "
+            "dump a game, prefer dump_game. Returns { output }.",
+            R"({"type":"object","properties":{"exe":{"type":"string","description":"path of the exe to dump"},"output":{"type":"string","description":"optional output file"},"rebuildIAT":{"type":"boolean"}},"required":["exe"]})",
+            mcp_dump_exe
+        );
+        ADD_MCP_TOOL(
+            dump_process,
+            "Dump the main module of a running process by its pid, it is written into 'output' (default: "
+            "deps/<exe name>_dump.exe in the ACTS directory). 'rebuildIAT' rebuilds the import table. Returns "
+            "{ output }.",
+            R"({"type":"object","properties":{"pid":{"type":"integer","minimum":0},"output":{"type":"string","description":"optional output file"},"rebuildIAT":{"type":"boolean"}},"required":["pid"]})",
+            mcp_dump_process
+        );
+        ADD_MCP_TOOL(
+            list_game_dumps,
+            "List the games supported by dump_game. Returns an array of { id, exe (relative to the game directory), "
+            "dlls (copied next to the dump), rebuildIAT }.",
+            nullptr, mcp_list_game_dumps
+        );
+        ADD_MCP_TOOL(
+            dump_game,
+            "Dump the exe of a game so it can be used by ACTS (the exe is started to be dumped, the required dlls are "
+            "copied next to the dump). 'id' is a game id from list_game_dumps, 'path' is the game directory. The "
+            "dump is written into 'output' (default: deps/<exe name>_dump.exe in the ACTS directory). Returns { "
+            "installedDlls[], output }.",
+            R"({"type":"object","properties":{"id":{"type":"string","description":"game id, see list_game_dumps"},"path":{"type":"string","description":"game directory"},"output":{"type":"string","description":"optional output file"}},"required":["id","path"]})",
+            mcp_dump_game
+        );
 
         ADD_TOOL(exe_dump, "common", "[exe] (out)", "Dump exe", exe_dump);
         ADD_TOOL(game_dump, "common", "[id] [path]", "Dump game exe to acts", game_dump);
