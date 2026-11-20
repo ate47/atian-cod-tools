@@ -27,6 +27,7 @@ target_link_libraries(abp_game_config_packer PRIVATE
 # out:    output files to generated, will create .hpp.inl and .cpp.inl
 # example: add_game_pack_target(AtianCodToolsBO4ShieldPluginGame bo4 "${CMAKE_SOURCE_DIR}/src/dll/shield-plugin/data/bo4_generated")
 macro(add_game_pack_target target gameid out)
+    message(STATUS "Create game target ${target} (${gameid}) -> ${out}")
     add_custom_command(
         OUTPUT "${out}.hpp.inl" "${out}.cpp.inl"
         COMMAND abp_game_config_packer

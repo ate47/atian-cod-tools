@@ -63,7 +63,7 @@ set(ACTS_VERSION_STRING
     "${ACTSAVI_DEV}${VERSION}${ACTSAVI_GPL}${ACTSAVI_PRER}"
 )
 
-message(STATUS "Building data for acts ${ACTS_VERSION_STRING} (0x${VERSION_ID})")
+message(STATUS "Building data for acts ${ACTS_VERSION_STRING} (0x${VERSION_ID}) gpl:${GPL_BUILD} ci:${CI_BUILD}")
 
 # Generate version information
 configure_file(
@@ -98,6 +98,7 @@ macro(append_common_defs target)
     if ("${target_type}" STREQUAL "")
         set(target_type "CXX")
     endif()
+    message(STATUS "Load common def ${target} (${target_type})")
 
     target_compile_definitions(${target} PRIVATE
         $<$<CONFIG:Debug>:DEBUG>
@@ -138,6 +139,7 @@ macro(append_common_defs target)
 endmacro()
 
 macro(install_common_defs target nsp)
+    message(STATUS "Install common def ${nsp}${target}")
     install(
         TARGETS "${target}"
         EXPORT "${target}Targets"

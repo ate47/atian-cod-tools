@@ -10,6 +10,7 @@ set_target_properties(abp_t89_error_generator PROPERTIES
 # in:     input tsv
 # out:    output files to generated
 macro(add_error_gen_target target in out)
+    message(STATUS "Create error target ${target} ${in} -> ${out}")
     add_custom_command(
         OUTPUT ${out}
         COMMAND abp_t89_error_generator ${in} ${out}
