@@ -40,7 +40,7 @@ namespace tool::mcp {
         }
     } // namespace
 
-    std::string HandleRpc(const std::string& body, int& status) {
+    std::string HandleRpc(const std::string& body, int& status, const char* category) {
         status = 200;
         core::config::JDoc req{};
         if (!req.ParseDocument(body.data(), body.size())) {
@@ -86,6 +86,9 @@ namespace tool::mcp {
         case "tools/list"_x: {
             rapidjson::Value list{ rapidjson::kArrayType };
             for (const McpTool* tool : GetMcpTools()) {
+                if (!IsMcpToolInCategory(*tool, category)) {
+                    continue;
+                }
                 core::config::ConfigGeneric toolVal{ result.GetSubVal("tools[]", true) };
                 toolVal.SetString("name", tool->name);
                 toolVal.SetString("description", tool->description);
@@ -106,7 +109,7 @@ namespace tool::mcp {
             }
             logInfo = name;
             const McpTool* tool{ FindMcpTool(name) };
-            if (!tool) {
+            if (!tool || !IsMcpToolInCategory(*tool, category)) {
                 return RpcError(id, RPC_INVALID_PARAMS, "Unknown tool");
             }
 

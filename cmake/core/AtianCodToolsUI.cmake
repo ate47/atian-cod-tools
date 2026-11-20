@@ -23,6 +23,8 @@ if (NOT NO_QT_BUILD)
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/fastfile/FastFileAssetPoolConfigWidget.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/fastfile/FastFileAssetPoolWidget.cpp"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/fastfile/FastFileAssetPoolWidget.h"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/fastfile/McpServersWidget.cpp"
+        "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/fastfile/McpServersWidget.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/widgets/games/BO6PS4Widget.h"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/MainWindow.ui"
         "${CMAKE_SOURCE_DIR}/src/core/acts-ui/config_ui.hpp"

@@ -1115,29 +1115,31 @@ namespace {
     }
 
     ADD_MCP_TOOL(
-        get_gsc_vm_info,
+        get_gsc_vm_info, "gsc",
         "Get all the information about a vm (names, magic, flags, platforms, hash opcodes, global variables, "
         "operator functions, datatypes). Use get_gsc_vm_opcodes for the opcode values.",
         R"({"type":"object","properties":{"vm":{"type":"string","description":"vm internalName"}},"required":["vm"]})",
         get_gsc_vm_info
     );
     ADD_MCP_TOOL(
-        list_gsc_vm, "List the GSC VM and their platforms. Returns an array of { internalName, name, platforms[] }.",
-        nullptr, list_gsc_vm
+        list_gsc_vm, "gsc",
+        "List the GSC VM and their platforms. Returns an array of { internalName, name, platforms[] }.", nullptr,
+        list_gsc_vm
     );
 
     ADD_MCP_TOOL(
-        list_gsc_opcode_names,
+        list_gsc_opcode_names, "gsc",
         "List the opcode names usable in the other opcode tools. Optional 'filter' is a case insensitive substring.",
         R"({"type":"object","properties":{"filter":{"type":"string"}}})", list_gsc_opcode_names
     );
     ADD_MCP_TOOL(
-        get_gsc_vm_opcodes, "Get the opcodes defined by a vm for a platform. Returns an array of { opcode, values[] }.",
+        get_gsc_vm_opcodes, "gsc",
+        "Get the opcodes defined by a vm for a platform. Returns an array of { opcode, values[] }.",
         R"({"type":"object","properties":{"vm":{"type":"string","description":"vm internalName"},"platform":{"type":"string"}},"required":["vm","platform"]})",
         get_gsc_vm_opcodes
     );
     ADD_MCP_TOOL(
-        dump_gsc_vm_opcodes,
+        dump_gsc_vm_opcodes, "gsc",
         "Dump the opcodes of a vm for a platform in the actsop csv format (VM,PLATFORM,OPCODE,VALUES, values in hex, "
         "the values not used are in the Undefined line). The csv is returned, or written into 'output' if it is "
         "set.",
@@ -1145,19 +1147,20 @@ namespace {
         dump_gsc_vm_opcodes
     );
     ADD_MCP_TOOL(
-        set_gsc_vm_opcodes,
+        set_gsc_vm_opcodes, "gsc",
         "Add or replace opcode values in a vm for a platform. 'opcodes' is an array of { opcode (name from "
         "list_gsc_opcode_names), values[] (integers) }. A value already used is replaced.",
         R"({"type":"object","properties":{"vm":{"type":"string","description":"vm internalName"},"platform":{"type":"string"},"opcodes":{"type":"array","items":{"type":"object","properties":{"opcode":{"type":"string"},"values":{"type":"array","items":{"type":"integer","minimum":0,"maximum":65535}}},"required":["opcode","values"]}}},"required":["vm","platform","opcodes"]})",
         set_gsc_vm_opcodes
     );
     ADD_MCP_TOOL(
-        remove_gsc_vm_opcodes, "Remove opcode values from a vm for a platform, 'values' is an array of integers.",
+        remove_gsc_vm_opcodes, "gsc",
+        "Remove opcode values from a vm for a platform, 'values' is an array of integers.",
         R"({"type":"object","properties":{"vm":{"type":"string","description":"vm internalName"},"platform":{"type":"string"},"values":{"type":"array","items":{"type":"integer","minimum":0,"maximum":65535}}},"required":["vm","platform","values"]})",
         remove_gsc_vm_opcodes
     );
     ADD_MCP_TOOL(
-        decompile_gsc_file,
+        decompile_gsc_file, "gsc",
         "Decompile or disassemble the compiled GSC/CSC files of a path (a file or a directory, searched "
         "recursively) with the current vm opcodes. The vm is read from the magic of each file. The platform is pc by "
         "default, mode is decompile (default), asm, both or status (only the files with errors, without the output). "
@@ -1172,7 +1175,7 @@ namespace {
         decompile_gsc_file
     );
     ADD_MCP_TOOL(
-        search_gsc_scripts,
+        search_gsc_scripts, "gsc",
         "Search the compiled GSC/CSC files of a path (a file or a directory, searched recursively). Filters, all "
         "optional and combined with AND: 'script' (script name/path), 'function' and 'namespace' (an export of the "
         "script, the namespace can also be the file namespace) and 'counts' ({ includes|exports|imports|strings|"
@@ -1183,7 +1186,7 @@ namespace {
         search_gsc_scripts
     );
     ADD_MCP_TOOL(
-        get_gsc_script_data,
+        get_gsc_script_data, "gsc",
         "Read the header data of the compiled GSC/CSC files of a path (a file or a directory, searched "
         "recursively). The vm is read from the magic of each file. Returns an array of { path, success, error?, vm, "
         "magic, fileSize, name, checksum, and the count/offset of includes, exports, imports, strings, "

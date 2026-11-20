@@ -333,7 +333,15 @@ namespace tool::http {
             path.pop_back();
         }
 
-        if (!cfg.noMCPServer && path == "/mcp") {
+        // /mcp has all the tools, /mcp/{category} only has the tools of a category
+        bool mcpRoute{ path == "/mcp" };
+        std::string mcpCategory{};
+        if (!mcpRoute && path.starts_with("/mcp/")) {
+            mcpCategory = path.substr(5);
+            mcpRoute = tool::mcp::HasMcpCategory(mcpCategory.c_str());
+        }
+
+        if (!cfg.noMCPServer && mcpRoute) {
             if (req.method != HTTP_POST) {
                 // no server to client stream (GET) and no session (DELETE)
                 HttpResponse resp{ MakeError(HTTP_STATUS_METHOD_NOT_ALLOWED) };
@@ -362,7 +370,8 @@ namespace tool::http {
             }
 
             HttpResponse resp{};
-            resp.body = tool::mcp::HandleRpc(req.body, resp.status);
+            resp.body =
+                tool::mcp::HandleRpc(req.body, resp.status, mcpCategory.empty() ? nullptr : mcpCategory.c_str());
             if (resp.status == HTTP_STATUS_ACCEPTED) {
                 resp.body.clear(); // notifications have no body
             }
@@ -383,9 +392,18 @@ namespace tool::http {
 
             if (!cfg.noMCPServer) {
                 res.SetString("mcp.endpoint", std::format("http://{}:{}/mcp", cfg.host, cfg.port));
+                for (const std::string& category : tool::mcp::GetMcpCategories()) {
+                    core::config::ConfigGeneric categoryJson{ res.GetSubVal("mcp.categories[]", true) };
+                    categoryJson.SetString("name", category);
+                    categoryJson.SetString(
+                        "endpoint",
+                        std::format("http://{}:{}/mcp/{}", cfg.host, cfg.port, category)
+                    );
+                }
                 for (const tool::mcp::McpTool* tool : tool::mcp::GetMcpTools()) {
                     core::config::ConfigGeneric toolJson{ res.GetSubVal("mcp.tools[]", true) };
                     toolJson.SetString("name", tool->name);
+                    toolJson.SetString("category", tool->category);
                     toolJson.SetString("description", tool->description);
                     if (tool->inputSchema) {
                         rapidjson::Document schema{};

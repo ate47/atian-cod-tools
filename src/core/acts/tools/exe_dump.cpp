@@ -781,7 +781,7 @@ namespace tool::exe_dump {
         }
 
         ADD_MCP_TOOL(
-            dump_exe,
+            dump_exe, "common",
             "Dump an exe protected by an anti-cheat/packer: the exe is started under a debugger and its unpacked image "
             "is written into 'output' (default: deps/<exe name>_dump.exe in the ACTS directory). WARNING: this runs "
             "the "
@@ -791,7 +791,7 @@ namespace tool::exe_dump {
             mcp_dump_exe
         );
         ADD_MCP_TOOL(
-            dump_process,
+            dump_process, "common",
             "Dump the main module of a running process by its pid, it is written into 'output' (default: "
             "deps/<exe name>_dump.exe in the ACTS directory). 'rebuildIAT' rebuilds the import table. Returns "
             "{ output }.",
@@ -799,13 +799,13 @@ namespace tool::exe_dump {
             mcp_dump_process
         );
         ADD_MCP_TOOL(
-            list_game_dumps,
+            list_game_dumps, "common",
             "List the games supported by dump_game. Returns an array of { id, exe (relative to the game directory), "
             "dlls (copied next to the dump), rebuildIAT }.",
             nullptr, mcp_list_game_dumps
         );
         ADD_MCP_TOOL(
-            dump_game,
+            dump_game, "common",
             "Dump the exe of a game so it can be used by ACTS (the exe is started to be dumped, the required dlls are "
             "copied next to the dump). 'id' is a game id from list_game_dumps, 'path' is the game directory. The "
             "dump is written into 'output' (default: deps/<exe name>_dump.exe in the ACTS directory). Returns { "

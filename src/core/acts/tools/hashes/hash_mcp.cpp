@@ -46,7 +46,7 @@ namespace {
     }
 
     ADD_MCP_TOOL(
-        hash_lookup,
+        hash_lookup, "common",
         "Lookup hashes in the hash database. Takes a hash or an array of hashes ('hash_xxx' pattern) "
         "and "
         "returns, for each one, the string, \"unknown hash\" or \"bad format\". The answer is an array if the "

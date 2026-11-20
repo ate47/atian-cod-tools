@@ -15,6 +15,8 @@ namespace tool::mcp {
      */
     struct McpTool {
         const char* name;
+        // category of the tool, it is used by the /mcp/{category} endpoint (the /mcp endpoint has all the tools)
+        const char* category;
         const char* description;
         // JSON schema of the arguments
         const char* inputSchema;
@@ -33,9 +35,31 @@ namespace tool::mcp {
      */
     McpTool* FindMcpTool(const char* name);
 
+    /*
+     * @return the sorted list of the categories used by the Mcp tools
+     */
+    std::vector<std::string> GetMcpCategories();
+
+    /*
+     * Check if a category is used by at least one Mcp tool
+     * @param category category name (case insensitive)
+     * @return true if the category exists
+     */
+    bool HasMcpCategory(const char* category);
+
+    /*
+     * Check if a tool is in a category
+     * @param tool tool
+     * @param category category name (case insensitive), nullptr for all the categories
+     * @return true if the tool is in the category
+     */
+    bool IsMcpToolInCategory(const McpTool& tool, const char* category);
+
 } // namespace tool::mcp
 
-#define ADD_MCP_TOOL(name, desc, schema, handler)                                                                      \
+// Register a MCP tool (same order as ADD_TOOL: name, category), the category is a string ("common", "gsc", ...) used to
+// filter the tools by endpoint
+#define ADD_MCP_TOOL(name, category, desc, schema, handler)                                                            \
     utils::ArrayAdder<tool::mcp::McpTool, tool::mcp::McpTool> __mcpTool_##name {                                       \
-        tool::mcp::GetMcpTools(), #name, desc, schema, handler                                                         \
+        tool::mcp::GetMcpTools(), #name, category, desc, schema, handler                                               \
     }

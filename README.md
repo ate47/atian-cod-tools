@@ -125,6 +125,18 @@ Or they can be downloaded from multiple sources
 
 Multiple utilities for brute forcing hashes, replace hashes in files, scan for them or compress are available. A list can be obtained using `acts list hash`.
 
+## MCP Server
+
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is a protocol to give access to resources to AI. A MCP server is available within the CLI or inside the UI.
+
+It can be started within the cli using the `acts http_server` tool or via the `Utilities/MCP Server` UI tool.
+
+Existing MCP tools
+
+- common: process dump, hash utilities.
+- gsc: decompile gsc scripts, control opcodes or search.
+
+
 ## Game DLLs
 
 Different dlls were created to add features to existing games
