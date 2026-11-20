@@ -1,39 +1,35 @@
 - acts
 	- fastfile
-		- cw
-			- enhance cw zone linker
-			- fix unsaved scans in handler
-			- port fix empty decompression
-			- unhash kvp keys
-			- allow to aes encrypt fastfile
-			- weaponfrontend, scriptbundlelist and zbarrier unlinkers
-			- bgcache, keyvaluepairs, localize and scriptparsetree linkers
-		- bo3
-			- add support for bo3 zone linker
-			- port fix empty decompression
-		- bo7
-			- use known types to unhash netconststrings
-		- dynamic archive checksums for compressors
-		- allow to load .fc files with -c --fc option
+		- invert m_fdIgnoreMissing test in iw decompressor (#42)
+		- added bo1 ps4 remaster fastfile decompression (#43)
 	- gsc
-		- gsco tool to obfuscate GSC scripts
-		- detect in-script trampolines
-		- fix bo3 notify compilation
-		- fix invalid ordering of the late op (#38)
-	- hashbrutedictgpu2 tool
-	- add mw4 to game_dump tool
-	- add mw4 decrypt
-	- add idc output and options to game_validate
-	- add --seed to control randomness
-	- add -D global option to load PDB
-	- fix part of pe dumper
-	- fix invalid shared lib image size reading (#40)
-- acts shield plugin
-	- use scans to load the data
-- acts bo3 dll
-	- faster scans loading
-- acts bocw dll
-	- faster scans loading
-	- cleanup old code
+		- add #xx syntax for hashes (#39)
+		- fix compilation of global variable as left value (#48)
+		- vm iw10 vm1a support
+		- fix endon compilation with iw19 and iw1a (#52)
+		- set custom local variable name when stripped (#64)
+		- link import opcodes during patch step (#63)
+	- add http server
+	- mcp server
+		- add mcp endpoint
+		- gsc tools to control
+		- proccess/game/exe dump tools
+	- cwm file dumper
+	- test vsc extension
+	- apply mw4/bo7 new names in game dumper
+	- add new decrypt scan for mw4
+	- add mw4sp game dumper
+	- multi algorithms search with hashbrutedictgpu2
+- acts-ui
+	- use qt 6.11.2
+	- assetpool ui tool
+	- better theme
+	- fix invalid logs
+	- start http server with ui
+	- MCP Servers ui widget
+- shield-plugin
+	- some tests
 
-@Kenshin9977
+@JurassicIcon
+@HiNAtyu
+@Arefu
