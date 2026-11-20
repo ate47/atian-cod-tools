@@ -22,25 +22,51 @@ namespace tool::http {
             HttpServer* server{};
             std::string url{};
             std::string body{};
+            std::unordered_map<std::string, std::string> headers{};
+            std::string headerField{};
+            bool headerInValue{};
+            bool bodyTooLarge{};
             bool closing{};
         };
+
+        constexpr size_t MAX_BODY_SIZE = 4 * 1024 * 1024;
+        constexpr const char* CONTENT_TYPE_JSON = "application/json";
+        const char* SUPPORTED_PROTOCOL_VERSIONS[]{ "2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25" };
+
+        std::string ToLower(std::string str) {
+            std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return (char)std::tolower(c); });
+            return str;
+        }
+
+        /*
+         * Extract the host name from a "host[:port]" or "[ipv6][:port]" string
+         */
+        std::string ExtractHost(const std::string& value) {
+            if (value.starts_with('[')) {
+                size_t end{ value.find(']') };
+                return ToLower(value.substr(0, end == std::string::npos ? std::string::npos : end + 1));
+            }
+            return ToLower(value.substr(0, value.find(':')));
+        }
+
+        bool IsLoopbackHost(const std::string& host) {
+            return host == "localhost" || host == "127.0.0.1" || host == "[::1]" || host == "::1";
+        }
+
+        HttpResponse MakeError(int status) {
+            core::config::JDoc res{};
+            res.SetString("error", llhttp_status_name((llhttp_status_t)status));
+            HttpResponse resp{};
+            resp.status = status;
+            resp.body = res.ToString(true);
+            return resp;
+        }
 
         struct WriteReq {
             uv_write_t req{};
             std::string data{};
             uv_buf_t buf{};
         };
-
-        const char* StatusText(int status) {
-            switch (status) {
-            case 200:
-                return "OK";
-            case 404:
-                return "Not Found";
-            default:
-                return "Error";
-            }
-        }
 
         void OnClosed(uv_handle_t* handle) {
             if (handle->type == UV_TCP && handle->data) {
@@ -67,15 +93,17 @@ namespace tool::http {
             CloseConnection(con);
         }
 
-        void SendResponse(Connection* con, int status, const std::string& body) {
+        void SendResponse(Connection* con, const HttpResponse& resp) {
             WriteReq* wr{ new WriteReq{} };
-            wr->data = std::format(
-                "HTTP/1.1 {} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                status,
-                StatusText(status),
-                body.size(),
-                body
-            );
+            wr->data = std::format("HTTP/1.1 {} {}\r\n", resp.status, llhttp_status_name((llhttp_status_t)resp.status));
+            if (!resp.body.empty()) {
+                wr->data += std::format("Content-Type: {}\r\n", CONTENT_TYPE_JSON);
+            }
+            for (const std::pair<std::string, std::string>& header : resp.headers) {
+                wr->data += std::format("{}: {}\r\n", header.first, header.second);
+            }
+            wr->data += std::format("Content-Length: {}\r\nConnection: close\r\n\r\n", resp.body.size());
+            wr->data += resp.body;
             wr->buf = uv_buf_init(wr->data.data(), (unsigned int)wr->data.size());
             int r{ uv_write(&wr->req, reinterpret_cast<uv_stream_t*>(&con->handle), &wr->buf, 1, OnWritten) };
             if (r < 0) {
@@ -90,16 +118,48 @@ namespace tool::http {
             return 0;
         }
 
+        int OnHeaderField(llhttp_t* parser, const char* at, size_t length) {
+            Connection* con{ static_cast<Connection*>(parser->data) };
+            if (con->headerInValue) {
+                // new header
+                con->headerField.clear();
+                con->headerInValue = false;
+            }
+            con->headerField.append(ToLower(std::string{ at, length }));
+            return 0;
+        }
+
+        int OnHeaderValue(llhttp_t* parser, const char* at, size_t length) {
+            Connection* con{ static_cast<Connection*>(parser->data) };
+            con->headerInValue = true;
+            con->headers[con->headerField].append(at, length);
+            return 0;
+        }
+
         int OnBody(llhttp_t* parser, const char* at, size_t length) {
-            static_cast<Connection*>(parser->data)->body.append(at, length);
+            Connection* con{ static_cast<Connection*>(parser->data) };
+            if (con->bodyTooLarge || con->body.size() + length > MAX_BODY_SIZE) {
+                con->bodyTooLarge = true;
+                return 0;
+            }
+            con->body.append(at, length);
             return 0;
         }
 
         int OnMessageComplete(llhttp_t* parser) {
             Connection* con{ static_cast<Connection*>(parser->data) };
-            int status{ 200 };
-            std::string resp{ con->server->HandleRequest(parser->method, con->url, con->body, status) };
-            SendResponse(con, status, resp);
+            HttpResponse resp{};
+            if (con->bodyTooLarge) {
+                resp = MakeError(HTTP_STATUS_PAYLOAD_TOO_LARGE);
+            } else {
+                HttpRequest req{};
+                req.method = parser->method;
+                req.url = std::move(con->url);
+                req.headers = std::move(con->headers);
+                req.body = std::move(con->body);
+                resp = con->server->HandleRequest(req);
+            }
+            SendResponse(con, resp);
             return HPE_PAUSED; // stop parsing, only one request per connection
         }
 
@@ -134,6 +194,8 @@ namespace tool::http {
 
             llhttp_settings_init(&con->settings);
             con->settings.on_url = OnUrl;
+            con->settings.on_header_field = OnHeaderField;
+            con->settings.on_header_value = OnHeaderValue;
             con->settings.on_body = OnBody;
             con->settings.on_message_complete = OnMessageComplete;
             llhttp_init(&con->parser, HTTP_REQUEST, &con->settings);
@@ -235,23 +297,83 @@ namespace tool::http {
             uv_async_send(&stopAsync);
         }
     }
-    std::string
-    HttpServer::HandleRequest(uint8_t method, const std::string& url, const std::string& body, int& status) {
+
+    HttpResponse HttpServer::HandleRequest(const HttpRequest& req) {
         LOG_INFO(
             "[HTTP] {} {}",
-            cli::clicolor::COLOR_AZURE.Text(url),
+            cli::clicolor::COLOR_AZURE.Text(req.url),
             cli::clicolor::COLOR_DARK_GRAY
-                .Format("({}/{} bytes)", llhttp_method_name((llhttp_method_t)method), body.size())
+                .Format("({}/{} bytes)", llhttp_method_name((llhttp_method_t)req.method), req.body.size())
         );
 
-        if (!cfg.noMCPServer && method == HTTP_POST && url == "/mcp") {
-            return tool::mcp::HandleRpc(body, status);
+        // DNS rebinding protection, a browser can't be used to reach the server from another site
+        const std::string hostCfg{ ToLower(cfg.host) };
+        const bool wildcardBind{ hostCfg == "0.0.0.0" || hostCfg == "::" };
+        const std::string* origin{ req.GetHeader("origin") };
+        if (origin) {
+            size_t schemeEnd{ origin->find("://") };
+            std::string originHost{ schemeEnd == std::string::npos ? "" : ExtractHost(origin->substr(schemeEnd + 3)) };
+            if (!IsLoopbackHost(originHost) && originHost != hostCfg) {
+                LOG_DEBUG("Rejected origin '{}'", *origin);
+                return MakeError(HTTP_STATUS_FORBIDDEN);
+            }
+        }
+        const std::string* hostHeader{ req.GetHeader("host") };
+        if (hostHeader && !wildcardBind) {
+            std::string host{ ExtractHost(*hostHeader) };
+            if (!IsLoopbackHost(host) && host != hostCfg) {
+                LOG_DEBUG("Rejected host '{}'", *hostHeader);
+                return MakeError(HTTP_STATUS_FORBIDDEN);
+            }
         }
 
+        // ignore the query string and the trailing slash
+        std::string path{ req.url.substr(0, req.url.find('?')) };
+        if (path.size() > 1 && path.ends_with('/')) {
+            path.pop_back();
+        }
+
+        if (!cfg.noMCPServer && path == "/mcp") {
+            if (req.method != HTTP_POST) {
+                // no server to client stream (GET) and no session (DELETE)
+                HttpResponse resp{ MakeError(HTTP_STATUS_METHOD_NOT_ALLOWED) };
+                resp.headers.emplace_back("Allow", "POST");
+                return resp;
+            }
+
+            const std::string* contentType{ req.GetHeader("content-type") };
+            if (!contentType || !ToLower(*contentType).starts_with(CONTENT_TYPE_JSON)) {
+                return MakeError(HTTP_STATUS_UNSUPPORTED_MEDIA_TYPE);
+            }
+
+            // the header is optional, 2025-03-26 is assumed when it isn't present
+            const std::string* version{ req.GetHeader("mcp-protocol-version") };
+            if (version) {
+                bool supported{};
+                for (const char* v : SUPPORTED_PROTOCOL_VERSIONS) {
+                    if (*version == v) {
+                        supported = true;
+                        break;
+                    }
+                }
+                if (!supported) {
+                    return MakeError(HTTP_STATUS_BAD_REQUEST);
+                }
+            }
+
+            HttpResponse resp{};
+            resp.body = tool::mcp::HandleRpc(req.body, resp.status);
+            if (resp.status == HTTP_STATUS_ACCEPTED) {
+                resp.body.clear(); // notifications have no body
+            }
+            return resp;
+        }
+
+        HttpResponse resp{};
         core::config::JDoc res{};
 
-        if (method == HTTP_GET && url == "/") {
-            status = HTTP_STATUS_OK;
+        if (req.method == HTTP_GET && path == "/") {
+            resp.status = HTTP_STATUS_OK;
             core::config::ConfigGeneric acts{ res.GetSubVal("server", true) };
             acts.SetString("name", "acts");
             acts.SetString("version", core::actsinfo::VERSION);
@@ -277,11 +399,11 @@ namespace tool::http {
                 }
             }
         } else {
-            status = HTTP_STATUS_NOT_FOUND;
-            res.SetString("error", llhttp_status_name(HTTP_STATUS_NOT_FOUND));
+            return MakeError(HTTP_STATUS_NOT_FOUND);
         }
 
-        return res.ToString(true);
+        resp.body = res.ToString(true);
+        return resp;
     }
 
     namespace {

@@ -14,6 +14,36 @@ namespace tool::http {
     };
 
     /*
+     * HTTP request
+     */
+    struct HttpRequest {
+        uint8_t method{};
+        std::string url{};
+        // header names are lowercase
+        std::unordered_map<std::string, std::string> headers{};
+        std::string body{};
+
+        /*
+         * Get a header value
+         * @param name lowercase header name
+         * @return header value or nullptr if not present
+         */
+        const std::string* GetHeader(const std::string& name) const {
+            std::unordered_map<std::string, std::string>::const_iterator it{ headers.find(name) };
+            return it == headers.end() ? nullptr : &it->second;
+        }
+    };
+
+    /*
+     * HTTP response, the body is sent as JSON when not empty
+     */
+    struct HttpResponse {
+        int status{ 200 };
+        std::string body{};
+        std::vector<std::pair<std::string, std::string>> headers{};
+    };
+
+    /*
      * Basic HTTP server
      */
     class HttpServer {
@@ -56,13 +86,10 @@ namespace tool::http {
 
         /*
          * Build the response body for a request
-         * @param method HTTP method
-         * @param url request url
-         * @param body request body
-         * @param status [out] HTTP status code
-         * @return JSON response body
+         * @param req request
+         * @return response
          */
-        std::string HandleRequest(uint8_t method, const std::string& url, const std::string& body, int& status);
+        HttpResponse HandleRequest(const HttpRequest& req);
 
         uv_loop_t* GetLoop() { return &loop; }
     };
