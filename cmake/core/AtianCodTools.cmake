@@ -49,8 +49,8 @@ source_group(
 )
 message(STATUS "ACTS marker source_group include done")
 source_group(
-    TREE "${CMAKE_SOURCE_DIR}/"
-    PREFIX "/"
+    TREE "${CMAKE_SOURCE_DIR}"
+    PREFIX "root"
     FILES ${ACTS_ROOT_SOURCES} ${ACTS_ROOT_SOURCES_REC}
 )
 message(STATUS "ACTS marker source_group root done")

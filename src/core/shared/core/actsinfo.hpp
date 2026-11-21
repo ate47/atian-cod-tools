@@ -5,8 +5,8 @@ namespace core::actsinfo {
     constexpr unsigned int DEV_VERSION_ID = 0xFFFFFFFF;
     constexpr unsigned int BUILD_VERSION_ID = 0x3004000;
 
-    constexpr const char *VERSION = "3.4.0";
-    constexpr const wchar_t *VERSIONW = L"3.4.0";
+    constexpr const char *VERSION = "dev-3.4.0";
+    constexpr const wchar_t *VERSIONW = L"dev-3.4.0";
 
 #ifdef CI_BUILD
     constexpr unsigned int VERSION_ID = BUILD_VERSION_ID;
