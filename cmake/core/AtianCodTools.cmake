@@ -18,6 +18,7 @@ file(GLOB_RECURSE ACTS_ROOT_SOURCES_REC
     "${CMAKE_SOURCE_DIR}/.github/**"
     "${CMAKE_SOURCE_DIR}/cmake/**"
 )
+message(STATUS "ACTS marker globs done")
 if(STATIC_ACTS)
     add_library(AtianCodTools STATIC)
     set_target_properties(AtianCodTools PROPERTIES
@@ -32,23 +33,29 @@ else()
     )
 endif()
 
+message(STATUS "ACTS marker add_library done")
 target_sources(AtianCodTools PRIVATE ${ACTS_SOURCES} ${ACTS_INCLUDE_SOURCES} ${ACTS_ROOT_SOURCES} ${ACTS_ROOT_SOURCES_REC})
+message(STATUS "ACTS marker target_sources done")
 source_group(
     TREE "${CMAKE_SOURCE_DIR}/src/core/acts"
     PREFIX acts
     FILES ${ACTS_SOURCES}
 )
+message(STATUS "ACTS marker source_group acts done")
 source_group(
     TREE "${CMAKE_SOURCE_DIR}/include"
     PREFIX include
     FILES ${ACTS_INCLUDE_SOURCES}
 )
+message(STATUS "ACTS marker source_group include done")
 source_group(
     TREE "${CMAKE_SOURCE_DIR}/"
     PREFIX "/"
     FILES ${ACTS_ROOT_SOURCES} ${ACTS_ROOT_SOURCES_REC}
 )
+message(STATUS "ACTS marker source_group root done")
 target_precompile_headers(AtianCodTools PRIVATE "${CMAKE_SOURCE_DIR}/src/core/acts/includes.hpp")
+message(STATUS "ACTS marker pch done")
 append_common_defs(AtianCodTools)
 
 add_custom_target(AtianCodToolsCopyConfig ALL

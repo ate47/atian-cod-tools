@@ -93,10 +93,12 @@ jobs:
         run: . "$env:LLVM_PATH/bin/clang-format.exe" --version
       - name: Create project (GPL)
         if: ${{ inputs.gpl }}
-        run: cmake -S . -B build --preset ci-gpl
+        shell: cmd
+        run: cmake -S . -B build --preset ci-gpl --log-level=DEBUG 2>&1
       - name: Create project (MIT)
         if: ${{ !inputs.gpl }}
-        run: cmake -S . -B build --preset ci
+        shell: cmd
+        run: cmake -S . -B build --preset ci --log-level=DEBUG 2>&1
       - name: Validate project format
         run: cmake --build build --target check-format
       - name: Build project
