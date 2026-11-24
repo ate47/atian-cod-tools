@@ -63,8 +63,23 @@ namespace {
         return nullptr;
     }
 
-    // Read the 'vm' (internalName) and 'platform' arguments
-    bool ReadVmPlatform(const rapidjson::Value& args, VmInfo*& info, Platform& plt, std::string& err) {
+    // Names of the platforms, only the ones defined by a vm if info is set
+    std::string PlatformNamesList(const VmInfo* info) {
+        std::string names{};
+        for (size_t i = 1; i < tool::gsc::opcode::PLATFORM_COUNT; i++) {
+            Platform plt{ (Platform)i };
+            if (info && !info->HasPlatform(plt)) {
+                continue;
+            }
+            names += std::format("{}{}", names.empty() ? "" : ", ", tool::gsc::opcode::PlatformIdName(plt));
+        }
+        return names;
+    }
+
+    // Read the 'vm' (internalName) and 'platform' arguments, mustExist: the platform must already be defined by the vm
+    bool ReadVmPlatform(
+        const rapidjson::Value& args, VmInfo*& info, Platform& plt, std::string& err, bool mustExist = false
+    ) {
         const char* vmName{ GetStringArg(args, "vm") };
         if (!vmName) {
             err = "Missing 'vm' argument";
@@ -82,7 +97,20 @@ namespace {
         }
         plt = tool::gsc::opcode::PlatformOf(pltName);
         if (plt == tool::gsc::opcode::PLATFORM_UNKNOWN) {
-            err = std::format("Unknown platform '{}', use list_gsc_vm to get the platforms", pltName);
+            err = std::format(
+                "Unknown platform '{}', valid platforms: {} (use list_gsc_platforms)",
+                pltName,
+                PlatformNamesList(nullptr)
+            );
+            return false;
+        }
+        if (mustExist && !info->HasPlatform(plt)) {
+            err = std::format(
+                "Platform '{}' isn't defined for vm '{}', defined platforms: {}",
+                pltName,
+                info->internalName,
+                PlatformNamesList(info)
+            );
             return false;
         }
         return true;
@@ -129,11 +157,28 @@ namespace {
         return ToJson(sb);
     }
 
+    std::string list_gsc_platforms(const rapidjson::Value& args, bool& isError) {
+        rapidjson::StringBuffer sb{};
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+        writer.StartArray();
+        for (size_t i = 1; i < tool::gsc::opcode::PLATFORM_COUNT; i++) {
+            Platform plt{ (Platform)i };
+            writer.StartObject();
+            writer.Key("id");
+            writer.String(tool::gsc::opcode::PlatformIdName(plt));
+            writer.Key("name");
+            writer.String(tool::gsc::opcode::PlatformName(plt));
+            writer.EndObject();
+        }
+        writer.EndArray();
+        return std::string{ sb.GetString(), sb.GetSize() };
+    }
+
     std::string get_gsc_vm_opcodes(const rapidjson::Value& args, bool& isError) {
         VmInfo* info{};
         Platform plt{};
         std::string err;
-        if (!ReadVmPlatform(args, info, plt, err)) {
+        if (!ReadVmPlatform(args, info, plt, err, true)) {
             isError = true;
             return err;
         }
@@ -180,7 +225,7 @@ namespace {
         VmInfo* info{};
         Platform plt{};
         std::string err;
-        if (!ReadVmPlatform(args, info, plt, err)) {
+        if (!ReadVmPlatform(args, info, plt, err, true)) {
             isError = true;
             return err;
         }
@@ -214,20 +259,68 @@ namespace {
             }
         }
 
-        std::string csv{ "VM,PLATFORM,OPCODE,VALUES" };
-        for (const std::pair<const std::string, std::vector<uint16_t>>& op : opcodes) {
-            csv += std::format("\n{},{},{},", vmName, pltName, op.first);
-            for (size_t i = 0; i < op.second.size(); i++) {
-                csv += std::format("{}0x{:x}", i ? ";" : "", op.second[i]);
-            }
+        // dumpType: csv (default, actsop format) or cpp (RegisterOpCode calls like the opcode registries)
+        const char* dumpType{ GetStringArg(args, "dumpType") };
+        bool cppDump{};
+        if (dumpType && !_strcmpi(dumpType, "cpp")) {
+            cppDump = true;
+        } else if (dumpType && _strcmpi(dumpType, "csv")) {
+            isError = true;
+            return std::format("Invalid 'dumpType' '{}', expecting csv or cpp", dumpType);
         }
-        if (defined.size() < info->maxOpCode) {
-            csv += std::format("\n{},{},Undefined,", vmName, pltName);
-            bool first{ true };
-            for (size_t i = 0; i <= info->maxOpCode; i++) {
-                if (!defined.contains((uint16_t)i)) {
-                    csv += std::format("{}0x{:x}", first ? "" : ";", i);
-                    first = false;
+
+        std::string csv{};
+        if (cppDump) {
+            std::map<std::string, std::vector<uint16_t>> cppOpcodes{};
+            if (pltIt != info->opcodemappltlookup.end()) {
+                for (const std::pair<const OPCode, std::unordered_set<uint16_t>>& op : pltIt->second) {
+                    if (op.first == tool::gsc::opcode::OPCODE_Undefined) {
+                        continue;
+                    }
+                    std::string_view enumName{ magic_enum::enum_name(op.first) };
+                    std::vector<uint16_t>& values{
+                        cppOpcodes
+                            [enumName.empty() ? std::format("(OPCode){}", (int)op.first) : std::string{ enumName }]
+                    };
+                    values.assign(op.second.begin(), op.second.end());
+                    std::sort(values.begin(), values.end());
+                }
+            }
+            std::string_view pltEnumName{ magic_enum::enum_name(plt) };
+            for (const std::pair<const std::string, std::vector<uint16_t>>& op : cppOpcodes) {
+                csv += std::format(
+                    "{}vminfo->RegisterOpCode({}, {}",
+                    csv.empty() ? "" : "\n",
+                    pltEnumName.empty() ? std::format("(Platform){}", (int)plt) : std::string{ pltEnumName },
+                    op.first
+                );
+                for (uint16_t value : op.second) {
+                    csv += std::format(", 0x{:x}", value);
+                }
+                csv += ");";
+            }
+        } else {
+            csv = "VM,PLATFORM,OPCODE,VALUES";
+            for (const std::pair<const std::string, std::vector<uint16_t>>& op : opcodes) {
+                csv += std::format("\n{},{},{},", vmName, pltName, op.first);
+                for (size_t i = 0; i < op.second.size(); i++) {
+                    csv += std::format("{}0x{:x}", i ? ";" : "", op.second[i]);
+                }
+            }
+            // compact: the unused values above the highest used one are not listed
+            bool compact{ args.HasMember("compact") && args["compact"].IsBool() && args["compact"].GetBool() };
+            size_t lastUndefined{ info->maxOpCode };
+            if (compact) {
+                lastUndefined = defined.empty() ? 0 : *std::max_element(defined.begin(), defined.end());
+            }
+            if (defined.size() < info->maxOpCode) {
+                csv += std::format("\n{},{},Undefined,", vmName, pltName);
+                bool first{ true };
+                for (size_t i = 0; i <= lastUndefined; i++) {
+                    if (!defined.contains((uint16_t)i)) {
+                        csv += std::format("{}0x{:x}", first ? "" : ";", i);
+                        first = false;
+                    }
                 }
             }
         }
@@ -294,7 +387,7 @@ namespace {
         VmInfo* info{};
         Platform plt{};
         std::string err;
-        if (!ReadVmPlatform(args, info, plt, err)) {
+        if (!ReadVmPlatform(args, info, plt, err, true)) {
             isError = true;
             return err;
         }
@@ -372,6 +465,25 @@ namespace {
         return true;
     }
 
+    // Check that the vm of a script magic exists and defines a platform
+    bool CheckPlatformForMagic(uint64_t magic, Platform plt, std::string& err) {
+        VmInfo* vmInfo{};
+        if (!tool::gsc::opcode::IsValidVmMagic(magic, vmInfo)) {
+            err = std::format("No vm for the magic 0x{:x}", magic);
+            return false;
+        }
+        if (!vmInfo->HasPlatform(plt)) {
+            err = std::format(
+                "Platform '{}' isn't defined for vm '{}', defined platforms: {}",
+                tool::gsc::opcode::PlatformIdName(plt),
+                vmInfo->internalName,
+                PlatformNamesList(vmInfo)
+            );
+            return false;
+        }
+        return true;
+    }
+
     std::string decompile_gsc_file(const rapidjson::Value& args, bool& isError) {
         const char* path{ GetStringArg(args, "path") };
         if (!path) {
@@ -420,6 +532,8 @@ namespace {
         gdctx.opt.m_show_opcode_values =
             !(args.HasMember("hideOpcodeValues") && args["hideOpcodeValues"].IsBool() &&
               args["hideOpcodeValues"].GetBool());
+        gdctx.opt.m_use_internal_names = args.HasMember("useInternalNames") && args["useInternalNames"].IsBool() &&
+                                         args["useInternalNames"].GetBool();
 
         // exports: [ { function, namespace?, script? } ], the hashes depend on the vm of each file
         std::vector<ExportFilterDef> exportFilters{};
@@ -478,6 +592,17 @@ namespace {
         size_t processed{};
         bool stoppedEarly{};
 
+        // summary: the errors are grouped by message instead of being listed per file
+        bool summary{ args.HasMember("summary") && args["summary"].IsBool() && args["summary"].GetBool() };
+        struct ErrorGroup {
+            size_t count{};
+            std::set<std::string> scripts{};
+            std::set<std::string> functions{};
+        };
+        std::map<std::string, ErrorGroup> errorGroups{};
+        const size_t maxGroupSamples{ 5 };
+        const char* outputFile{ GetStringArg(args, "outputFile") };
+
         rapidjson::StringBuffer sb{};
         rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
 
@@ -499,6 +624,8 @@ namespace {
             size_t size{};
             if (!utils::ReadFileAlign(file, buffer, bufferAlign, size) || size < 8) {
                 fileErr = "Can't read the file";
+            } else if (!CheckPlatformForMagic(*(uint64_t*)bufferAlign, gdctx.opt.m_platform, fileErr)) {
+                // fileErr is set
             } else if (!exportFilters.empty() && !SetExportFilters(gdctx, *(uint64_t*)bufferAlign, exportFilters)) {
                 fileErr = std::format("No vm for the magic 0x{:x}", *(uint64_t*)bufferAlign);
             } else {
@@ -519,6 +646,34 @@ namespace {
             totalErrors += decompErrors.size() + (fileErr.empty() ? 0 : 1);
             if (status && fileErr.empty() && decompErrors.empty()) {
                 continue; // status mode only lists the files with errors
+            }
+
+            if (summary) {
+                std::string scriptName{ file.string() };
+                if (!fileErr.empty()) {
+                    ErrorGroup& group{ errorGroups[fileErr] };
+                    group.count++;
+                    if (group.scripts.size() < maxGroupSamples) {
+                        group.scripts.insert(scriptName);
+                    }
+                }
+                for (const DecompError& decompError : decompErrors) {
+                    ErrorGroup& group{ errorGroups[decompError.message] };
+                    group.count++;
+                    if (group.scripts.size() < maxGroupSamples) {
+                        group.scripts.insert(scriptName);
+                    }
+                    if (group.functions.size() < maxGroupSamples) {
+                        group.functions.insert(
+                            std::format(
+                                "{}::{}",
+                                hashutils::ExtractTmp("namespace", decompError.origin.name_space),
+                                hashutils::ExtractTmp("function", decompError.origin.name)
+                            )
+                        );
+                    }
+                }
+                continue;
             }
 
             writer.StartObject();
@@ -552,6 +707,31 @@ namespace {
             writer.EndObject();
         }
         writer.EndArray();
+        if (summary) {
+            writer.Key("groups");
+            writer.StartArray();
+            for (const std::pair<const std::string, ErrorGroup>& group : errorGroups) {
+                writer.StartObject();
+                writer.Key("message");
+                writer.String(group.first.c_str(), (rapidjson::SizeType)group.first.size());
+                writer.Key("count");
+                writer.Uint64(group.second.count);
+                writer.Key("scripts");
+                writer.StartArray();
+                for (const std::string& script : group.second.scripts) {
+                    writer.String(script.c_str());
+                }
+                writer.EndArray();
+                writer.Key("functions");
+                writer.StartArray();
+                for (const std::string& function : group.second.functions) {
+                    writer.String(function.c_str());
+                }
+                writer.EndArray();
+                writer.EndObject();
+            }
+            writer.EndArray();
+        }
         writer.Key("processed");
         writer.Uint64(processed);
         writer.Key("totalFiles");
@@ -561,7 +741,32 @@ namespace {
         writer.Key("stoppedEarly");
         writer.Bool(stoppedEarly);
         writer.EndObject();
-        return ToJson(sb);
+
+        if (!outputFile) {
+            return ToJson(sb);
+        }
+        // the full result is written into the file, only the totals are returned
+        if (!utils::WriteFile(outputFile, std::string{ sb.GetString(), sb.GetSize() })) {
+            isError = true;
+            return std::format("Can't open the output file '{}'", outputFile);
+        }
+        rapidjson::StringBuffer resultSb{};
+        rapidjson::Writer<rapidjson::StringBuffer> resultWriter{ resultSb };
+        resultWriter.StartObject();
+        resultWriter.Key("outputFile");
+        resultWriter.String(outputFile);
+        resultWriter.Key("bytes");
+        resultWriter.Uint64(sb.GetSize());
+        resultWriter.Key("processed");
+        resultWriter.Uint64(processed);
+        resultWriter.Key("totalFiles");
+        resultWriter.Uint64(files.size());
+        resultWriter.Key("totalErrors");
+        resultWriter.Uint64(totalErrors);
+        resultWriter.Key("stoppedEarly");
+        resultWriter.Bool(stoppedEarly);
+        resultWriter.EndObject();
+        return ToJson(resultSb);
     }
 
     // An opened script, the handler points to the buffer
@@ -958,6 +1163,242 @@ namespace {
         return ToJson(sb);
     }
 
+    // Find the file of a script by its name in a path (a file or a directory)
+    bool FindScriptFile(const char* pathStr, const char* script, std::filesystem::path& found, std::string& err) {
+        std::vector<std::filesystem::path> files{};
+        std::filesystem::path base{};
+        if (!CollectScriptFiles(pathStr, files, base, err)) {
+            return false;
+        }
+        if (std::filesystem::is_regular_file(std::filesystem::path{ pathStr })) {
+            found = files[0];
+            return true;
+        }
+        for (const std::filesystem::path& file : files) {
+            ScriptFile scriptFile{};
+            std::string openErr{};
+            if (!OpenScript(file, scriptFile, openErr)) {
+                continue;
+            }
+            if (HashEquals(scriptFile.handler->GetName(), scriptFile.vmInfo->HashPath(script))) {
+                found = file;
+                return true;
+            }
+        }
+        err = std::format("Can't find the script '{}' in '{}'", script, pathStr);
+        return false;
+    }
+
+    // Disassemble a function of a script file with the internal opcode names, without the opcode values
+    bool DisassembleFunction(
+        const std::filesystem::path& file, Platform plt, const ExportFilterDef& filter, std::string& output,
+        std::string& err
+    ) {
+        std::string buffer{};
+        void* bufferAlign{};
+        size_t size{};
+        if (!utils::ReadFileAlign(file, buffer, bufferAlign, size) || size < 8) {
+            err = "Can't read the file";
+            return false;
+        }
+        uint64_t magic{ *(uint64_t*)bufferAlign };
+        if (!CheckPlatformForMagic(magic, plt, err)) {
+            return false;
+        }
+        tool::gsc::GscDecompilerGlobalContext gdctx{};
+        gdctx.noDump = true;
+        gdctx.opt.m_platform = plt;
+        gdctx.opt.m_dasm = true;
+        gdctx.opt.m_show_opcode_values = false;
+        gdctx.opt.m_use_internal_names = true;
+        if (!SetExportFilters(gdctx, magic, { filter })) {
+            err = std::format("No vm for the magic 0x{:x}", magic);
+            return false;
+        }
+        output.clear();
+        gdctx.opt.udWriteAsmFunction = &output;
+        gdctx.opt.WriteAsmFunction = [](const char* str, size_t len, void* ud) {
+            ((std::string*)ud)->append(str, len);
+        };
+        try {
+            if (tool::gsc::DecompileGsc((byte*)bufferAlign, size, file.filename(), gdctx) != tool::OK) {
+                err = "Decompilation error, check the platform and the vm opcodes";
+                return false;
+            }
+        } catch (std::runtime_error& e) {
+            err = std::format("Decompilation error: {}", e.what());
+            return false;
+        }
+        return true;
+    }
+
+    // Split an asm listing into trimmed non empty lines
+    std::vector<std::string> SplitAsmLines(const std::string& text) {
+        std::vector<std::string> lines{};
+        size_t start{};
+        while (start <= text.size()) {
+            size_t end{ text.find('\n', start) };
+            if (end == std::string::npos) {
+                end = text.size();
+            }
+            std::string line{ text.substr(start, end - start) };
+            size_t first{ line.find_first_not_of(" \t\r") };
+            size_t last{ line.find_last_not_of(" \t\r") };
+            if (first != std::string::npos) {
+                lines.push_back(line.substr(first, last - first + 1));
+            }
+            start = end + 1;
+        }
+        return lines;
+    }
+
+    std::string compare_gsc_function(const rapidjson::Value& args, bool& isError) {
+        const char* oldPath{ GetStringArg(args, "old") };
+        const char* newPath{ GetStringArg(args, "new") };
+        const char* function{ GetStringArg(args, "function") };
+        const char* nameSpace{ GetStringArg(args, "namespace") };
+        const char* script{ GetStringArg(args, "script") };
+        if (!oldPath || !newPath || !function || !nameSpace || !script) {
+            isError = true;
+            return "Missing 'old', 'new', 'function', 'namespace' or 'script' argument";
+        }
+        Platform oldPlt{ tool::gsc::opcode::PLATFORM_PC };
+        const char* oldPltName{ GetStringArg(args, "platform") };
+        if (oldPltName) {
+            oldPlt = tool::gsc::opcode::PlatformOf(oldPltName);
+        }
+        Platform newPlt{ oldPlt };
+        const char* newPltName{ GetStringArg(args, "newPlatform") };
+        if (newPltName) {
+            newPlt = tool::gsc::opcode::PlatformOf(newPltName);
+        }
+        if (oldPlt == tool::gsc::opcode::PLATFORM_UNKNOWN || newPlt == tool::gsc::opcode::PLATFORM_UNKNOWN) {
+            isError = true;
+            return std::format("Unknown platform, valid platforms: {}", PlatformNamesList(nullptr));
+        }
+        bool full{ args.HasMember("full") && args["full"].IsBool() && args["full"].GetBool() };
+
+        hashutils::ReadDefaultFile();
+
+        ExportFilterDef filter{ function, nameSpace, script };
+        std::string oldAsm{};
+        std::string newAsm{};
+        std::string err{};
+        std::filesystem::path oldFile{};
+        std::filesystem::path newFile{};
+        if (!FindScriptFile(oldPath, script, oldFile, err) ||
+            !DisassembleFunction(oldFile, oldPlt, filter, oldAsm, err)) {
+            isError = true;
+            return std::format("old: {}", err);
+        }
+        if (!FindScriptFile(newPath, script, newFile, err) ||
+            !DisassembleFunction(newFile, newPlt, filter, newAsm, err)) {
+            isError = true;
+            return std::format("new: {}", err);
+        }
+
+        std::vector<std::string> oldLines{ SplitAsmLines(oldAsm) };
+        std::vector<std::string> newLines{ SplitAsmLines(newAsm) };
+        const size_t maxLines{ 4000 };
+        if (oldLines.size() > maxLines || newLines.size() > maxLines) {
+            isError = true;
+            return "The function is too big to be compared, use decompile_gsc_file";
+        }
+
+        // LCS table on the lines
+        size_t n{ oldLines.size() };
+        size_t m{ newLines.size() };
+        std::vector<std::vector<uint32_t>> lcs(n + 1, std::vector<uint32_t>(m + 1, 0));
+        for (size_t i = n; i-- > 0;) {
+            for (size_t j = m; j-- > 0;) {
+                lcs[i][j] = oldLines[i] == newLines[j] ? lcs[i + 1][j + 1] + 1 : std::max(lcs[i + 1][j], lcs[i][j + 1]);
+            }
+        }
+
+        // hunks: the regions between the matching lines, with the matching line before/after them
+        struct Hunk {
+            std::string before;
+            std::string after;
+            std::vector<std::string> oldPart;
+            std::vector<std::string> newPart;
+        };
+        std::vector<Hunk> hunks{};
+        size_t equalLines{};
+        size_t i{};
+        size_t j{};
+        std::string lastEqual{};
+        while (i < n || j < m) {
+            if (i < n && j < m && oldLines[i] == newLines[j]) {
+                lastEqual = oldLines[i];
+                equalLines++;
+                i++;
+                j++;
+                continue;
+            }
+            Hunk hunk{};
+            hunk.before = lastEqual;
+            while ((i < n || j < m) && !(i < n && j < m && oldLines[i] == newLines[j])) {
+                if (j >= m || (i < n && lcs[i + 1][j] >= lcs[i][j + 1])) {
+                    hunk.oldPart.push_back(oldLines[i++]);
+                } else {
+                    hunk.newPart.push_back(newLines[j++]);
+                }
+            }
+            hunk.after = i < n ? oldLines[i] : "";
+            hunks.push_back(std::move(hunk));
+        }
+
+        rapidjson::StringBuffer sb{};
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+        writer.StartObject();
+        writer.Key("oldFile");
+        writer.String(oldFile.string().c_str());
+        writer.Key("newFile");
+        writer.String(newFile.string().c_str());
+        writer.Key("oldLines");
+        writer.Uint64(n);
+        writer.Key("newLines");
+        writer.Uint64(m);
+        writer.Key("equalLines");
+        writer.Uint64(equalLines);
+        writer.Key("identical");
+        writer.Bool(hunks.empty());
+        // the hunks with the same number of lines on each side are probably a renamed/remapped opcode
+        writer.Key("hunks");
+        writer.StartArray();
+        for (const Hunk& hunk : hunks) {
+            writer.StartObject();
+            writer.Key("before");
+            writer.String(hunk.before.c_str(), (rapidjson::SizeType)hunk.before.size());
+            writer.Key("old");
+            writer.StartArray();
+            for (const std::string& line : hunk.oldPart) {
+                writer.String(line.c_str(), (rapidjson::SizeType)line.size());
+            }
+            writer.EndArray();
+            writer.Key("new");
+            writer.StartArray();
+            for (const std::string& line : hunk.newPart) {
+                writer.String(line.c_str(), (rapidjson::SizeType)line.size());
+            }
+            writer.EndArray();
+            writer.Key("after");
+            writer.String(hunk.after.c_str(), (rapidjson::SizeType)hunk.after.size());
+            writer.Key("sameSize");
+            writer.Bool(hunk.oldPart.size() == hunk.newPart.size());
+            writer.EndObject();
+        }
+        writer.EndArray();
+        if (full) {
+            writer.Key("oldAsm");
+            writer.String(oldAsm.c_str(), (rapidjson::SizeType)oldAsm.size());
+            writer.Key("newAsm");
+            writer.String(newAsm.c_str(), (rapidjson::SizeType)newAsm.size());
+        }
+        writer.EndObject();
+        return ToJson(sb);
+    }
+
     void WriteOpCodeName(rapidjson::Writer<rapidjson::StringBuffer>& writer, OPCode op) {
         const char* name{ tool::gsc::opcode::OpCodeName(op) };
         if (name) {
@@ -1128,6 +1569,12 @@ namespace {
     );
 
     ADD_MCP_TOOL(
+        list_gsc_platforms, "gsc",
+        "List the platform ids usable in the 'platform' arguments. Returns an array of { id, name }. A vm only "
+        "defines some of them, see list_gsc_vm.",
+        nullptr, list_gsc_platforms
+    );
+    ADD_MCP_TOOL(
         list_gsc_opcode_names, "gsc",
         "List the opcode names usable in the other opcode tools. Optional 'filter' is a case insensitive substring.",
         R"({"type":"object","properties":{"filter":{"type":"string"}}})", list_gsc_opcode_names
@@ -1142,8 +1589,9 @@ namespace {
         dump_gsc_vm_opcodes, "gsc",
         "Dump the opcodes of a vm for a platform in the actsop csv format (VM,PLATFORM,OPCODE,VALUES, values in hex, "
         "the values not used are in the Undefined line). The csv is returned, or written into 'output' if it is "
-        "set.",
-        R"({"type":"object","properties":{"vm":{"type":"string","description":"vm internalName"},"platform":{"type":"string"},"output":{"type":"string","description":"optional file to write the dump into"}},"required":["vm","platform"]})",
+        "set. 'dumpType' cpp returns/writes one 'vminfo->RegisterOpCode(PLATFORM_X, OPCODE_Y, 0x.., ...);' line per "
+        "opcode instead (the format of the opcode registries, without the Undefined pool).",
+        R"({"type":"object","properties":{"vm":{"type":"string","description":"vm internalName"},"platform":{"type":"string"},"output":{"type":"string","description":"optional file to write the dump into"},"dumpType":{"type":"string","enum":["csv","cpp"],"description":"csv (default) or cpp (vminfo->RegisterOpCode(PLATFORM_X, OPCODE_Y, 0x.., ...); lines)\"},"compact":{"type":"boolean","description":"csv only: only list the unused values below the highest used one"}},"required":["vm","platform"]})",
         dump_gsc_vm_opcodes
     );
     ADD_MCP_TOOL(
@@ -1167,11 +1615,14 @@ namespace {
         "'exports' restricts the output to some functions, each "
         "entry is { function, namespace?, script? } with exact names (script requires namespace), they are hashed "
         "for the vm of each file. 'maxErrors' stops the loop over the files once this number of errors is reached. "
+        "'useInternalNames' prints the opcode names of list_gsc_opcode_names/set_gsc_vm_opcodes in the asm. "
+        "'summary' groups the errors by message, 'outputFile' writes the full result into a file (use both for big "
+        "dumps). A platform not defined by the vm of a file is reported as an error of the file. "
         "Returns "
         "{ files: [ { path, success, error?, errors[] ({ message, function, namespace, script } of the decompiler "
         "errors, missing opcodes...), output } ], processed, "
         "totalFiles, totalErrors, stoppedEarly }.",
-        R"({"type":"object","properties":{"path":{"type":"string","description":"path of a compiled gsc/csc file or of a directory"},"exports":{"type":"array","items":{"type":"object","properties":{"function":{"type":"string"},"namespace":{"type":"string"},"script":{"type":"string"}},"required":["function"]}},"platform":{"type":"string"},"mode":{"type":"string","enum":["decompile","asm","both","status"]},"maxErrors":{"type":"integer","minimum":0},"header":{"type":"boolean"},"hideOpcodeValues":{"type":"boolean"}},"required":["path"]})",
+        R"({"type":"object","properties":{"path":{"type":"string","description":"path of a compiled gsc/csc file or of a directory"},"exports":{"type":"array","items":{"type":"object","properties":{"function":{"type":"string"},"namespace":{"type":"string"},"script":{"type":"string"}},"required":["function"]}},"platform":{"type":"string"},"mode":{"type":"string","enum":["decompile","asm","both","status"]},"maxErrors":{"type":"integer","minimum":0},"header":{"type":"boolean"},"hideOpcodeValues":{"type":"boolean"},"summary":{"type":"boolean","description":"group the errors by message ({ message, count, scripts[], functions[] } samples) instead of listing the files"},"outputFile":{"type":"string","description":"write the full json result into this file and only return the totals"},"useInternalNames":{"type":"boolean","description":"print the opcode names used by the other opcode tools (list_gsc_opcode_names) instead of the vm names"}},"required":["path"]})",
         decompile_gsc_file
     );
     ADD_MCP_TOOL(
@@ -1184,6 +1635,18 @@ namespace {
         "exports? (the matching functions) } ], scanned, failed }.",
         R"({"type":"object","properties":{"path":{"type":"string","description":"path of a compiled gsc/csc file or of a directory"},"script":{"type":"string","description":"exact script name"},"function":{"type":"string","description":"exact function name"},"namespace":{"type":"string","description":"exact namespace name"},"counts":{"type":"object","additionalProperties":{"type":"object","properties":{"min":{"type":"integer","minimum":0},"max":{"type":"integer","minimum":0}}}}},"required":["path"]})",
         search_gsc_scripts
+    );
+    ADD_MCP_TOOL(
+        compare_gsc_function, "gsc",
+        "Disassemble the same function in two dumps (the script is found by its name in each directory, the vm is "
+        "read from the magic) with the internal opcode names and without the opcode values, and return only the "
+        "differences. 'platform' is the platform of the old dump (pc by default), 'newPlatform' the one of the new "
+        "dump (same as 'platform' by default). Returns { oldFile, newFile, oldLines, newLines, equalLines, "
+        "identical, hunks: [ { before, old[], new[], after, sameSize } ] } where before/after are the matching "
+        "lines around a difference. A hunk with the same number of lines on both sides, where the new line is an "
+        "unknown opcode, gives the candidate opcode of that unknown value. 'full' adds both complete listings.",
+        R"({"type":"object","properties":{"old":{"type":"string","description":"directory (or file) of the old dump"},"new":{"type":"string","description":"directory (or file) of the new dump"},"function":{"type":"string"},"namespace":{"type":"string"},"script":{"type":"string","description":"exact script name"},"platform":{"type":"string"},"newPlatform":{"type":"string"},"full":{"type":"boolean"}},"required":["old","new","function","namespace","script"]})",
+        compare_gsc_function
     );
     ADD_MCP_TOOL(
         get_gsc_script_data, "gsc",

@@ -1,4 +1,5 @@
 #pragma once
+#include <magic_enum/magic_enum.hpp>
 
 namespace tool::gsc::opcode {
     constexpr uint64_t GetGscOldVm(const char* id) {
@@ -61,7 +62,8 @@ namespace tool::gsc::opcode {
         VMI_SAT_17 = 0xa0d43534717,
         VMI_SAT_18 = 0xa0d43534718,
         VMI_SAT_19 = 0xa0d43534719,
-        VMI_SAT_1A = 0xa0d4353471a,
+        VMI_SAT_1A = 0xa0d4353471A,
+        VMI_IW10_1B = 0xa0d4353471B,
 
         // IW old VMs
         VMI_IW_GSCBIN = 0x00435347, // "GSC\0"
@@ -489,3 +491,9 @@ namespace tool::gsc::opcode {
     const char* OpCodeName(OPCode op);
     OPCode OpCodeFromName(const char* op);
 } // namespace tool::gsc::opcode
+
+template<>
+struct magic_enum::customize::enum_range<tool::gsc::opcode::OPCode> {
+    static constexpr int min = 0;
+    static constexpr int max = (int)tool::gsc::opcode::OPCODE_COUNT;
+};

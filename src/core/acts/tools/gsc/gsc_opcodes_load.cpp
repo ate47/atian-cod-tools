@@ -81,12 +81,12 @@ namespace tool::gsc::opcode {
     class OpCodeLookupTable {
       public:
         std::unordered_map<OPCode, const char*> opToName{};
-        std::unordered_map<std::string, OPCode> nameToOp{};
+        std::unordered_map<uint64_t, OPCode> nameToOp{};
 
       private:
         void RegisterOpCode(OPCode op, const char* name) {
             opToName[op] = name;
-            auto& opl = nameToOp[utils::LowerCase(utils::CloneString(name))];
+            OPCode& opl = nameToOp[hash::Hash64A(name)];
             if (opl && opl != op) {
                 LOG_WARNING("Registered opcode with the same name : '{}' 0x{:x} != 0x{:x}", name, (int)opl, (int)op);
             } else {
@@ -401,7 +401,7 @@ namespace tool::gsc::opcode {
         return it != table.opToName.end() ? it->second : nullptr;
     }
     OPCode OpCodeFromName(const char* op) {
-        auto it = table.nameToOp.find(op);
+        auto it{ table.nameToOp.find(hash::Hash64A(op)) };
         return it != table.nameToOp.end() ? it->second : OPCODE_Undefined;
     }
     int dop(int argc, const char* argv[]) {

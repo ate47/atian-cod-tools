@@ -4,6 +4,9 @@
 #include <tools/gsc/gsc.hpp>
 #include <tools/gsc/gsc_opcodes.hpp>
 #include <tools/gsc/decompiler/gsc_decompiler_object.hpp>
+#include <tools/mcp/mcp_tool.hpp>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 namespace {
     using namespace tool::gsc::opcode;
@@ -22,39 +25,30 @@ namespace {
         uint32_t size{};
     };
 
-    int gsct(int argc, const char* argv[]) {
-        cli::options::CliOptions opts{};
+    // Result of a translation between two vms
+    struct TranslateContext {
+        VmInfo* oldVm{};
+        VmInfo* newVm{};
+        std::unordered_map<uint64_t, GscData> oldScriptsMap{};
+        std::unordered_map<uint64_t, GscData> newScriptsMap{};
+        // old opcode -> new values
+        std::unordered_map<const OPCodeInfo*, std::set<uint16_t>> opcodeMapping{};
+        std::string error{};
+    };
 
-        struct {
-            bool help{};
-            bool sameVm{};
-            const char* testDecompDir{};
-            const char* pltName{};
-            bool exportConv{};
-            opcode::Platform plt{ PLATFORM_PC };
-        } opt;
-
-        opts.addOption(&opt.help, "Show help", "--help", "", "-h")
-            .addOption(&opt.sameVm, "Use same vm for new", "--sameVm", "", "-s")
-            .addOption(&opt.exportConv, "Use exports", "--export", "", "-e")
-            .addOption(&opt.testDecompDir, "Start decompiler with new opcodes", "--decomp", "", "-d")
-            .addOption(&opt.pltName, "Input platform name", "--plt", " [plt]", "-t");
-
-        if (!opts.ComputeOptions(2, argc, argv) || opt.help || opts.ParamsCount() < 3) {
-            LOG_INFO("{} {} [input] [out] [opcodes out]", argv[0], argv[1]);
-            opts.PrintOptions();
-            return opts.ParamsCount() < 3 ? tool::BAD_USAGE : tool::OK;
-        }
-
-        if (opt.pltName) {
-            opt.plt = opcode::PlatformOf(opt.pltName);
-            if (!opt.plt) {
-                LOG_ERROR("Invalid platform name '{}'", opt.pltName);
-                return tool::BASIC_ERROR;
-            }
-            LOG_INFO("use plt: {}", opcode::PlatformName(opt.plt));
-        }
-
+    /*
+     * Compute the opcode mapping between the compiled scripts of two vms
+     * @param ctx translation context, filled with the results
+     * @param oldPath directory of the compiled scripts of the old vm
+     * @param newPath directory of the compiled scripts of the new vm
+     * @param plt platform of the old vm opcodes
+     * @param exportConv use the exports to find similar functions
+     * @return true if the mapping was computed, false otherwise (ctx.error is set)
+     */
+    bool TranslateOpcodes(
+        TranslateContext& ctx, const std::filesystem::path& oldPath, const std::filesystem::path& newPath,
+        opcode::Platform plt, bool exportConv
+    ) {
         RegisterOpCodesMap();
 
         auto LoadVmMap = [](std::unordered_map<uint64_t, GscData>& map,
@@ -102,29 +96,28 @@ namespace {
             LOG_INFO("{} scripts loaded", map.size());
         };
 
-        VmInfo* oldVm{};
-        VmInfo* newVm{};
-        std::unordered_map<uint64_t, GscData> oldScriptsMap{};
-        std::unordered_map<uint64_t, GscData> newScriptsMap{};
-        LoadVmMap(oldScriptsMap, "old", opts[0], oldVm);
-        LoadVmMap(newScriptsMap, "new", opts[1], newVm);
+        VmInfo*& oldVm{ ctx.oldVm };
+        VmInfo*& newVm{ ctx.newVm };
+        std::unordered_map<uint64_t, GscData>& oldScriptsMap{ ctx.oldScriptsMap };
+        std::unordered_map<uint64_t, GscData>& newScriptsMap{ ctx.newScriptsMap };
+        std::unordered_map<const OPCodeInfo*, std::set<uint16_t>>& opcodeMapping{ ctx.opcodeMapping };
+        LoadVmMap(oldScriptsMap, "old", oldPath, oldVm);
+        LoadVmMap(newScriptsMap, "new", newPath, newVm);
 
         if (!oldVm || !newVm) {
-            LOG_ERROR("Missing vm");
-            return tool::BASIC_ERROR;
+            ctx.error = "Missing vm";
+            return false;
         }
 
         if (oldVm->HasFlag(VmFlags::VMF_OPCODE_U16) != newVm->HasFlag(VmFlags::VMF_OPCODE_U16)) {
-            LOG_ERROR("Can't map vm with different op sizes");
-            return tool::BASIC_ERROR;
+            ctx.error = "Can't map vm with different op sizes";
+            return false;
         }
 
         bool sameFieldHash = oldVm->HashField("hello") == newVm->HashField("hello");
         bool sameFileHash = oldVm->HashPath("scripts/hello.gsc") == newVm->HashPath("scripts/hello.gsc");
 
         hashutils::ReadDefaultFile();
-
-        std::unordered_map<const OPCodeInfo*, std::set<uint16_t>> opcodeMapping{};
 
         std::unique_ptr<GSCExportReader> oer{ tool::gsc::CreateExportReader(oldVm) };
         std::unique_ptr<GSCExportReader> ner{ tool::gsc::CreateExportReader(newVm) };
@@ -165,7 +158,7 @@ namespace {
             gdctx.noDump = true;
             // the decompiler will put everything in this map
             gdctx.opcodesLocs = &newdata.opcodesLocs;
-            gdctx.opt.m_platform = opt.plt;
+            gdctx.opt.m_platform = plt;
 
             if (olddata.reader->GetCSEGSize() == newdata.reader->GetCSEGSize()) {
                 LOG_INFO("Find similar CSEG");
@@ -194,7 +187,7 @@ namespace {
                         nop = (uint16_t)(*(byte*)nopbase);
                     }
 
-                    const OPCodeInfo* oldNfo{ LookupOpCode(oldVm->vmMagic, opt.plt, op) };
+                    const OPCodeInfo* oldNfo{ LookupOpCode(oldVm->vmMagic, plt, op) };
 
                     if (!oldNfo || oldNfo->m_id == OPCODE_Undefined) {
                         continue; // ignore bad ids
@@ -206,7 +199,7 @@ namespace {
                 continue;
             }
 
-            if (opt.exportConv) {
+            if (exportConv) {
                 // not working, maybe we can translate checking first same CSEG and then the export codes while ignoring
                 // strange results
                 std::unordered_map<NameLocated, GscExportData*, NameLocatedHash, NameLocatedEquals> oldExportsMap{};
@@ -327,7 +320,7 @@ namespace {
                             nop = (uint16_t)(*(byte*)nopbase);
                         }
 
-                        const OPCodeInfo* oldNfo{ LookupOpCode(oldVm->vmMagic, opt.plt, op) };
+                        const OPCodeInfo* oldNfo{ LookupOpCode(oldVm->vmMagic, plt, op) };
 
                         if (!oldNfo || oldNfo->m_id == OPCODE_Undefined) {
                             continue; // ignore bad ids
@@ -344,6 +337,53 @@ namespace {
             // compute exports list
             LOG_WARNING("No similar data to exploit for {}", hashutils::ExtractTmpScript(name));
         }
+
+        return true;
+    }
+
+    int gsct(int argc, const char* argv[]) {
+        cli::options::CliOptions opts{};
+
+        struct {
+            bool help{};
+            bool sameVm{};
+            const char* testDecompDir{};
+            const char* pltName{};
+            bool exportConv{};
+            opcode::Platform plt{ PLATFORM_PC };
+        } opt;
+
+        opts.addOption(&opt.help, "Show help", "--help", "", "-h")
+            .addOption(&opt.sameVm, "Use same vm for new", "--sameVm", "", "-s")
+            .addOption(&opt.exportConv, "Use exports", "--export", "", "-e")
+            .addOption(&opt.testDecompDir, "Start decompiler with new opcodes", "--decomp", "", "-d")
+            .addOption(&opt.pltName, "Input platform name", "--plt", " [plt]", "-t");
+
+        if (!opts.ComputeOptions(2, argc, argv) || opt.help || opts.ParamsCount() < 3) {
+            LOG_INFO("{} {} [input] [out] [opcodes out]", argv[0], argv[1]);
+            opts.PrintOptions();
+            return opts.ParamsCount() < 3 ? tool::BAD_USAGE : tool::OK;
+        }
+
+        if (opt.pltName) {
+            opt.plt = opcode::PlatformOf(opt.pltName);
+            if (!opt.plt) {
+                LOG_ERROR("Invalid platform name '{}'", opt.pltName);
+                return tool::BASIC_ERROR;
+            }
+            LOG_INFO("use plt: {}", opcode::PlatformName(opt.plt));
+        }
+
+        TranslateContext ctx{};
+        if (!TranslateOpcodes(ctx, opts[0], opts[1], opt.plt, opt.exportConv)) {
+            LOG_ERROR("{}", ctx.error);
+            return tool::BASIC_ERROR;
+        }
+
+        VmInfo* oldVm{ ctx.oldVm };
+        VmInfo* newVm{ ctx.newVm };
+        std::unordered_map<uint64_t, GscData>& newScriptsMap{ ctx.newScriptsMap };
+        std::unordered_map<const OPCodeInfo*, std::set<uint16_t>>& opcodeMapping{ ctx.opcodeMapping };
 
         {
             LOG_INFO("Dump into {}", opts[2]);
@@ -406,6 +446,201 @@ namespace {
 
         return tool::OK;
     }
+
+    // Get a string argument, nullptr if missing
+    const char* GetStringArg(const rapidjson::Value& args, const char* key) {
+        if (!args.IsObject() || !args.HasMember(key) || !args[key].IsString()) {
+            return nullptr;
+        }
+        return args[key].GetString();
+    }
+
+    std::string translate_gsc_opcodes(const rapidjson::Value& args, bool& isError) {
+        const char* oldPath{ GetStringArg(args, "old") };
+        const char* newPath{ GetStringArg(args, "new") };
+        if (!oldPath || !newPath) {
+            isError = true;
+            return "Missing 'old' or 'new' argument";
+        }
+
+        opcode::Platform plt{ PLATFORM_PC };
+        const char* pltName{ GetStringArg(args, "platform") };
+        if (pltName) {
+            plt = opcode::PlatformOf(pltName);
+            if (!plt) {
+                isError = true;
+                return std::format("Invalid platform name '{}'", pltName);
+            }
+        }
+        bool exportConv{ args.IsObject() && args.HasMember("export") && args["export"].IsBool() &&
+                         args["export"].GetBool() };
+
+        TranslateContext ctx{};
+        try {
+            if (!TranslateOpcodes(ctx, oldPath, newPath, plt, exportConv)) {
+                isError = true;
+                return ctx.error;
+            }
+        } catch (std::runtime_error& e) {
+            isError = true;
+            return e.what();
+        }
+
+        // sort the results by opcode name
+        std::map<std::string, const std::set<uint16_t>*> sorted{};
+        for (const std::pair<const OPCodeInfo* const, std::set<uint16_t>>& mapping : ctx.opcodeMapping) {
+            // same names as the other opcode tools (list_gsc_opcode_names, set_gsc_vm_opcodes...)
+            const char* name{ opcode::OpCodeName(mapping.first->m_id) };
+            sorted[name ? name : "<error>"] = &mapping.second;
+        }
+
+        bool byteVm{ !ctx.oldVm->HasFlag(VmFlags::VMF_OPCODE_U16) };
+
+        // conflicts: a byte vm uses one value per opcode, and a value can't be used by multiple opcodes
+        std::map<uint16_t, std::set<std::string>> valueOwners{};
+        for (const std::pair<const std::string, const std::set<uint16_t>*>& mapping : sorted) {
+            for (uint16_t value : *mapping.second) {
+                valueOwners[value].insert(mapping.first);
+            }
+        }
+        std::set<std::string> conflictOpcodes{};
+        for (const std::pair<const std::string, const std::set<uint16_t>*>& mapping : sorted) {
+            if (byteVm && mapping.second->size() != 1) {
+                conflictOpcodes.insert(mapping.first);
+            }
+            for (uint16_t value : *mapping.second) {
+                if (valueOwners[value].size() > 1) {
+                    conflictOpcodes.insert(mapping.first);
+                }
+            }
+        }
+
+        // unmapped: the opcodes defined by the old vm for the platform without any new value
+        std::set<std::string> mappedIds{};
+        for (const std::pair<const std::string, const std::set<uint16_t>*>& mapping : sorted) {
+            mappedIds.insert(mapping.first);
+        }
+        std::set<std::string> unmapped{};
+        std::unordered_map<Platform, std::unordered_map<OPCode, std::unordered_set<uint16_t>>>::const_iterator pltIt{
+            ctx.oldVm->opcodemappltlookup.find(ctx.oldVm->RemapSamePlatform(plt))
+        };
+        if (pltIt != ctx.oldVm->opcodemappltlookup.end()) {
+            for (const std::pair<const OPCode, std::unordered_set<uint16_t>>& op : pltIt->second) {
+                const char* name{ op.first == OPCODE_Undefined ? nullptr : opcode::OpCodeName(op.first) };
+                if (name && !mappedIds.contains(name)) {
+                    unmapped.insert(name);
+                }
+            }
+        }
+
+        // apply: register the mappings without conflicts into the new vm for a platform
+        size_t applied{};
+        const char* applyPltName{ GetStringArg(args, "apply") };
+        if (applyPltName) {
+            opcode::Platform applyPlt{ opcode::PlatformOf(applyPltName) };
+            if (!applyPlt) {
+                isError = true;
+                return std::format("Invalid platform name '{}' for 'apply'", applyPltName);
+            }
+            ctx.newVm->AddPlatform(applyPlt);
+            for (const std::pair<const std::string, const std::set<uint16_t>*>& mapping : sorted) {
+                OPCode op{ opcode::OpCodeFromName(mapping.first.c_str()) };
+                if (conflictOpcodes.contains(mapping.first) || op == OPCODE_Undefined) {
+                    continue;
+                }
+                for (uint16_t value : *mapping.second) {
+                    if (value < ctx.newVm->maxOpCode) {
+                        ctx.newVm->RegisterOpCode(applyPlt, op, value);
+                        applied++;
+                    }
+                }
+            }
+        }
+
+        rapidjson::StringBuffer sb{};
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ sb };
+
+        writer.StartObject();
+        writer.Key("oldVm");
+        writer.String(ctx.oldVm->internalName);
+        writer.Key("newVm");
+        writer.String(ctx.newVm->internalName);
+        writer.Key("oldScripts");
+        writer.Uint64(ctx.oldScriptsMap.size());
+        writer.Key("newScripts");
+        writer.Uint64(ctx.newScriptsMap.size());
+        writer.Key("mappings");
+        writer.StartArray();
+        for (const std::pair<const std::string, const std::set<uint16_t>*>& mapping : sorted) {
+            writer.StartObject();
+            writer.Key("opcode");
+            writer.String(mapping.first.c_str());
+            writer.Key("values");
+            writer.StartArray();
+            for (uint16_t value : *mapping.second) {
+                writer.Uint(value);
+            }
+            writer.EndArray();
+            writer.EndObject();
+        }
+        writer.EndArray();
+
+        writer.Key("conflicts");
+        writer.StartArray();
+        for (const std::string& name : conflictOpcodes) {
+            writer.StartObject();
+            writer.Key("opcode");
+            writer.String(name.c_str());
+            writer.Key("values");
+            writer.StartArray();
+            for (uint16_t value : *sorted[name]) {
+                writer.Uint(value);
+            }
+            writer.EndArray();
+            // the other opcodes using the same values
+            writer.Key("sharedWith");
+            writer.StartArray();
+            for (uint16_t value : *sorted[name]) {
+                for (const std::string& owner : valueOwners[value]) {
+                    if (owner != name) {
+                        writer.String(std::format("{} (0x{:x})", owner, value).c_str());
+                    }
+                }
+            }
+            writer.EndArray();
+            writer.EndObject();
+        }
+        writer.EndArray();
+
+        writer.Key("unmapped");
+        writer.StartArray();
+        for (const std::string& name : unmapped) {
+            writer.String(name.c_str());
+        }
+        writer.EndArray();
+
+        if (applyPltName) {
+            writer.Key("applied");
+            writer.Uint64(applied);
+        }
+        writer.EndObject();
+        return std::string{ sb.GetString(), sb.GetSize() };
+    }
+
+    ADD_MCP_TOOL(
+        translate_gsc_opcodes, "gsc",
+        "Translate the opcodes of a vm to another by comparing the compiled scripts (.gscc/.cscc/.gscbin/.cscbin) of "
+        "two directories (the same scripts compiled for the old and the new vm, with similar code segments). The vm "
+        "are read from the magic of the files. 'platform' is the platform of the old vm opcodes (pc by default), "
+        "'export' also compares the functions of the scripts with a different code segment (experimental). Returns "
+        "{ oldVm, newVm, oldScripts, newScripts, mappings: [ { opcode (old opcode name), values[] (new values) } ], "
+        "conflicts (opcodes with several values in a byte vm, or sharing a value with another opcode), unmapped "
+        "(opcodes of the old vm without any new value), applied? }. 'apply' is a platform: the mappings without "
+        "conflicts are registered into the new vm for this platform (like set_gsc_vm_opcodes), so they don't need "
+        "to be typed again.",
+        R"({"type":"object","properties":{"old":{"type":"string","description":"directory of the compiled scripts of the old vm"},"new":{"type":"string","description":"directory of the compiled scripts of the new vm"},"platform":{"type":"string"},"export":{"type":"boolean"},"apply":{"type":"string","description":"platform of the new vm to register the mappings without conflicts into"}},"required":["old","new"]})",
+        translate_gsc_opcodes
+    );
 
     ADD_TOOL(gsct, "gsc", "[old] [new] [output]", "Translate gsc opcodes from one VM to another", gsct);
 } // namespace
