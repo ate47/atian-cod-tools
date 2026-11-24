@@ -7,7 +7,7 @@ namespace tool::gsc::opcode {
             VmInfo* t101a = GetVm(VMI_SAT_1A);
             t101a->AddPlatform(PLATFORM_MW4);
 
-            t101a->RegisterVmName("iw10", "modernwarfare7", "mw4");
+            t101a->RegisterVmName("iw10_1a", "modernwarfare7_1a", "mw4_1a");
             t101a->RegisterOpCode(PLATFORM_MW4, OPCODE_AddToArray, 0x53);
             t101a->RegisterOpCode(PLATFORM_MW4, OPCODE_Bit_And, 0x97);
             t101a->RegisterOpCode(PLATFORM_MW4, OPCODE_Bit_Or, 0x3f);

@@ -97,7 +97,8 @@ The GSC file format contains the scripts used by the different games.
 | Black Ops 7 (SAT)        | 16  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 | Black Ops 7 (SAT)        | 18  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
 | Black Ops 7 (SAT)        | 19  | Dc         | ✅        | all         | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
-| Black Ops 7 (SAT)        | 1a  | Dc         | ✅        | bo7+mw4     | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
+| Black Ops 7 (SAT)        | 1A  | Dc         | ✅        | bo7+mw4     | [ate47/bo7-source](https://github.com/ate47/bo7-source)       |
+| Modern Warfare 4 (IW10)  | 1B  | Dc         | ✅        | all         | [ate47/mw4-source](https://github.com/ate47/mw4-source)       |
 
 - \* : Some source repositories might not be public yet.
 - \*\* : Some GSC vms aren't using the same opcodes
