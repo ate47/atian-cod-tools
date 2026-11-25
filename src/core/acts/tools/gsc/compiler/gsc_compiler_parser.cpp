@@ -1543,6 +1543,33 @@ namespace tool::gsc::compiler {
                         uint64_t hashVal{};
                         std::string strVal{};
 
+                        // event param: a string literal is pushed as its hash when the vm uses hashed events
+                        auto ParseEventParam = [&](ParseTree* eventNode, bool isEvent) -> bool {
+                            if (isEvent) {
+                                ParseTree* term{ eventNode };
+                                while (term && term->getTreeType() == TREE_RULE && term->children.size() == 1) {
+                                    term = term->children[0];
+                                }
+                                TerminalNode* termNode{ term && term->getTreeType() == TREE_TERMINAL
+                                                            ? dynamic_cast<TerminalNode*>(term)
+                                                            : nullptr };
+                                tool::gsc::opcode::VmHashFunc* hashFunc{ obj.vmInfo->GetVMHashOPCode('#') };
+                                std::string eventStr{};
+                                if (termNode && hashFunc && termNode->getSymbol()->getType() == gscParser::STRING &&
+                                    obj.TryStringNodeValue(eventNode, eventStr)) {
+                                    const char* ss{ eventStr.c_str() };
+                                    uint64_t eventHash{};
+                                    if (!hash::TryHashPattern(ss, eventHash)) {
+                                        eventHash = hashFunc->hashFunc(ss);
+                                        obj.AddHash(eventStr);
+                                    }
+                                    fobj.AddNode(eventNode, new AscmNodeData<uint64_t>(eventHash, hashFunc->opCode));
+                                    return true;
+                                }
+                            }
+                            return ParseExpressionNode(eventNode, parser, obj, fobj, true);
+                        };
+
                         if (f.HasFlag(tool::gsc::opcode::VPFD_UNPACK)) {
                             if (expressVal) {
                                 obj.info.PrintLineMessage(
@@ -1559,7 +1586,8 @@ namespace tool::gsc::compiler {
                                 );
                                 paramError = true;
                             } else {
-                                if (!ParseExpressionNode(paramsList->children[0], parser, obj, fobj, true)) {
+                                bool isEvent{ f.HasFlag(VPFD_EVENT_HASH) || f.HasFlag(VPFD_EVENT_HASH_ALL) };
+                                if (!ParseEventParam(paramsList->children[0], isEvent)) {
                                     paramError = true;
                                 }
 
@@ -1650,7 +1678,9 @@ namespace tool::gsc::compiler {
                                 removedStart += 2; // use the first param as hash
                             }
                             for (int i = (int)paramsList->children.size() - 1; i >= removedStart; i -= 2) {
-                                if (!ParseExpressionNode(paramsList->children[i], parser, obj, fobj, true)) {
+                                bool isEvent{ f.HasFlag(VPFD_EVENT_HASH_ALL) ||
+                                              (f.HasFlag(VPFD_EVENT_HASH) && i == removedStart) };
+                                if (!ParseEventParam(paramsList->children[i], isEvent)) {
                                     paramError = true;
                                 }
                                 paramCount++;

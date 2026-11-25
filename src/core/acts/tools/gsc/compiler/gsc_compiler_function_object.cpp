@@ -148,6 +148,21 @@ namespace tool::gsc::compiler {
     }
 
     void FunctionObject::OptimizeNodes() {
+        if (m_vmInfo->vmMagic == VMI_SAT_1A && obj.config.platform == PLATFORM_BO7) {
+            // Match the direct local stores emitted by the SAT compiler. Keep reference
+            // operations used by increments and other lvalue expressions unchanged.
+            for (size_t i = 0; i + 1 < m_nodes.size(); i++) {
+                AscmNodeVariable* local = dynamic_cast<AscmNodeVariable*>(m_nodes[i]);
+                AscmNodeOpCode* store = dynamic_cast<AscmNodeOpCode*>(m_nodes[i + 1]);
+                if (!local || local->opcode != OPCODE_EvalLocalVariableRefCached || !store ||
+                    store->opcode != OPCODE_SetVariableField || store->HasRef()) {
+                    continue;
+                }
+                local->opcode = OPCODE_SetLocalVariableCached;
+                delete store;
+                m_nodes.erase(m_nodes.begin() + i + 1);
+            }
+        }
 #ifdef __ACTS_PRIVATE_GSC_COMPILER
         // this code is here to mess up my own decompiler, so not public
         if (obj.config.obfuscate) {
